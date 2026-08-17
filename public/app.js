@@ -261,6 +261,8 @@ els.getDirectionsBtn.addEventListener('click', getDirections);
 
 async function getDirections() {
   if (!fromCoords || !toCoords) return;
+  if (selectedMode === 'transit') return getTransitDirections();
+
   els.getDirectionsBtn.disabled = true;
   els.getDirectionsBtn.textContent = 'Loading…';
 
@@ -287,6 +289,135 @@ async function getDirections() {
     els.getDirectionsBtn.disabled = false;
     els.getDirectionsBtn.textContent = 'Get Directions';
   }
+}
+
+// ---------- Transit (bus / MRT) directions ----------
+
+const MODE_ICON = { walk: '🚶', bus: '🚌', train: '🚇', ferry: '⛴' };
+const MODE_COLOR = { walk: '#6b7280', bus: '#059669', train: '#dc2626', ferry: '#0891b2' };
+
+// Decodes a Google-encoded polyline (precision 5) into an array of [lat, lng].
+function decodePolyline(encoded) {
+  let points = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
+    lng += dlng;
+
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+  return points;
+}
+
+async function getTransitDirections() {
+  els.getDirectionsBtn.disabled = true;
+  els.getDirectionsBtn.textContent = 'Loading…';
+
+  const params = new URLSearchParams({
+    fromLat: fromCoords.lat, fromLon: fromCoords.lon,
+    toLat: toCoords.lat, toLon: toCoords.lon,
+  });
+
+  try {
+    const res = await fetch(`/api/transit-plan?${params}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Transit routing is unavailable right now.');
+      return;
+    }
+
+    if (!data.itineraries || !data.itineraries.length) {
+      const reason = data.errors?.[0]?.description;
+      showToast(reason || 'No bus/MRT route found between those points.');
+      return;
+    }
+
+    const itinerary = data.itineraries[0];
+    drawTransitRoute(itinerary);
+    renderTransitSummary(itinerary);
+    renderTransitSteps(itinerary);
+  } catch (err) {
+    console.error(err);
+    showToast('Transit routing service unavailable. Please try again.');
+  } finally {
+    els.getDirectionsBtn.disabled = false;
+    els.getDirectionsBtn.textContent = 'Get Directions';
+  }
+}
+
+function drawTransitRoute(itinerary) {
+  if (routeLayer) map.removeLayer(routeLayer);
+  const group = L.layerGroup();
+
+  itinerary.legs.forEach((leg) => {
+    if (!leg.geometry) return;
+    const points = decodePolyline(leg.geometry);
+    const color = leg.routeColor ? `#${leg.routeColor}` : (MODE_COLOR[leg.mode] || '#2563eb');
+    L.polyline(points, {
+      color,
+      weight: leg.mode === 'walk' ? 4 : 5,
+      opacity: leg.mode === 'walk' ? 0.7 : 0.9,
+      dashArray: leg.mode === 'walk' ? '1, 8' : null,
+    }).addTo(group);
+  });
+
+  routeLayer = group.addTo(map);
+  const allPoints = itinerary.legs.flatMap((leg) => leg.geometry ? decodePolyline(leg.geometry) : []);
+  if (allPoints.length) {
+    map.fitBounds(L.latLngBounds(allPoints), { padding: [40, 40] });
+  }
+}
+
+function formatClockTime(ms) {
+  return new Date(ms).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function renderTransitSummary(itinerary) {
+  els.routeSummary.classList.remove('hidden');
+  const transfers = itinerary.legs.filter((l) => l.mode !== 'walk').length;
+  const transferText = transfers > 1 ? `${transfers - 1} transfer${transfers > 2 ? 's' : ''}` : 'Direct';
+  els.routeSummary.innerHTML = `<strong>${formatDuration(itinerary.duration)}</strong> &nbsp;·&nbsp; `
+    + `${formatClockTime(itinerary.startTime)} – ${formatClockTime(itinerary.endTime)} &nbsp;·&nbsp; ${transferText}`;
+}
+
+function renderTransitSteps(itinerary) {
+  els.routeSteps.innerHTML = '';
+  itinerary.legs.forEach((leg) => {
+    const li = document.createElement('li');
+    const icon = document.createElement('span');
+    icon.className = 'step-num';
+    icon.textContent = MODE_ICON[leg.mode] || '➜';
+
+    const text = document.createElement('span');
+    if (leg.mode === 'walk') {
+      text.textContent = `Walk to ${leg.to} — ${formatDistance(leg.distance)}, ${formatDuration(leg.duration)}`;
+    } else {
+      const line = leg.routeName ? `${leg.mode === 'train' ? 'Line' : 'Bus'} ${leg.routeName}` : leg.mode;
+      const headsign = leg.headsign ? ` towards ${leg.headsign}` : '';
+      text.innerHTML = `<strong>${line}</strong>${headsign}<br>`
+        + `${leg.from} → ${leg.to} — ${formatDuration(leg.duration)} (${formatClockTime(leg.startTime)})`;
+    }
+    li.appendChild(icon);
+    li.appendChild(text);
+    els.routeSteps.appendChild(li);
+  });
 }
 
 function drawRoute(route) {
