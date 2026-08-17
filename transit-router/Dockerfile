@@ -29,7 +29,7 @@ RUN curl -fsSL -o mysgbn.osm.pbf \
 
 COPY build-config.json router-config.json /graph/
 
-RUN java -Xmx3g -jar otp.jar --build --save /graph
+RUN java -Xmx7g -jar otp.jar --build --save /graph
 
 FROM eclipse-temurin:21-jre
 
@@ -40,4 +40,4 @@ COPY router-config.json /graph/router-config.json
 
 EXPOSE 8080
 
-CMD ["java", "-Xmx2g", "-jar", "/graph/otp.jar", "--load", "--serve", "/graph"]
+CMD ["java", "-Xmx4g", "-jar", "/graph/otp.jar", "--load", "--serve", "/graph"]
