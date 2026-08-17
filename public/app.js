@@ -2,8 +2,16 @@
 // Map tiles: OpenStreetMap. Geocoding: Nominatim. Routing: OSRM public demo server.
 
 const SINGAPORE_CENTER = [1.3521, 103.8198];
+// Singapore's bounding box (with a little padding), used to keep the map
+// and all search results confined to Singapore.
+const SG_BOUNDS = L.latLngBounds([1.130, 103.550], [1.485, 104.130]);
+const SG_VIEWBOX = '103.550,1.485,104.130,1.130'; // left,top,right,bottom for Nominatim
 
-const map = L.map('map', { zoomControl: true }).setView(SINGAPORE_CENTER, 12);
+const map = L.map('map', {
+  zoomControl: true,
+  maxBounds: SG_BOUNDS.pad(0.15),
+  minZoom: 11
+}).setView(SINGAPORE_CENTER, 12);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
@@ -63,7 +71,9 @@ function showToast(msg, ms = 2500) {
 
 async function geocode(query) {
   if (!query || query.trim().length < 2) return [];
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&q=${encodeURIComponent(query)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6`
+    + `&countrycodes=sg&viewbox=${SG_VIEWBOX}&bounded=1`
+    + `&q=${encodeURIComponent(query)}`;
   try {
     const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
     if (!res.ok) throw new Error('geocode failed');
