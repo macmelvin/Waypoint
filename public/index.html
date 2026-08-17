@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Waypoint — Maps &amp; Directions</title>
+<meta name="description" content="A clean, ad-free map and directions app." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📍</text></svg>" />
+
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <header id="topbar">
+    <div class="brand">
+      <span class="brand-mark">📍</span>
+      <span class="brand-name">Waypoint</span>
+    </div>
+    <div class="topbar-actions">
+      <button id="locateBtn" class="icon-btn" title="Use my location" aria-label="Use my location">🎯</button>
+    </div>
+  </header>
+
+  <div id="body">
+
+    <aside id="sidebar">
+
+      <div class="tabs" role="tablist">
+        <button class="tab-btn active" data-tab="search" role="tab" aria-selected="true">Search</button>
+        <button class="tab-btn" data-tab="directions" role="tab" aria-selected="false">Directions</button>
+      </div>
+
+      <section id="panel-search" class="panel active">
+        <div class="search-box">
+          <input id="searchInput" type="text" placeholder="Search places, addresses…" autocomplete="off" />
+          <button id="searchClear" class="clear-btn" title="Clear" aria-label="Clear search">✕</button>
+        </div>
+        <ul id="searchResults" class="result-list"></ul>
+
+        <div id="placeCard" class="place-card hidden">
+          <h3 id="placeName"></h3>
+          <p id="placeAddress"></p>
+          <div class="place-card-actions">
+            <button id="dirFromHere" class="pill-btn">Directions from here</button>
+            <button id="dirToHere" class="pill-btn primary">Directions to here</button>
+          </div>
+        </div>
+
+        <p class="hint">Try searching for a landmark, street, or postal code.</p>
+      </section>
+
+      <section id="panel-directions" class="panel">
+        <div class="dir-inputs">
+          <div class="dir-field">
+            <span class="dir-dot from-dot"></span>
+            <input id="fromInput" type="text" placeholder="From — start location" autocomplete="off" />
+            <ul id="fromResults" class="result-list nested"></ul>
+          </div>
+          <button id="swapBtn" class="icon-btn small" title="Swap" aria-label="Swap from and to">⇅</button>
+          <div class="dir-field">
+            <span class="dir-dot to-dot"></span>
+            <input id="toInput" type="text" placeholder="To — destination" autocomplete="off" />
+            <ul id="toResults" class="result-list nested"></ul>
+          </div>
+        </div>
+
+        <div class="mode-select" role="tablist">
+          <button class="mode-btn active" data-mode="driving" title="Drive">🚗</button>
+          <button class="mode-btn" data-mode="cycling" title="Cycle">🚲</button>
+          <button class="mode-btn" data-mode="walking" title="Walk">🚶</button>
+        </div>
+
+        <button id="getDirectionsBtn" class="primary-btn" disabled>Get Directions</button>
+
+        <div id="routeSummary" class="route-summary hidden"></div>
+        <ol id="routeSteps" class="route-steps"></ol>
+      </section>
+
+    </aside>
+
+    <main id="map"></main>
+
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/vendor/leaflet/leaflet.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
