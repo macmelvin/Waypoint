@@ -32,6 +32,8 @@ const els = {
   routeSummary: document.getElementById('routeSummary'),
   routeSteps: document.getElementById('routeSteps'),
   itineraryOptions: document.getElementById('itineraryOptions'),
+  rainBanner: document.getElementById('rainBanner'),
+  rainBannerText: document.getElementById('rainBannerText'),
   locateBtn: document.getElementById('locateBtn'),
   toast: document.getElementById('toast'),
   tabs: document.querySelectorAll('.tab-btn'),
@@ -260,6 +262,38 @@ function maybeEnableDirections() {
   els.getDirectionsBtn.disabled = !(fromCoords && toCoords);
 }
 
+// ---------- Rain awareness ----------
+// Only relevant when the route includes actual time on foot (walking mode,
+// or transit — which always has walk legs to/from stops). Checks the NEA
+// 2-hour forecast near both ends of the trip and surfaces a banner if either
+// is showing rain/showers.
+
+function hideRainAlert() {
+  els.rainBanner.classList.add('hidden');
+}
+
+function showRainAlert(text) {
+  els.rainBannerText.textContent = text;
+  els.rainBanner.classList.remove('hidden');
+}
+
+async function checkRainAlert(from, to) {
+  hideRainAlert();
+  if (!from || !to) return;
+  try {
+    const [fromWx, toWx] = await Promise.all([
+      fetch(`/api/weather-nearby?lat=${from.lat}&lon=${from.lon}`).then((r) => (r.ok ? r.json() : null)),
+      fetch(`/api/weather-nearby?lat=${to.lat}&lon=${to.lon}`).then((r) => (r.ok ? r.json() : null)),
+    ]);
+    const rainy = [fromWx, toWx].filter((w) => w && w.isRainy);
+    if (!rainy.length) return;
+    const areas = [...new Set(rainy.map((w) => w.area))].join(' & ');
+    showRainAlert(`${rainy[0].forecast} near ${areas} — bring an umbrella for the walk!`);
+  } catch (err) {
+    console.error('rain check failed:', err);
+  }
+}
+
 const runFromSearch = debounce(async (q) => {
   const results = await geocode(q);
   renderResultList(els.fromResults, results, (r) => {
@@ -327,6 +361,7 @@ async function getDirections() {
   els.itineraryOptions.classList.add('hidden');
   els.itineraryOptions.innerHTML = '';
   transitItineraries = [];
+  hideRainAlert();
 
   els.getDirectionsBtn.disabled = true;
   els.getDirectionsBtn.textContent = 'Loading…';
@@ -347,6 +382,8 @@ async function getDirections() {
     hasRoute = true;
     renderRouteSummary(route);
     renderRouteSteps(route);
+    if (selectedMode === 'walking') checkRainAlert(fromCoords, toCoords);
+    else hideRainAlert();
   } catch (err) {
     console.error(err);
     showToast('Routing service unavailable. Please try again.');
@@ -365,6 +402,7 @@ let selectedItineraryIndex = 0;
 
 async function getTransitDirections() {
   stopWakeAlert(false);
+  hideRainAlert();
   els.getDirectionsBtn.disabled = true;
   els.getDirectionsBtn.textContent = 'Loading…';
 
@@ -397,6 +435,7 @@ async function getTransitDirections() {
     transitItineraries = [...data.itineraries].sort((a, b) => a.duration - b.duration);
     renderItineraryOptions();
     selectItinerary(0);
+    checkRainAlert(fromCoords, toCoords); // transit always includes walk legs to/from stops
   } catch (err) {
     console.error(err);
     showToast('Transit routing service unavailable. Please try again.');

@@ -368,6 +368,68 @@ app.get('/api/stop-search', async (req, res) => {
   }
 });
 
+// ---- Rain awareness (NEA 2-hour weather forecast, data.gov.sg) -------------
+// Singapore-specific value-add: flags rain forecast near either end of a
+// walking-inclusive route so people know to grab an umbrella. Free public
+// dataset, no API key required.
+
+let weatherCache = null; // { areaMetadata, forecasts, validPeriod }
+let weatherCacheAt = 0;
+const WEATHER_TTL_MS = 5 * 60 * 1000; // NEA updates this roughly every 30 min
+
+async function getWeatherForecast() {
+  if (weatherCache && Date.now() - weatherCacheAt < WEATHER_TTL_MS) return weatherCache;
+  const res = await fetch('https://api.data.gov.sg/v1/environment/2-hour-weather-forecast');
+  if (!res.ok) throw new Error(`NEA weather API responded ${res.status}`);
+  const data = await res.json();
+  const item = data.items?.[0];
+  if (!item) throw new Error('No forecast data returned');
+  weatherCache = {
+    areaMetadata: data.area_metadata || [],
+    forecasts: item.forecasts || [],
+    validPeriod: item.valid_period || null,
+  };
+  weatherCacheAt = Date.now();
+  return weatherCache;
+}
+
+const RAINY_PATTERN = /rain|shower|thundery/i;
+
+app.get('/api/weather-nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+
+  try {
+    const { areaMetadata, forecasts, validPeriod } = await getWeatherForecast();
+    if (!areaMetadata.length) {
+      return res.status(502).json({ error: 'No weather areas available.' });
+    }
+
+    let nearest = null;
+    let nearestDist = Infinity;
+    areaMetadata.forEach((a) => {
+      const d = haversineMeters(lat, lon, a.label_location.latitude, a.label_location.longitude);
+      if (d < nearestDist) { nearestDist = d; nearest = a; }
+    });
+
+    const match = forecasts.find((f) => f.area === nearest.name);
+    const forecastText = match ? match.forecast : null;
+
+    res.json({
+      area: nearest.name,
+      forecast: forecastText,
+      isRainy: forecastText ? RAINY_PATTERN.test(forecastText) : false,
+      validPeriod,
+    });
+  } catch (err) {
+    console.error('weather-nearby error:', err.message);
+    res.status(502).json({ error: 'Could not fetch weather forecast.', detail: err.message });
+  }
+});
+
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
