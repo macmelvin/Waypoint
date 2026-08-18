@@ -684,6 +684,11 @@ html, body {
   font-weight: 700;
   color: var(--muted);
 }
+.credits-author a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.credits-author a:hover { text-decoration: underline; }
 .credits-label {
   margin: 0 0 8px;
   font-size: 11px;
