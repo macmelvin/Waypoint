@@ -6,7 +6,7 @@
 FROM eclipse-temurin:21-jre AS graphbuild
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl osmium-tool unzip python3 ca-certificates && \
+    apt-get install -y --no-install-recommends curl osmium-tool python3 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /graph
@@ -17,8 +17,64 @@ RUN curl -fsSL -o otp.jar \
     https://github.com/opentripplanner/OpenTripPlanner/releases/download/v2.7.0/otp-shaded-2.7.0.jar
 
 # Singapore GTFS (bus + MRT/LRT), community-maintained from LTA DataMall data.
-RUN curl -fsSL -o singapore-gtfs.zip \
+RUN curl -fsSL -o singapore-gtfs-raw.zip \
     "https://files.mobilitydatabase.org/mdb-3051/mdb-3051-202602171452/mdb-3051-202602171452.zip"
+
+# The feed's MRT schedules silently skip most interchange stations (each
+# line was generated in isolation), leaving the rail network chopped into
+# stubs that never connect to each other. Reinsert them — see
+# patch_rail_gtfs.py for the full explanation. Bus data is left untouched.
+COPY patch_rail_gtfs.py /graph/
+RUN python3 patch_rail_gtfs.py singapore-gtfs-raw.zip singapore-gtfs.zip && \
+    rm singapore-gtfs-raw.zip
+
+# --- TEMP DIAGNOSTIC ---------------------------------------------------------
+# Verify the patch worked against the REAL feed (only tested against a tiny
+# synthetic fixture locally) before spending ~10min on the full graph build.
+# Remove this whole RUN block once confirmed.
+RUN <<'SCRIPT'
+set -e
+cd /graph
+python3 <<'PYEOF'
+import csv, io, zipfile
+from collections import defaultdict
+
+with zipfile.ZipFile('singapore-gtfs.zip') as zf:
+    def rd(name):
+        with zf.open(name) as f:
+            return list(csv.DictReader(io.TextIOWrapper(f, encoding='utf-8-sig')))
+    stops = rd('stops.txt')
+    trips = rd('trips.txt')
+    stop_times = rd('stop_times.txt')
+
+minted = [s for s in stops if s['stop_id'].startswith('SGX_')]
+print('=== minted interchange/gap stop records ===', len(minted))
+for s in sorted(minted, key=lambda s: s['stop_name']):
+    print('  ', s['stop_id'], '|', s['stop_name'], '|', s['stop_lat'], s['stop_lon'])
+
+route_by_trip = {t['trip_id']: t['route_id'] for t in trips}
+lines_using = defaultdict(set)
+for st in stop_times:
+    sid = st['stop_id']
+    if sid.startswith('SGX_'):
+        route = route_by_trip.get(st['trip_id'])
+        lines_using[sid].add(route)
+print('=== which lines now stop at each minted station ===')
+for sid, routes in sorted(lines_using.items()):
+    print('  ', sid, '->', sorted(routes))
+
+for needle in ('Punggol', 'Orchard', 'Dhoby Ghaut'):
+    matches = [s for s in minted if needle.lower() in s['stop_name'].lower()]
+    print(f'=== minted matching "{needle}" ===', [(m['stop_id'], m['stop_lat'], m['stop_lon']) for m in matches])
+
+rail_stop_ids = {st['stop_id'] for st in stop_times if route_by_trip.get(st['trip_id']) in
+                  ('NS','EW','NE','CC','DT','TE')}
+print('=== total distinct rail stop_ids used now (was 110 before patch) ===', len(rail_stop_ids))
+PYEOF
+echo '=== DIAGNOSTIC DONE, ABORTING BUILD ON PURPOSE ==='
+exit 1
+SCRIPT
+# --- END TEMP DIAGNOSTIC -----------------------------------------------------
 
 # Street network for walk/transfer legs: Geofabrik's Malaysia/Singapore/Brunei
 # extract, clipped down to just Singapore (+ a small border buffer) so the
@@ -29,95 +85,6 @@ RUN curl -fsSL -o mysgbn.osm.pbf \
     rm mysgbn.osm.pbf
 
 COPY build-config.json router-config.json /graph/
-
-# --- TEMP DIAGNOSTIC ---------------------------------------------------------
-# Investigating why zero rail (MRT/LRT) legs ever appear in itineraries.
-# Inspect the GTFS feed's route_type breakdown and rail trip/schedule data
-# directly, then abort *before* the ~10min graph build so this comes back
-# fast. Remove this whole RUN block once the cause is found.
-RUN <<'SCRIPT'
-set -e
-mkdir -p /tmp/gtfs-inspect
-cd /tmp/gtfs-inspect
-unzip -oq /graph/singapore-gtfs.zip
-cat > inspect.py <<'PYEOF'
-import csv, os
-from collections import Counter
-
-print('=== files ===', sorted(os.listdir('.')))
-
-with open('routes.txt', newline='', encoding='utf-8-sig') as f:
-    routes = list(csv.DictReader(f))
-print('=== total routes ===', len(routes))
-print('=== route_type counts ===', dict(Counter(r.get('route_type') for r in routes)))
-
-rail_types = {'0', '1', '2', '5', '6', '7', '11', '12'}
-rail_routes = [r for r in routes if r.get('route_type') in rail_types]
-print('=== rail-like route count ===', len(rail_routes))
-for r in rail_routes[:15]:
-    print('  ', r.get('route_id'), r.get('route_short_name'), r.get('route_long_name'), 'type=', r.get('route_type'))
-
-has_freq = os.path.exists('frequencies.txt')
-print('=== has frequencies.txt ===', has_freq)
-if has_freq:
-    with open('frequencies.txt', newline='', encoding='utf-8-sig') as f:
-        freq_rows = list(csv.DictReader(f))
-    print('=== frequencies.txt row count ===', len(freq_rows))
-    print('=== sample frequencies ===', freq_rows[:3])
-
-with open('trips.txt', newline='', encoding='utf-8-sig') as f:
-    trips = list(csv.DictReader(f))
-print('=== total trips ===', len(trips))
-rail_route_ids = {r['route_id'] for r in rail_routes}
-rail_trips = [t for t in trips if t.get('route_id') in rail_route_ids]
-print('=== rail trips count ===', len(rail_trips))
-if rail_trips:
-    print('=== sample rail trip ===', rail_trips[0])
-
-rail_trip_ids = {t['trip_id'] for t in rail_trips}
-st_count = 0
-sample_rows = []
-rail_stop_ids = set()
-with open('stop_times.txt', newline='', encoding='utf-8-sig') as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        if row.get('trip_id') in rail_trip_ids:
-            st_count += 1
-            rail_stop_ids.add(row.get('stop_id'))
-            if len(sample_rows) < 5:
-                sample_rows.append(row)
-print('=== stop_times rows for rail trips ===', st_count)
-print('=== sample rail stop_times ===', sample_rows)
-print('=== distinct rail stop_ids ===', len(rail_stop_ids))
-
-with open('stops.txt', newline='', encoding='utf-8-sig') as f:
-    stops = list(csv.DictReader(f))
-print('=== stops.txt columns ===', list(stops[0].keys()) if stops else None)
-print('=== total stops ===', len(stops))
-
-rail_stops = [s for s in stops if s.get('stop_id') in rail_stop_ids]
-print('=== rail stop records found ===', len(rail_stops))
-print('=== ALL rail stop names ===')
-for s in sorted(rail_stops, key=lambda s: s.get('stop_name') or ''):
-    print('  ', s.get('stop_id'), '|', s.get('stop_name'), '|', s.get('stop_lat'), s.get('stop_lon'))
-
-# Sanity-check specific well-known stations by name, restricted to rail stops only.
-for needle in ('Punggol', 'Orchard'):
-    matches = [s for s in rail_stops if needle.lower() in (s.get('stop_name') or '').lower()]
-    print(f'=== RAIL stops matching "{needle}" ({len(matches)}) ===', matches)
-
-print('=== has pathways.txt ===', os.path.exists('pathways.txt'))
-print('=== has transfers.txt ===', os.path.exists('transfers.txt'))
-if os.path.exists('calendar.txt'):
-    with open('calendar.txt', newline='', encoding='utf-8-sig') as f:
-        cal = list(csv.DictReader(f))
-    print('=== calendar.txt rows ===', cal)
-PYEOF
-python3 inspect.py
-echo '=== DIAGNOSTIC DONE, ABORTING BUILD ON PURPOSE ==='
-exit 1
-SCRIPT
-# --- END TEMP DIAGNOSTIC -----------------------------------------------------
 
 RUN java -Xmx7g -jar otp.jar --build --save /graph
 
