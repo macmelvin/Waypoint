@@ -43,6 +43,7 @@ const els = {
   getDirectionsBtn: document.getElementById('getDirectionsBtn'),
   routeSummary: document.getElementById('routeSummary'),
   routeSteps: document.getElementById('routeSteps'),
+  itineraryOptions: document.getElementById('itineraryOptions'),
   locateBtn: document.getElementById('locateBtn'),
   toast: document.getElementById('toast'),
   tabs: document.querySelectorAll('.tab-btn'),
@@ -263,6 +264,10 @@ async function getDirections() {
   if (!fromCoords || !toCoords) return;
   if (selectedMode === 'transit') return getTransitDirections();
 
+  els.itineraryOptions.classList.add('hidden');
+  els.itineraryOptions.innerHTML = '';
+  transitItineraries = [];
+
   els.getDirectionsBtn.disabled = true;
   els.getDirectionsBtn.textContent = 'Loading…';
 
@@ -295,6 +300,9 @@ async function getDirections() {
 
 const MODE_ICON = { walk: '🚶', bus: '🚌', train: '🚇', ferry: '⛴' };
 const MODE_COLOR = { walk: '#6b7280', bus: '#059669', train: '#dc2626', ferry: '#0891b2' };
+
+let transitItineraries = []; // all itinerary options returned for the current transit search
+let selectedItineraryIndex = 0;
 
 // Decodes a Google-encoded polyline (precision 5) into an array of [lat, lng].
 function decodePolyline(encoded) {
@@ -346,13 +354,15 @@ async function getTransitDirections() {
     if (!data.itineraries || !data.itineraries.length) {
       const reason = data.errors?.[0]?.description;
       showToast(reason || 'No bus/MRT route found between those points.');
+      els.itineraryOptions.classList.add('hidden');
+      els.itineraryOptions.innerHTML = '';
+      transitItineraries = [];
       return;
     }
 
-    const itinerary = data.itineraries[0];
-    drawTransitRoute(itinerary);
-    renderTransitSummary(itinerary);
-    renderTransitSteps(itinerary);
+    transitItineraries = data.itineraries;
+    renderItineraryOptions();
+    selectItinerary(0);
   } catch (err) {
     console.error(err);
     showToast('Transit routing service unavailable. Please try again.');
@@ -360,6 +370,78 @@ async function getTransitDirections() {
     els.getDirectionsBtn.disabled = false;
     els.getDirectionsBtn.textContent = 'Get Directions';
   }
+}
+
+// Renders the list of alternative itineraries as selectable cards, e.g.
+// "🚶 → 🚇 → 🚶   32 min   5:38p–6:10p". Clicking a card switches the map
+// route, summary, and step list to that option.
+function renderItineraryOptions() {
+  els.itineraryOptions.innerHTML = '';
+
+  if (transitItineraries.length < 2) {
+    els.itineraryOptions.classList.add('hidden');
+    return;
+  }
+
+  els.itineraryOptions.classList.remove('hidden');
+
+  transitItineraries.forEach((itinerary, i) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'itinerary-option' + (i === selectedItineraryIndex ? ' active' : '');
+
+    const modes = document.createElement('span');
+    modes.className = 'io-modes';
+    const transitLegs = itinerary.legs.filter((l) => l.mode !== 'walk');
+    transitLegs.forEach((leg, idx) => {
+      if (idx > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'io-sep';
+        sep.textContent = '›';
+        modes.appendChild(sep);
+      }
+      const icon = document.createElement('span');
+      icon.textContent = MODE_ICON[leg.mode] || '➜';
+      modes.appendChild(icon);
+    });
+
+    const main = document.createElement('span');
+    main.className = 'io-main';
+    const duration = document.createElement('span');
+    duration.className = 'io-duration';
+    duration.textContent = formatDuration(itinerary.duration);
+    const time = document.createElement('span');
+    time.className = 'io-time';
+    time.textContent = `${formatClockTime(itinerary.startTime)} – ${formatClockTime(itinerary.endTime)}`;
+    main.appendChild(duration);
+    main.appendChild(time);
+
+    const badge = document.createElement('span');
+    badge.className = 'io-badge';
+    const transferCount = Math.max(transitLegs.length - 1, 0);
+    badge.textContent = transferCount > 0 ? `${transferCount} transfer${transferCount > 1 ? 's' : ''}` : 'Direct';
+
+    card.appendChild(modes);
+    card.appendChild(main);
+    card.appendChild(badge);
+
+    card.addEventListener('click', () => selectItinerary(i));
+    els.itineraryOptions.appendChild(card);
+  });
+}
+
+function selectItinerary(index) {
+  selectedItineraryIndex = index;
+  const itinerary = transitItineraries[index];
+  if (!itinerary) return;
+
+  els.itineraryOptions.querySelectorAll('.itinerary-option').forEach((card, i) => {
+    card.classList.toggle('active', i === index);
+  });
+
+  drawTransitRoute(itinerary);
+  renderTransitSummary(itinerary);
+  renderTransitSteps(itinerary);
 }
 
 function drawTransitRoute(itinerary) {

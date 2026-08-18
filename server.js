@@ -39,7 +39,7 @@ app.get('/api/transit-plan', async (req, res) => {
         from: { lat: $fromLat, lon: $fromLon }
         to: { lat: $toLat, lon: $toLon }
         transportModes: [{ mode: WALK }, { mode: TRANSIT }]
-        numItineraries: 4
+        numItineraries: 6
       ) {
         itineraries {
           duration
