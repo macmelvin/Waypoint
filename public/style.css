@@ -308,6 +308,10 @@ html, body {
   color: var(--muted);
   white-space: nowrap;
 }
+.itinerary-option .io-badge-fastest {
+  color: var(--accent);
+  font-weight: 700;
+}
 
 .route-summary {
   background: var(--bg);

@@ -360,7 +360,10 @@ async function getTransitDirections() {
       return;
     }
 
-    transitItineraries = data.itineraries;
+    // Sort fastest-first so the quickest option is always what's shown/selected
+    // by default — OTP's own return order is by internal search criteria
+    // (roughly departure time), not duration.
+    transitItineraries = [...data.itineraries].sort((a, b) => a.duration - b.duration);
     renderItineraryOptions();
     selectItinerary(0);
   } catch (err) {
@@ -417,9 +420,10 @@ function renderItineraryOptions() {
     main.appendChild(time);
 
     const badge = document.createElement('span');
-    badge.className = 'io-badge';
+    badge.className = 'io-badge' + (i === 0 ? ' io-badge-fastest' : '');
     const transferCount = Math.max(transitLegs.length - 1, 0);
-    badge.textContent = transferCount > 0 ? `${transferCount} transfer${transferCount > 1 ? 's' : ''}` : 'Direct';
+    const transferText = transferCount > 0 ? `${transferCount} transfer${transferCount > 1 ? 's' : ''}` : 'Direct';
+    badge.textContent = i === 0 ? `Fastest · ${transferText}` : transferText;
 
     card.appendChild(modes);
     card.appendChild(main);
