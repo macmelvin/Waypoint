@@ -376,6 +376,54 @@ html, body {
   color: var(--muted);
 }
 
+.step-arrivals-row {
+  margin-top: 6px;
+  margin-left: 26px;
+}
+.arrivals-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.arrivals-btn:hover { background: #f2f4f7; }
+.arrivals-btn.active {
+  border-color: var(--accent);
+  background: #eff4ff;
+  color: var(--accent);
+}
+.arrivals-panel {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.arrivals-panel.hidden { display: none; }
+.arrival-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12.5px;
+  padding: 3px 0;
+}
+.arrival-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.arrival-service { font-weight: 700; min-width: 32px; }
+.arrival-times { color: var(--muted); text-align: right; }
+.arrivals-error {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 3px 0;
+}
+
 .wake-alert {
   position: fixed;
   left: 50%;

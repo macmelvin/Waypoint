@@ -237,6 +237,7 @@ async function getDirections() {
   if (selectedMode === 'transit') return getTransitDirections();
 
   stopWakeAlert(false);
+  clearArrivalIntervals();
   els.itineraryOptions.classList.add('hidden');
   els.itineraryOptions.innerHTML = '';
   transitItineraries = [];
@@ -406,6 +407,7 @@ function renderTransitSummary(itinerary) {
 
 function renderTransitSteps(itinerary) {
   stopWakeAlert(false); // old leg buttons are about to be torn down
+  clearArrivalIntervals(); // old arrivals panels are about to be torn down
   els.routeSteps.innerHTML = '';
   itinerary.legs.forEach((leg) => {
     const li = document.createElement('li');
@@ -453,6 +455,28 @@ function renderTransitSteps(itinerary) {
       wakeRow.appendChild(wakeBtn);
       wakeRow.appendChild(status);
       li.appendChild(wakeRow);
+    }
+
+    // Live arrivals for every bus service at this leg's boarding stop — not
+    // just the one route in the itinerary, so you can see if an earlier bus
+    // works too.
+    if (leg.mode === 'bus' && leg.fromStopCode) {
+      const arrivalsRow = document.createElement('div');
+      arrivalsRow.className = 'step-arrivals-row';
+
+      const arrivalsBtn = document.createElement('button');
+      arrivalsBtn.type = 'button';
+      arrivalsBtn.className = 'arrivals-btn';
+      arrivalsBtn.textContent = '🚌 Live arrivals';
+
+      const panel = document.createElement('div');
+      panel.className = 'arrivals-panel hidden';
+
+      arrivalsBtn.addEventListener('click', () => toggleArrivalsPanel(leg.fromStopCode, arrivalsBtn, panel));
+
+      arrivalsRow.appendChild(arrivalsBtn);
+      arrivalsRow.appendChild(panel);
+      li.appendChild(arrivalsRow);
     }
 
     els.routeSteps.appendChild(li);
@@ -619,6 +643,84 @@ function stopWakeAlert(showMsg) {
 }
 
 els.wakeAlertDismiss.addEventListener('click', () => stopWakeAlert(false));
+
+// ---------- Live bus arrivals (LTA DataMall, via /api/bus-arrivals) ----------
+// Shows every bus service due at a stop, not just the one in the itinerary —
+// useful for spotting an earlier bus on a different service that also works.
+
+const ARRIVALS_REFRESH_MS = 20000;
+let arrivalIntervals = []; // interval ids for any open arrivals panels, cleared whenever steps re-render
+
+function clearArrivalIntervals() {
+  arrivalIntervals.forEach(clearInterval);
+  arrivalIntervals = [];
+}
+
+function formatArrivalMins(iso) {
+  if (!iso) return null;
+  const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+  return mins <= 0 ? 'Arr' : `${mins} min`;
+}
+
+async function fetchAndRenderArrivals(busStopCode, panel) {
+  try {
+    const res = await fetch(`/api/bus-arrivals?busStopCode=${encodeURIComponent(busStopCode)}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      panel.innerHTML = `<div class="arrivals-error">${data.error || 'Live arrivals unavailable.'}</div>`;
+      return;
+    }
+
+    if (!data.services || !data.services.length) {
+      panel.innerHTML = `<div class="arrivals-error">No live data for this stop right now.</div>`;
+      return;
+    }
+
+    panel.innerHTML = '';
+    data.services.forEach((svc) => {
+      const row = document.createElement('div');
+      row.className = 'arrival-row';
+      const num = document.createElement('span');
+      num.className = 'arrival-service';
+      num.textContent = svc.serviceNo;
+      const times = document.createElement('span');
+      times.className = 'arrival-times';
+      const parts = svc.nextArrivals.map((a) => formatArrivalMins(a.estimatedArrival)).filter(Boolean);
+      times.textContent = parts.length ? parts.join(', ') : 'No estimate';
+      row.appendChild(num);
+      row.appendChild(times);
+      panel.appendChild(row);
+    });
+  } catch (err) {
+    console.error(err);
+    panel.innerHTML = `<div class="arrivals-error">Could not load live arrivals.</div>`;
+  }
+}
+
+function toggleArrivalsPanel(busStopCode, btnEl, panel) {
+  const isOpen = !panel.classList.contains('hidden');
+  if (isOpen) {
+    panel.classList.add('hidden');
+    panel.innerHTML = '';
+    if (panel._refreshInterval) {
+      clearInterval(panel._refreshInterval);
+      arrivalIntervals = arrivalIntervals.filter((id) => id !== panel._refreshInterval);
+      panel._refreshInterval = null;
+    }
+    btnEl.textContent = '🚌 Live arrivals';
+    btnEl.classList.remove('active');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+  panel.innerHTML = '<div class="arrivals-error">Loading…</div>';
+  btnEl.textContent = '🚌 Hide arrivals';
+  btnEl.classList.add('active');
+  fetchAndRenderArrivals(busStopCode, panel);
+  panel._refreshInterval = setInterval(() => fetchAndRenderArrivals(busStopCode, panel), ARRIVALS_REFRESH_MS);
+  arrivalIntervals.push(panel._refreshInterval);
+}
 
 // ---------- Geolocation ----------
 

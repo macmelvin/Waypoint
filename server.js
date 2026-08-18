@@ -148,6 +148,71 @@ app.get('/api/transit-plan', async (req, res) => {
   }
 });
 
+// ---- Live bus arrivals (LTA DataMall) ---------------------------------------
+// Needs a free AccountKey from https://datamall.lta.gov.sg — set it as the
+// LTA_ACCOUNT_KEY environment variable on this service. Until that's set,
+// the endpoint responds with a clear "not configured" error instead of
+// pretending to work.
+
+const LTA_ACCOUNT_KEY = process.env.LTA_ACCOUNT_KEY || '';
+
+function busNumberSortKey(serviceNo) {
+  const match = /^(\d+)(.*)$/.exec(serviceNo || '');
+  return match ? [parseInt(match[1], 10), match[2]] : [Infinity, serviceNo || ''];
+}
+
+app.get('/api/bus-arrivals', async (req, res) => {
+  const { busStopCode } = req.query;
+
+  if (!busStopCode) {
+    return res.status(400).json({ error: 'busStopCode is required' });
+  }
+  if (!LTA_ACCOUNT_KEY) {
+    return res.status(503).json({ error: 'Live bus arrivals aren\'t set up yet — needs an LTA DataMall API key.' });
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const ltaRes = await fetch(
+      `https://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival?BusStopCode=${encodeURIComponent(busStopCode)}`,
+      { headers: { AccountKey: LTA_ACCOUNT_KEY, accept: 'application/json' }, signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
+    if (!ltaRes.ok) {
+      throw new Error(`LTA DataMall responded ${ltaRes.status}`);
+    }
+
+    const data = await ltaRes.json();
+
+    const services = (data.Services || [])
+      .map((s) => ({
+        serviceNo: s.ServiceNo,
+        operator: s.Operator,
+        nextArrivals: [s.NextBus, s.NextBus2, s.NextBus3]
+          .filter((b) => b && b.EstimatedArrival)
+          .map((b) => ({
+            estimatedArrival: b.EstimatedArrival,
+            load: b.Load || null, // SEA (seats avail) / SDA (standing avail) / LSD (limited standing)
+            type: b.Type || null, // SD (single) / DD (double) / BD (bendy)
+            wheelchairAccessible: b.Feature === 'WAB',
+          })),
+      }))
+      .sort((a, b) => {
+        const [an, as_] = busNumberSortKey(a.serviceNo);
+        const [bn, bs] = busNumberSortKey(b.serviceNo);
+        return an - bn || as_.localeCompare(bs);
+      });
+
+    res.json({ busStopCode, services });
+  } catch (err) {
+    console.error('bus-arrivals error:', err.message);
+    res.status(502).json({ error: 'Could not reach LTA DataMall.', detail: err.message });
+  }
+});
+
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
