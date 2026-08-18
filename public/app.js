@@ -35,6 +35,7 @@ const els = {
   rainBanner: document.getElementById('rainBanner'),
   rainBannerText: document.getElementById('rainBannerText'),
   locateBtn: document.getElementById('locateBtn'),
+  weatherWidget: document.getElementById('weatherWidget'),
   toast: document.getElementById('toast'),
   tabs: document.querySelectorAll('.tab-btn'),
   panels: document.querySelectorAll('.panel'),
@@ -1201,3 +1202,58 @@ window.addEventListener('appinstalled', () => {
   els.installBanner.classList.add('hidden');
   deferredInstallPrompt = null;
 });
+
+// ---------- Current weather widget (topbar) ----------
+// Ambient conditions indicator (e.g. "☀️ Fair") next to the locate button —
+// reuses the same NEA-backed /api/weather-nearby endpoint that powers rain
+// alerts. Geolocates silently on load (no error toast; this isn't something
+// the user asked for, just a nice-to-have), falling back to a central
+// Singapore point if location isn't available so it still shows something.
+
+const SG_CENTER = { lat: 1.3521, lon: 103.8198 };
+const WEATHER_WIDGET_REFRESH_MS = 10 * 60 * 1000;
+let weatherWidgetTimer = null;
+
+async function loadWeatherWidget(coords) {
+  try {
+    const res = await fetch(`/api/weather-nearby?lat=${coords.lat}&lon=${coords.lon}`);
+    const data = await res.json();
+    if (!res.ok || !data.forecast) {
+      els.weatherWidget.classList.add('hidden');
+      return;
+    }
+    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}`;
+    els.weatherWidget.title = `${data.forecast} near ${data.area} — tap for details`;
+    els.weatherWidget.dataset.area = data.area;
+    els.weatherWidget.dataset.forecast = data.forecast;
+    els.weatherWidget.classList.remove('hidden');
+  } catch (err) {
+    console.error('weather widget failed:', err);
+    els.weatherWidget.classList.add('hidden');
+  }
+}
+
+function initWeatherWidget() {
+  const refresh = (coords) => {
+    loadWeatherWidget(coords);
+    clearInterval(weatherWidgetTimer);
+    weatherWidgetTimer = setInterval(() => loadWeatherWidget(coords), WEATHER_WIDGET_REFRESH_MS);
+  };
+
+  if (!navigator.geolocation) {
+    refresh(SG_CENTER);
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => refresh({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+    () => refresh(SG_CENTER), // silent fallback — ambient widget, not a user-initiated action
+    GEO_OPTIONS
+  );
+}
+
+els.weatherWidget.addEventListener('click', () => {
+  const { area, forecast } = els.weatherWidget.dataset;
+  if (area && forecast) showToast(`${forecast} near ${area}`);
+});
+
+initWeatherWidget();

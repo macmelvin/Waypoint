@@ -395,6 +395,20 @@ async function getWeatherForecast() {
 
 const RAINY_PATTERN = /rain|shower|thundery/i;
 
+// Maps NEA's free-text forecast (e.g. "Light Showers", "Partly Cloudy",
+// "Fair (Night)") to a single representative emoji for the weather widget.
+function forecastIcon(text) {
+  if (!text) return '🌡️';
+  const t = text.toLowerCase();
+  if (t.includes('thundery')) return '⛈️';
+  if (t.includes('rain') || t.includes('shower')) return '🌧️';
+  if (t.includes('fog') || t.includes('mist') || t.includes('haz')) return '🌫️';
+  if (t.includes('windy')) return '💨';
+  if (t.includes('cloudy')) return '☁️';
+  if (t.includes('fair') || t.includes('sunny')) return '☀️';
+  return '🌤️';
+}
+
 app.get('/api/weather-nearby', async (req, res) => {
   const lat = parseFloat(req.query.lat);
   const lon = parseFloat(req.query.lon);

@@ -63,6 +63,23 @@ html, body {
 .icon-btn:hover { background: #f2f4f7; }
 .icon-btn.small { width: 32px; height: 32px; font-size: 14px; }
 
+.weather-widget {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 8px;
+}
+.weather-widget:hover { background: #f2f4f7; }
+.weather-widget.hidden { display: none; }
+
 #body {
   flex: 1;
   display: flex;
