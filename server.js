@@ -50,6 +50,33 @@ function stopCode(stop) {
   return null;
 }
 
+// Approximate adult SimplyGo/EZ-Link card fare. Singapore's transit card
+// charges ONE combined fare per journey based on total distance actually
+// travelled by bus/train (not per leg, and excluding walking), as long as
+// transfers happen within the standard transfer window — so we sum the
+// distance of every non-walk leg and look it up in the (bus and train share
+// the same table) LTA-published distance-fare bands. This is an ESTIMATE:
+// actual fare can vary with peak/off-peak timing and promotions.
+const FARE_TABLE_KM_CENTS = [
+  [3.2, 128], [4.2, 138], [5.2, 149], [6.2, 159], [7.2, 168],
+  [8.2, 175], [9.2, 182], [10.2, 186], [11.2, 190], [12.2, 194],
+  [13.2, 198], [14.2, 202], [15.2, 207], [16.2, 211], [17.2, 215],
+  [18.2, 220], [19.2, 224], [20.2, 227], [21.2, 230], [22.2, 233],
+  [23.2, 236], [24.2, 238], [25.2, 240], [26.2, 242], [27.2, 243],
+  [28.2, 244], [29.2, 245], [30.2, 246], [31.2, 247], [32.2, 248],
+  [33.2, 249], [34.2, 250], [35.2, 251], [36.2, 252], [37.2, 253],
+  [38.2, 254], [39.2, 255], [40.2, 256],
+];
+const FARE_MAX_CENTS = 257;
+
+function estimateFareCents(totalKm) {
+  if (totalKm <= 0) return 0;
+  for (const [maxKm, cents] of FARE_TABLE_KM_CENTS) {
+    if (totalKm <= maxKm) return cents;
+  }
+  return FARE_MAX_CENTS;
+}
+
 app.get('/api/transit-plan', async (req, res) => {
   const { fromLat, fromLon, toLat, toLon } = req.query;
 
@@ -119,12 +146,8 @@ app.get('/api/transit-plan', async (req, res) => {
       return res.status(502).json({ error: 'Malformed response from transit router' });
     }
 
-    const itineraries = (plan.itineraries || []).map((it) => ({
-      duration: it.duration,
-      startTime: it.startTime,
-      endTime: it.endTime,
-      walkDistance: it.walkDistance,
-      legs: it.legs.map((leg) => ({
+    const itineraries = (plan.itineraries || []).map((it) => {
+      const legs = it.legs.map((leg) => ({
         mode: otpModeToLabel(leg.mode),
         duration: leg.duration,
         distance: leg.distance,
@@ -142,8 +165,21 @@ app.get('/api/transit-plan', async (req, res) => {
         routeColor: leg.route?.color || null,
         headsign: leg.headsign || null,
         geometry: leg.legGeometry?.points || null,
-      })),
-    }));
+      }));
+
+      const transitKm = legs
+        .filter((l) => l.mode !== 'walk')
+        .reduce((sum, l) => sum + (l.distance || 0), 0) / 1000;
+
+      return {
+        duration: it.duration,
+        startTime: it.startTime,
+        endTime: it.endTime,
+        walkDistance: it.walkDistance,
+        fareEstimate: transitKm > 0 ? estimateFareCents(transitKm) / 100 : null,
+        legs,
+      };
+    });
 
     res.json({
       itineraries,

@@ -449,6 +449,12 @@ function renderItineraryOptions() {
     time.textContent = `${formatClockTime(itinerary.startTime)} – ${formatClockTime(itinerary.endTime)}`;
     main.appendChild(duration);
     main.appendChild(time);
+    if (itinerary.fareEstimate != null) {
+      const fare = document.createElement('span');
+      fare.className = 'io-fare';
+      fare.textContent = formatFare(itinerary.fareEstimate);
+      main.appendChild(fare);
+    }
 
     const badge = document.createElement('span');
     badge.className = 'io-badge' + (i === 0 ? ' io-badge-fastest' : '');
@@ -483,12 +489,20 @@ function formatClockTime(ms) {
   return new Date(ms).toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+// Adult card fare estimate — see the matching table on the server
+// (/api/transit-plan). Approximate: actual fare depends on peak/off-peak
+// timing and any promotions, so it's always shown with a "~" prefix.
+function formatFare(fare) {
+  return `~$${fare.toFixed(2)}`;
+}
+
 function renderTransitSummary(itinerary) {
   els.routeSummary.classList.remove('hidden');
   const transfers = itinerary.legs.filter((l) => l.mode !== 'walk').length;
   const transferText = transfers > 1 ? `${transfers - 1} transfer${transfers > 2 ? 's' : ''}` : 'Direct';
+  const fareText = itinerary.fareEstimate != null ? ` &nbsp;·&nbsp; ${formatFare(itinerary.fareEstimate)}` : '';
   els.routeSummary.innerHTML = `<strong>${formatDuration(itinerary.duration)}</strong> &nbsp;·&nbsp; `
-    + `${formatClockTime(itinerary.startTime)} – ${formatClockTime(itinerary.endTime)} &nbsp;·&nbsp; ${transferText}`;
+    + `${formatClockTime(itinerary.startTime)} – ${formatClockTime(itinerary.endTime)} &nbsp;·&nbsp; ${transferText}${fareText}`;
 }
 
 function renderTransitSteps(itinerary) {

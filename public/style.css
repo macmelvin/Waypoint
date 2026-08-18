@@ -340,6 +340,7 @@ html, body {
 }
 .itinerary-option .io-duration { font-weight: 600; }
 .itinerary-option .io-time { color: var(--muted); font-size: 12px; }
+.itinerary-option .io-fare { color: var(--accent); font-size: 12px; font-weight: 600; }
 .itinerary-option .io-badge {
   font-size: 11px;
   color: var(--muted);
