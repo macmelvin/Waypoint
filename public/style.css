@@ -380,6 +380,20 @@ html, body {
   margin-top: 6px;
   margin-left: 26px;
 }
+.step-arrivals-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fav-quick-btn {
+  border: none;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: #d97706;
+  padding: 4px;
+}
 .arrivals-btn {
   border: 1px solid var(--border);
   background: var(--bg);
@@ -423,6 +437,42 @@ html, body {
   color: var(--muted);
   padding: 3px 0;
 }
+
+.fav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fav-item {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.fav-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.fav-label { font-size: 13.5px; }
+.fav-code { color: var(--muted); font-weight: 400; }
+.fav-remove-btn {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+.fav-remove-btn:hover { color: var(--danger); }
+.fav-item .arrivals-panel { margin-left: 0; }
+#favEmptyHint.hidden { display: none; }
 
 .wake-alert {
   position: fixed;

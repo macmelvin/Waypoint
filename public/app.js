@@ -37,6 +37,10 @@ const els = {
   wakeAlertText: document.getElementById('wakeAlertText'),
   wakeAlertDismiss: document.getElementById('wakeAlertDismiss'),
   shareBtn: document.getElementById('shareBtn'),
+  favSearchInput: document.getElementById('favSearchInput'),
+  favSearchResults: document.getElementById('favSearchResults'),
+  favList: document.getElementById('favList'),
+  favEmptyHint: document.getElementById('favEmptyHint'),
 };
 
 let currentPlace = null; // last searched place result
@@ -238,7 +242,7 @@ async function getDirections() {
   if (selectedMode === 'transit') return getTransitDirections();
 
   stopWakeAlert(false);
-  clearArrivalIntervals();
+  clearArrivalIntervalsIn(els.routeSteps);
   els.itineraryOptions.classList.add('hidden');
   els.itineraryOptions.innerHTML = '';
   transitItineraries = [];
@@ -408,7 +412,7 @@ function renderTransitSummary(itinerary) {
 
 function renderTransitSteps(itinerary) {
   stopWakeAlert(false); // old leg buttons are about to be torn down
-  clearArrivalIntervals(); // old arrivals panels are about to be torn down
+  clearArrivalIntervalsIn(els.routeSteps); // old arrivals panels are about to be torn down
   els.routeSteps.innerHTML = '';
   itinerary.legs.forEach((leg) => {
     const li = document.createElement('li');
@@ -465,17 +469,32 @@ function renderTransitSteps(itinerary) {
       const arrivalsRow = document.createElement('div');
       arrivalsRow.className = 'step-arrivals-row';
 
+      const btnRow = document.createElement('div');
+      btnRow.className = 'step-arrivals-btn-row';
+
       const arrivalsBtn = document.createElement('button');
       arrivalsBtn.type = 'button';
       arrivalsBtn.className = 'arrivals-btn';
       arrivalsBtn.textContent = '🚌 Live arrivals';
+
+      const favBtn = document.createElement('button');
+      favBtn.type = 'button';
+      favBtn.className = 'fav-quick-btn';
+      favBtn.title = 'Save to Favourites';
+      favBtn.textContent = isFavourite(leg.fromStopCode) ? '★' : '☆';
+      favBtn.addEventListener('click', () => {
+        toggleFavourite({ code: leg.fromStopCode, name: leg.from });
+        favBtn.textContent = isFavourite(leg.fromStopCode) ? '★' : '☆';
+      });
 
       const panel = document.createElement('div');
       panel.className = 'arrivals-panel hidden';
 
       arrivalsBtn.addEventListener('click', () => toggleArrivalsPanel(leg.fromStopCode, arrivalsBtn, panel));
 
-      arrivalsRow.appendChild(arrivalsBtn);
+      btnRow.appendChild(arrivalsBtn);
+      btnRow.appendChild(favBtn);
+      arrivalsRow.appendChild(btnRow);
       arrivalsRow.appendChild(panel);
       li.appendChild(arrivalsRow);
     }
@@ -650,11 +669,15 @@ els.wakeAlertDismiss.addEventListener('click', () => stopWakeAlert(false));
 // useful for spotting an earlier bus on a different service that also works.
 
 const ARRIVALS_REFRESH_MS = 20000;
-let arrivalIntervals = []; // interval ids for any open arrivals panels, cleared whenever steps re-render
 
-function clearArrivalIntervals() {
-  arrivalIntervals.forEach(clearInterval);
-  arrivalIntervals = [];
+// Arrivals panels can live in more than one place at once (a directions step,
+// a Favourites row) — each panel tracks its own refresh interval on itself
+// (panel._refreshInterval), and this sweeps just the ones inside a given
+// container right before that container's contents get torn down/rebuilt.
+function clearArrivalIntervalsIn(container) {
+  container.querySelectorAll('.arrivals-panel').forEach((panel) => {
+    if (panel._refreshInterval) clearInterval(panel._refreshInterval);
+  });
 }
 
 function formatArrivalMins(iso) {
@@ -706,7 +729,6 @@ function toggleArrivalsPanel(busStopCode, btnEl, panel) {
     panel.innerHTML = '';
     if (panel._refreshInterval) {
       clearInterval(panel._refreshInterval);
-      arrivalIntervals = arrivalIntervals.filter((id) => id !== panel._refreshInterval);
       panel._refreshInterval = null;
     }
     btnEl.textContent = '🚌 Live arrivals';
@@ -720,8 +742,149 @@ function toggleArrivalsPanel(busStopCode, btnEl, panel) {
   btnEl.classList.add('active');
   fetchAndRenderArrivals(busStopCode, panel);
   panel._refreshInterval = setInterval(() => fetchAndRenderArrivals(busStopCode, panel), ARRIVALS_REFRESH_MS);
-  arrivalIntervals.push(panel._refreshInterval);
 }
+
+// ---------- Favourites — saved bus stops with live arrivals on demand ----------
+// Stored locally in this browser (not synced anywhere); reuses the same
+// arrivals panel machinery as the directions steps above.
+
+const FAVOURITES_KEY = 'waypoint_favourites';
+
+function loadFavourites() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(FAVOURITES_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
+
+let favourites = loadFavourites(); // [{ code, name }]
+
+function saveFavourites() {
+  try {
+    localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function isFavourite(code) {
+  return favourites.some((f) => f.code === code);
+}
+
+function toggleFavourite(stop) {
+  if (isFavourite(stop.code)) {
+    favourites = favourites.filter((f) => f.code !== stop.code);
+    showToast(`Removed ${stop.name || stop.code} from Favourites.`);
+  } else {
+    favourites.push({ code: stop.code, name: stop.name || stop.code });
+    showToast(`Added ${stop.name || stop.code} to Favourites.`);
+  }
+  saveFavourites();
+  renderFavourites();
+}
+
+function renderFavourites() {
+  clearArrivalIntervalsIn(els.favList);
+  els.favList.innerHTML = '';
+  els.favEmptyHint.classList.toggle('hidden', favourites.length > 0);
+
+  favourites.forEach((fav) => {
+    const li = document.createElement('li');
+    li.className = 'fav-item';
+
+    const headerRow = document.createElement('div');
+    headerRow.className = 'fav-header-row';
+
+    const label = document.createElement('span');
+    label.className = 'fav-label';
+    label.innerHTML = `<strong>${fav.name}</strong> <span class="fav-code">(${fav.code})</span>`;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'fav-remove-btn';
+    removeBtn.title = 'Remove from Favourites';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => toggleFavourite(fav));
+
+    headerRow.appendChild(label);
+    headerRow.appendChild(removeBtn);
+
+    const arrivalsBtn = document.createElement('button');
+    arrivalsBtn.type = 'button';
+    arrivalsBtn.className = 'arrivals-btn';
+    arrivalsBtn.textContent = '🚌 Live arrivals';
+
+    const panel = document.createElement('div');
+    panel.className = 'arrivals-panel hidden';
+
+    arrivalsBtn.addEventListener('click', () => toggleArrivalsPanel(fav.code, arrivalsBtn, panel));
+
+    li.appendChild(headerRow);
+    li.appendChild(arrivalsBtn);
+    li.appendChild(panel);
+    els.favList.appendChild(li);
+  });
+}
+
+function renderStopSearchResults(results) {
+  els.favSearchResults.innerHTML = '';
+  results.forEach((r) => {
+    const li = document.createElement('li');
+    const title = document.createElement('span');
+    title.className = 'r-title';
+    title.textContent = `${r.name} (${r.code})`;
+    const sub = document.createElement('span');
+    sub.className = 'r-sub';
+    sub.textContent = r.road || '';
+    li.appendChild(title);
+    li.appendChild(sub);
+    li.addEventListener('click', () => {
+      if (isFavourite(r.code)) {
+        showToast(`${r.name} is already in your Favourites.`);
+      } else {
+        favourites.push({ code: r.code, name: r.name });
+        saveFavourites();
+        renderFavourites();
+        showToast(`Added ${r.name} to Favourites.`);
+      }
+      els.favSearchInput.value = '';
+      els.favSearchResults.innerHTML = '';
+    });
+    els.favSearchResults.appendChild(li);
+  });
+}
+
+const runStopSearch = debounce(async (q) => {
+  try {
+    const res = await fetch(`/api/stop-search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      els.favSearchResults.innerHTML = `<li class="r-sub">${data.error || 'Search unavailable.'}</li>`;
+      return;
+    }
+    renderStopSearchResults(data.results || []);
+  } catch (err) {
+    console.error(err);
+    els.favSearchResults.innerHTML = '<li class="r-sub">Could not search bus stops.</li>';
+  }
+}, 350);
+
+els.favSearchInput.addEventListener('input', (e) => {
+  const v = e.target.value.trim();
+  if (v.length < 1) { els.favSearchResults.innerHTML = ''; return; }
+  runStopSearch(v);
+});
+
+document.addEventListener('click', (e) => {
+  if (!els.favSearchInput.contains(e.target) && !els.favSearchResults.contains(e.target)) {
+    els.favSearchResults.innerHTML = '';
+  }
+});
+
+renderFavourites();
 
 // ---------- Geolocation ----------
 

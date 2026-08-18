@@ -213,6 +213,75 @@ app.get('/api/bus-arrivals', async (req, res) => {
   }
 });
 
+// ---- Bus stop directory (LTA DataMall static BusStops dataset, cached) -----
+// Powers "search for a stop by code or name" for the Favourites feature.
+// LTA paginates this 50 records at a time (~5,000 stops total), so we fetch
+// the whole thing once and cache it in memory rather than hitting LTA on
+// every keystroke. Refreshed once a day — bus stops essentially never move.
+
+let busStopsCache = [];
+let busStopsCacheAt = 0;
+const BUS_STOPS_TTL_MS = 24 * 60 * 60 * 1000;
+
+async function fetchAllBusStops() {
+  const all = [];
+  let skip = 0;
+  for (;;) {
+    const res = await fetch(`https://datamall2.mytransport.sg/ltaodataservice/BusStops?$skip=${skip}`, {
+      headers: { AccountKey: LTA_ACCOUNT_KEY, accept: 'application/json' },
+    });
+    if (!res.ok) throw new Error(`LTA BusStops responded ${res.status}`);
+    const data = await res.json();
+    const batch = data.value || [];
+    all.push(...batch);
+    if (batch.length < 50) break;
+    skip += 50;
+  }
+  return all;
+}
+
+async function getBusStops() {
+  if (busStopsCache.length && Date.now() - busStopsCacheAt < BUS_STOPS_TTL_MS) return busStopsCache;
+  const stops = await fetchAllBusStops();
+  if (stops.length) {
+    busStopsCache = stops;
+    busStopsCacheAt = Date.now();
+  }
+  return busStopsCache;
+}
+
+// Warm the cache at boot so the first real search doesn't have to wait on ~100
+// paginated LTA calls. Harmless no-op if the key isn't set yet.
+if (LTA_ACCOUNT_KEY) getBusStops().catch((err) => console.error('bus stop cache warmup failed:', err.message));
+
+app.get('/api/stop-search', async (req, res) => {
+  const q = (req.query.q || '').trim().toLowerCase();
+  if (q.length < 1) return res.json({ results: [] });
+  if (!LTA_ACCOUNT_KEY) {
+    return res.status(503).json({ error: 'Bus stop search isn\'t set up yet — needs an LTA DataMall API key.' });
+  }
+
+  try {
+    const stops = await getBusStops();
+    const results = stops
+      .filter((s) => s.BusStopCode.startsWith(q)
+        || (s.Description || '').toLowerCase().includes(q)
+        || (s.RoadName || '').toLowerCase().includes(q))
+      .slice(0, 15)
+      .map((s) => ({
+        code: s.BusStopCode,
+        name: s.Description,
+        road: s.RoadName,
+        lat: s.Latitude,
+        lon: s.Longitude,
+      }));
+    res.json({ results });
+  } catch (err) {
+    console.error('stop-search error:', err.message);
+    res.status(502).json({ error: 'Could not search bus stops.', detail: err.message });
+  }
+});
+
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
