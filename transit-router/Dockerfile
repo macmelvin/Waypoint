@@ -5,7 +5,7 @@
 FROM eclipse-temurin:21-jre AS graphbuild
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl osmium-tool ca-certificates && \
+    apt-get install -y --no-install-recommends curl osmium-tool unzip python3 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /graph
@@ -28,6 +28,62 @@ RUN curl -fsSL -o mysgbn.osm.pbf \
     rm mysgbn.osm.pbf
 
 COPY build-config.json router-config.json /graph/
+
+# --- TEMP DIAGNOSTIC ---------------------------------------------------------
+# Investigating why zero rail (MRT/LRT) legs ever appear in itineraries.
+# Inspect the GTFS feed's route_type breakdown and rail trip/schedule data
+# directly, then abort *before* the ~10min graph build so this comes back
+# fast. Remove this whole RUN block once the cause is found.
+RUN mkdir -p /tmp/gtfs-inspect && cd /tmp/gtfs-inspect && unzip -oq /graph/singapore-gtfs.zip && \
+    python3 -c "
+import csv, os
+from collections import Counter
+
+print('=== files ===', sorted(os.listdir('.')))
+
+with open('routes.txt', newline='', encoding='utf-8-sig') as f:
+    routes = list(csv.DictReader(f))
+print('=== total routes ===', len(routes))
+print('=== route_type counts ===', dict(Counter(r.get('route_type') for r in routes)))
+
+rail_types = {'0', '1', '2', '5', '6', '7', '11', '12'}
+rail_routes = [r for r in routes if r.get('route_type') in rail_types]
+print('=== rail-like route count ===', len(rail_routes))
+for r in rail_routes[:15]:
+    print('  ', r.get('route_id'), r.get('route_short_name'), r.get('route_long_name'), 'type=', r.get('route_type'))
+
+has_freq = os.path.exists('frequencies.txt')
+print('=== has frequencies.txt ===', has_freq)
+if has_freq:
+    with open('frequencies.txt', newline='', encoding='utf-8-sig') as f:
+        freq_rows = list(csv.DictReader(f))
+    print('=== frequencies.txt row count ===', len(freq_rows))
+    print('=== sample frequencies ===', freq_rows[:3])
+
+with open('trips.txt', newline='', encoding='utf-8-sig') as f:
+    trips = list(csv.DictReader(f))
+print('=== total trips ===', len(trips))
+rail_route_ids = {r['route_id'] for r in rail_routes}
+rail_trips = [t for t in trips if t.get('route_id') in rail_route_ids]
+print('=== rail trips count ===', len(rail_trips))
+if rail_trips:
+    print('=== sample rail trip ===', rail_trips[0])
+
+rail_trip_ids = {t['trip_id'] for t in rail_trips}
+st_count = 0
+sample_rows = []
+with open('stop_times.txt', newline='', encoding='utf-8-sig') as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        if row.get('trip_id') in rail_trip_ids:
+            st_count += 1
+            if len(sample_rows) < 5:
+                sample_rows.append(row)
+print('=== stop_times rows for rail trips ===', st_count)
+print('=== sample rail stop_times ===', sample_rows)
+" \
+    && echo '=== DIAGNOSTIC DONE, ABORTING BUILD ON PURPOSE ===' && exit 1
+# --- END TEMP DIAGNOSTIC -----------------------------------------------------
 
 RUN java -Xmx7g -jar otp.jar --build --save /graph
 
