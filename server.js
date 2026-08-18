@@ -7,6 +7,13 @@ const PORT = process.env.PORT || 3000;
 // Internal Railway private-network address of the transit-router (OpenTripPlanner) service.
 const TRANSIT_API_URL = process.env.TRANSIT_API_URL || 'http://transit-router.railway.internal:8080';
 
+// Express's static middleware ignores dotfiles (like .well-known) by
+// default, which would 404 the Android app's Digital Asset Links file —
+// serve that one path explicitly before the catch-all static handler.
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', '.well-known', 'assetlinks.json'));
+});
+
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 // ---- Transit planning proxy -------------------------------------------------
