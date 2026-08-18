@@ -77,15 +77,42 @@ if rail_trips:
 rail_trip_ids = {t['trip_id'] for t in rail_trips}
 st_count = 0
 sample_rows = []
+rail_stop_ids = set()
 with open('stop_times.txt', newline='', encoding='utf-8-sig') as f:
     reader = csv.DictReader(f)
     for row in reader:
         if row.get('trip_id') in rail_trip_ids:
             st_count += 1
+            rail_stop_ids.add(row.get('stop_id'))
             if len(sample_rows) < 5:
                 sample_rows.append(row)
 print('=== stop_times rows for rail trips ===', st_count)
 print('=== sample rail stop_times ===', sample_rows)
+print('=== distinct rail stop_ids ===', len(rail_stop_ids))
+
+with open('stops.txt', newline='', encoding='utf-8-sig') as f:
+    stops = list(csv.DictReader(f))
+print('=== stops.txt columns ===', list(stops[0].keys()) if stops else None)
+print('=== total stops ===', len(stops))
+
+rail_stops = [s for s in stops if s.get('stop_id') in rail_stop_ids]
+print('=== rail stop records found ===', len(rail_stops))
+for s in rail_stops[:20]:
+    print('  ', {k: s.get(k) for k in ('stop_id','stop_name','stop_lat','stop_lon','location_type','parent_station')})
+
+# Sanity-check specific well-known stations by name.
+for needle in ('Punggol', 'Orchard', 'Dhoby Ghaut', 'Serangoon'):
+    matches = [s for s in stops if needle.lower() in (s.get('stop_name') or '').lower()]
+    print(f'=== stops matching "{needle}" ({len(matches)}) ===')
+    for s in matches[:8]:
+        print('  ', {k: s.get(k) for k in ('stop_id','stop_name','stop_lat','stop_lon','location_type','parent_station')})
+
+print('=== has pathways.txt ===', os.path.exists('pathways.txt'))
+print('=== has transfers.txt ===', os.path.exists('transfers.txt'))
+if os.path.exists('calendar.txt'):
+    with open('calendar.txt', newline='', encoding='utf-8-sig') as f:
+        cal = list(csv.DictReader(f))
+    print('=== calendar.txt rows ===', cal)
 PYEOF
 python3 inspect.py
 echo '=== DIAGNOSTIC DONE, ABORTING BUILD ON PURPOSE ==='
