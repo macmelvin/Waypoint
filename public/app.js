@@ -19,6 +19,10 @@ const els = {
   placeAddress: document.getElementById('placeAddress'),
   dirFromHere: document.getElementById('dirFromHere'),
   dirToHere: document.getElementById('dirToHere'),
+  setHomeBtn: document.getElementById('setHomeBtn'),
+  setWorkBtn: document.getElementById('setWorkBtn'),
+  quickHomeBtn: document.getElementById('quickHomeBtn'),
+  quickWorkBtn: document.getElementById('quickWorkBtn'),
   fromInput: document.getElementById('fromInput'),
   toInput: document.getElementById('toInput'),
   fromResults: document.getElementById('fromResults'),
@@ -160,6 +164,79 @@ els.dirToHere.addEventListener('click', () => {
   setTo({ lat: parseFloat(currentPlace.lat), lon: parseFloat(currentPlace.lon), label: shortLabel(currentPlace) });
   switchToDirectionsTab();
 });
+
+// ---------- Home / Work quick locations ----------
+// Saved once from a search result ("Set as Home"/"Set as Work"), then usable
+// as a one-tap "To" destination from the Directions panel — the common case
+// of "route me home/to work" without retyping the address every time.
+
+const HOME_KEY = 'waypoint_home';
+const WORK_KEY = 'waypoint_work';
+
+function loadQuickLocation(key) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) || 'null');
+    return raw && typeof raw.lat === 'number' && typeof raw.lon === 'number' ? raw : null;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+function saveQuickLocation(key, coords) {
+  try {
+    localStorage.setItem(key, JSON.stringify(coords));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function currentPlaceCoords() {
+  if (!currentPlace) return null;
+  const lat = typeof currentPlace.lat === 'string' ? parseFloat(currentPlace.lat) : currentPlace.lat;
+  const lon = typeof currentPlace.lon === 'string' ? parseFloat(currentPlace.lon) : currentPlace.lon;
+  if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
+  return { lat, lon, label: shortLabel(currentPlace) };
+}
+
+function updateQuickButtons() {
+  const home = loadQuickLocation(HOME_KEY);
+  const work = loadQuickLocation(WORK_KEY);
+  els.quickHomeBtn.classList.toggle('unset', !home);
+  els.quickHomeBtn.title = home ? `Directions to ${home.label}` : 'Not set yet — search a place, then "Set as Home"';
+  els.quickWorkBtn.classList.toggle('unset', !work);
+  els.quickWorkBtn.title = work ? `Directions to ${work.label}` : 'Not set yet — search a place, then "Set as Work"';
+}
+
+els.setHomeBtn.addEventListener('click', () => {
+  const coords = currentPlaceCoords();
+  if (!coords) return;
+  saveQuickLocation(HOME_KEY, coords);
+  updateQuickButtons();
+  showToast('🏠 Home set!');
+});
+
+els.setWorkBtn.addEventListener('click', () => {
+  const coords = currentPlaceCoords();
+  if (!coords) return;
+  saveQuickLocation(WORK_KEY, coords);
+  updateQuickButtons();
+  showToast('💼 Work set!');
+});
+
+function useQuickLocation(key, label) {
+  const loc = loadQuickLocation(key);
+  if (!loc) {
+    showToast(`Set your ${label} first — search a place, then tap "Set as ${label}".`);
+    document.querySelector('.tab-btn[data-tab="search"]').click();
+    return;
+  }
+  setTo(loc);
+  switchToDirectionsTab();
+}
+
+els.quickHomeBtn.addEventListener('click', () => useQuickLocation(HOME_KEY, 'Home'));
+els.quickWorkBtn.addEventListener('click', () => useQuickLocation(WORK_KEY, 'Work'));
 
 // ---------- Directions panel ----------
 
@@ -885,6 +962,7 @@ document.addEventListener('click', (e) => {
 });
 
 renderFavourites();
+updateQuickButtons();
 
 // ---------- Geolocation ----------
 

@@ -10,6 +10,17 @@
 <meta name="theme-color" content="#2563eb" />
 <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
+<!-- Open Graph / social share preview (WhatsApp, Telegram, etc.) -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Waypoint — Maps & Directions for Singapore" />
+<meta property="og:description" content="A clean, ad-free map and directions app for Singapore — driving, walking, cycling, and live bus/MRT directions with real-time bus arrivals." />
+<meta property="og:image" content="https://waypoint-production-0307.up.railway.app/icons/icon-512.png" />
+<meta property="og:url" content="https://waypoint-production-0307.up.railway.app/" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Waypoint — Maps & Directions for Singapore" />
+<meta name="twitter:description" content="A clean, ad-free map and directions app for Singapore — driving, walking, cycling, and live bus/MRT directions with real-time bus arrivals." />
+<meta name="twitter:image" content="https://waypoint-production-0307.up.railway.app/icons/icon-512.png" />
+
 <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -50,12 +61,21 @@
             <button id="dirFromHere" class="pill-btn">Directions from here</button>
             <button id="dirToHere" class="pill-btn primary">Directions to here</button>
           </div>
+          <div class="place-card-actions place-card-actions-secondary">
+            <button id="setHomeBtn" class="pill-btn ghost">🏠 Set as Home</button>
+            <button id="setWorkBtn" class="pill-btn ghost">💼 Set as Work</button>
+          </div>
         </div>
 
         <p class="hint">Try searching for a landmark, street, or postal code.</p>
       </section>
 
       <section id="panel-directions" class="panel">
+        <div class="quick-access-row">
+          <button id="quickHomeBtn" class="quick-chip unset" type="button">🏠 Home</button>
+          <button id="quickWorkBtn" class="quick-chip unset" type="button">💼 Work</button>
+        </div>
+
         <div class="dir-inputs">
           <div class="dir-field">
             <span class="dir-dot from-dot"></span>
