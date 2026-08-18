@@ -248,16 +248,41 @@ def seconds_to_hms(total):
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
+ABBREVIATIONS = {
+    "bukit": "bt",
+    "jalan": "jln",
+    "taman": "tmn",
+    "kampung": "kg",
+    "sungei": "sg",
+    "lorong": "lor",
+}
+
+
+def _name_variants(name):
+    needle = name.lower()
+    variants = {needle}
+    words = needle.split(" ")
+    abbrev_words = [ABBREVIATIONS.get(w, w) for w in words]
+    if abbrev_words != words:
+        variants.add(" ".join(abbrev_words))
+    return variants
+
+
 def find_station_coords(all_stops, name):
     """Look up real coordinates for `name` by matching it against the feed's
     (accurate) bus stop names, e.g. 'Dhoby Ghaut' -> 'Dhoby Ghaut Stn Exit B'.
-    Returns centroid of all matches, or None if nothing matched."""
-    needle = name.lower()
-    markers = ("stn", "mrt", "station")
+    Tries common Singapore bus-stop abbreviations (Bukit -> Bt, etc.) and
+    accepts "Int" (bus interchange) as well as "Stn"/"MRT"/"Station" markers,
+    since many MRT stations are named only via their co-located bus
+    interchange in this feed's bus stop data. Returns centroid of all
+    matches, or None if nothing matched."""
+    needles = _name_variants(name)
+    marker_words = ("stn", "mrt", "station", "int")
     matches = []
     for s in all_stops:
         sname = (s.get("stop_name") or "").lower()
-        if needle in sname and any(m in sname for m in markers):
+        sname_words = set(sname.replace("/", " ").replace(".", " ").split(" "))
+        if any(n in sname for n in needles) and (sname_words & set(marker_words)):
             try:
                 matches.append((float(s["stop_lat"]), float(s["stop_lon"])))
             except (ValueError, KeyError):

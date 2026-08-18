@@ -28,54 +28,6 @@ COPY patch_rail_gtfs.py /graph/
 RUN python3 patch_rail_gtfs.py singapore-gtfs-raw.zip singapore-gtfs.zip && \
     rm singapore-gtfs-raw.zip
 
-# --- TEMP DIAGNOSTIC ---------------------------------------------------------
-# Verify the patch worked against the REAL feed (only tested against a tiny
-# synthetic fixture locally) before spending ~10min on the full graph build.
-# Remove this whole RUN block once confirmed.
-RUN <<'SCRIPT'
-set -e
-cd /graph
-python3 <<'PYEOF'
-import csv, io, zipfile
-from collections import defaultdict
-
-with zipfile.ZipFile('singapore-gtfs.zip') as zf:
-    def rd(name):
-        with zf.open(name) as f:
-            return list(csv.DictReader(io.TextIOWrapper(f, encoding='utf-8-sig')))
-    stops = rd('stops.txt')
-    trips = rd('trips.txt')
-    stop_times = rd('stop_times.txt')
-
-minted = [s for s in stops if s['stop_id'].startswith('SGX_')]
-print('=== minted interchange/gap stop records ===', len(minted))
-for s in sorted(minted, key=lambda s: s['stop_name']):
-    print('  ', s['stop_id'], '|', s['stop_name'], '|', s['stop_lat'], s['stop_lon'])
-
-route_by_trip = {t['trip_id']: t['route_id'] for t in trips}
-lines_using = defaultdict(set)
-for st in stop_times:
-    sid = st['stop_id']
-    if sid.startswith('SGX_'):
-        route = route_by_trip.get(st['trip_id'])
-        lines_using[sid].add(route)
-print('=== which lines now stop at each minted station ===')
-for sid, routes in sorted(lines_using.items()):
-    print('  ', sid, '->', sorted(routes))
-
-for needle in ('Punggol', 'Orchard', 'Dhoby Ghaut'):
-    matches = [s for s in minted if needle.lower() in s['stop_name'].lower()]
-    print(f'=== minted matching "{needle}" ===', [(m['stop_id'], m['stop_lat'], m['stop_lon']) for m in matches])
-
-rail_stop_ids = {st['stop_id'] for st in stop_times if route_by_trip.get(st['trip_id']) in
-                  ('NS','EW','NE','CC','DT','TE')}
-print('=== total distinct rail stop_ids used now (was 110 before patch) ===', len(rail_stop_ids))
-PYEOF
-echo '=== DIAGNOSTIC DONE, ABORTING BUILD ON PURPOSE ==='
-exit 1
-SCRIPT
-# --- END TEMP DIAGNOSTIC -----------------------------------------------------
-
 # Street network for walk/transfer legs: Geofabrik's Malaysia/Singapore/Brunei
 # extract, clipped down to just Singapore (+ a small border buffer) so the
 # graph build stays fast and light.
