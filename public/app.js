@@ -1,30 +1,14 @@
-// Waypoint — a clean, ad-free maps & directions app.
-// Map tiles: OpenStreetMap. Geocoding: Nominatim. Routing: OSRM public demo server.
+// Waypoint — a clean, ad-free directions app.
+// Geocoding: Nominatim. Routing: OSRM public demo server (driving/cycling/walking)
+// and OpenTripPlanner via /api/transit-plan (bus/MRT).
 
-const SINGAPORE_CENTER = [1.3521, 103.8198];
-// Singapore's bounding box (with a little padding), used to keep the map
-// and all search results confined to Singapore.
-const SG_BOUNDS = L.latLngBounds([1.130, 103.550], [1.485, 104.130]);
+// Singapore's bounding box, used to keep search results confined to Singapore.
 const SG_VIEWBOX = '103.550,1.485,104.130,1.130'; // left,top,right,bottom for Nominatim
 
-const map = L.map('map', {
-  zoomControl: true,
-  maxBounds: SG_BOUNDS.pad(0.15),
-  minZoom: 11
-}).setView(SINGAPORE_CENTER, 12);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
-
-let searchMarker = null;
-let fromMarker = null;
-let toMarker = null;
-let routeLayer = null;
 let fromCoords = null; // { lat, lon, label }
 let toCoords = null;
 let selectedMode = 'driving';
+let hasRoute = false; // whether a route/itinerary is currently displayed (for mode-switch auto-refresh)
 
 const els = {
   searchInput: document.getElementById('searchInput'),
@@ -49,6 +33,9 @@ const els = {
   tabs: document.querySelectorAll('.tab-btn'),
   panels: document.querySelectorAll('.panel'),
   modeButtons: document.querySelectorAll('.mode-btn'),
+  wakeAlert: document.getElementById('wakeAlert'),
+  wakeAlertText: document.getElementById('wakeAlertText'),
+  wakeAlertDismiss: document.getElementById('wakeAlertDismiss'),
 };
 
 let currentPlace = null; // last searched place result
@@ -152,13 +139,6 @@ function selectSearchResult(r) {
   els.searchResults.innerHTML = '';
   els.searchInput.value = shortLabel(r);
 
-  const lat = parseFloat(r.lat), lon = parseFloat(r.lon);
-  if (searchMarker) map.removeLayer(searchMarker);
-  searchMarker = L.marker([lat, lon]).addTo(map)
-    .bindPopup(`<strong>${shortLabel(r)}</strong><br>${r.display_name}`)
-    .openPopup();
-  map.setView([lat, lon], 16);
-
   els.placeName.textContent = shortLabel(r);
   els.placeAddress.textContent = r.display_name;
   els.placeCard.classList.remove('hidden');
@@ -181,20 +161,12 @@ els.dirToHere.addEventListener('click', () => {
 function setFrom(coords) {
   fromCoords = coords;
   els.fromInput.value = coords.label;
-  if (fromMarker) map.removeLayer(fromMarker);
-  fromMarker = L.marker([coords.lat, coords.lon], {
-    icon: L.divIcon({ className: '', html: '🟢', iconSize: [20, 20] })
-  }).addTo(map);
   maybeEnableDirections();
 }
 
 function setTo(coords) {
   toCoords = coords;
   els.toInput.value = coords.label;
-  if (toMarker) map.removeLayer(toMarker);
-  toMarker = L.marker([coords.lat, coords.lon], {
-    icon: L.divIcon({ className: '', html: '🔴', iconSize: [20, 20] })
-  }).addTo(map);
   maybeEnableDirections();
 }
 
@@ -252,7 +224,7 @@ els.modeButtons.forEach(btn => {
     els.modeButtons.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedMode = btn.dataset.mode;
-    if (fromCoords && toCoords && routeLayer) {
+    if (fromCoords && toCoords && hasRoute) {
       getDirections();
     }
   });
@@ -264,6 +236,7 @@ async function getDirections() {
   if (!fromCoords || !toCoords) return;
   if (selectedMode === 'transit') return getTransitDirections();
 
+  stopWakeAlert(false);
   els.itineraryOptions.classList.add('hidden');
   els.itineraryOptions.innerHTML = '';
   transitItineraries = [];
@@ -284,7 +257,7 @@ async function getDirections() {
     }
 
     const route = data.routes[0];
-    drawRoute(route);
+    hasRoute = true;
     renderRouteSummary(route);
     renderRouteSteps(route);
   } catch (err) {
@@ -299,41 +272,12 @@ async function getDirections() {
 // ---------- Transit (bus / MRT) directions ----------
 
 const MODE_ICON = { walk: '🚶', bus: '🚌', train: '🚇', ferry: '⛴' };
-const MODE_COLOR = { walk: '#6b7280', bus: '#059669', train: '#dc2626', ferry: '#0891b2' };
 
 let transitItineraries = []; // all itinerary options returned for the current transit search
 let selectedItineraryIndex = 0;
 
-// Decodes a Google-encoded polyline (precision 5) into an array of [lat, lng].
-function decodePolyline(encoded) {
-  let points = [];
-  let index = 0, lat = 0, lng = 0;
-  while (index < encoded.length) {
-    let b, shift = 0, result = 0;
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    const dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
-    lat += dlat;
-
-    shift = 0;
-    result = 0;
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    const dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
-    lng += dlng;
-
-    points.push([lat / 1e5, lng / 1e5]);
-  }
-  return points;
-}
-
 async function getTransitDirections() {
+  stopWakeAlert(false);
   els.getDirectionsBtn.disabled = true;
   els.getDirectionsBtn.textContent = 'Loading…';
 
@@ -376,8 +320,8 @@ async function getTransitDirections() {
 }
 
 // Renders the list of alternative itineraries as selectable cards, e.g.
-// "🚶 → 🚇 → 🚶   32 min   5:38p–6:10p". Clicking a card switches the map
-// route, summary, and step list to that option.
+// "🚶 → 🚇 → 🚶   32 min   5:38p–6:10p". Clicking a card switches the
+// summary and step list to that option.
 function renderItineraryOptions() {
   els.itineraryOptions.innerHTML = '';
 
@@ -443,32 +387,9 @@ function selectItinerary(index) {
     card.classList.toggle('active', i === index);
   });
 
-  drawTransitRoute(itinerary);
+  hasRoute = true;
   renderTransitSummary(itinerary);
   renderTransitSteps(itinerary);
-}
-
-function drawTransitRoute(itinerary) {
-  if (routeLayer) map.removeLayer(routeLayer);
-  const group = L.layerGroup();
-
-  itinerary.legs.forEach((leg) => {
-    if (!leg.geometry) return;
-    const points = decodePolyline(leg.geometry);
-    const color = leg.routeColor ? `#${leg.routeColor}` : (MODE_COLOR[leg.mode] || '#2563eb');
-    L.polyline(points, {
-      color,
-      weight: leg.mode === 'walk' ? 4 : 5,
-      opacity: leg.mode === 'walk' ? 0.7 : 0.9,
-      dashArray: leg.mode === 'walk' ? '1, 8' : null,
-    }).addTo(group);
-  });
-
-  routeLayer = group.addTo(map);
-  const allPoints = itinerary.legs.flatMap((leg) => leg.geometry ? decodePolyline(leg.geometry) : []);
-  if (allPoints.length) {
-    map.fitBounds(L.latLngBounds(allPoints), { padding: [40, 40] });
-  }
 }
 
 function formatClockTime(ms) {
@@ -484,9 +405,15 @@ function renderTransitSummary(itinerary) {
 }
 
 function renderTransitSteps(itinerary) {
+  stopWakeAlert(false); // old leg buttons are about to be torn down
   els.routeSteps.innerHTML = '';
   itinerary.legs.forEach((leg) => {
     const li = document.createElement('li');
+    li.className = 'route-step';
+
+    const row = document.createElement('div');
+    row.className = 'route-step-row';
+
     const icon = document.createElement('span');
     icon.className = 'step-num';
     icon.textContent = MODE_ICON[leg.mode] || '➜';
@@ -500,18 +427,33 @@ function renderTransitSteps(itinerary) {
       text.innerHTML = `<strong>${line}</strong>${headsign}<br>`
         + `${leg.from} → ${leg.to} — ${formatDuration(leg.duration)} (${formatClockTime(leg.startTime)})`;
     }
-    li.appendChild(icon);
-    li.appendChild(text);
+    row.appendChild(icon);
+    row.appendChild(text);
+    li.appendChild(row);
+
+    // "Wake me up" alert: only makes sense on a bus/train leg with a real
+    // alighting-stop location to watch your live position against.
+    if (leg.mode !== 'walk' && leg.toLat != null && leg.toLon != null) {
+      const wakeRow = document.createElement('div');
+      wakeRow.className = 'step-wake-row';
+
+      const wakeBtn = document.createElement('button');
+      wakeBtn.type = 'button';
+      wakeBtn.className = 'wake-btn';
+      wakeBtn.textContent = '🔔 Wake me up';
+
+      const status = document.createElement('span');
+      status.className = 'wake-status';
+
+      wakeBtn.addEventListener('click', () => toggleWakeAlert(leg, wakeBtn, status));
+
+      wakeRow.appendChild(wakeBtn);
+      wakeRow.appendChild(status);
+      li.appendChild(wakeRow);
+    }
+
     els.routeSteps.appendChild(li);
   });
-}
-
-function drawRoute(route) {
-  if (routeLayer) map.removeLayer(routeLayer);
-  routeLayer = L.geoJSON(route.geometry, {
-    style: { color: '#2563eb', weight: 5, opacity: 0.85 }
-  }).addTo(map);
-  map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
 }
 
 function formatDuration(seconds) {
@@ -561,6 +503,120 @@ function renderRouteSteps(route) {
   });
 }
 
+// ---------- "Wake me up" — alerts you as you approach a bus/train alighting stop ----------
+// Watches your live GPS position against the leg's destination stop and beeps +
+// vibrates + shows a banner once you're close, repeating until dismissed — useful
+// if you doze off on a long bus ride.
+
+const WAKE_ALERT_THRESHOLD_M = 300; // distance to alighting stop that triggers the alert
+const WAKE_REPEAT_MS = 8000; // how often to re-beep while the banner is up, undismissed
+
+let wakeState = null; // { watchId, repeatTimer, btnEl, statusEl, targetName, triggered }
+let wakeAudioCtx = null;
+
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function playWakeBeep() {
+  try {
+    if (!wakeAudioCtx) wakeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (wakeAudioCtx.state === 'suspended') wakeAudioCtx.resume();
+    const now = wakeAudioCtx.currentTime;
+    [0, 0.3, 0.6].forEach((offset) => {
+      const osc = wakeAudioCtx.createOscillator();
+      const gain = wakeAudioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      osc.connect(gain);
+      gain.connect(wakeAudioCtx.destination);
+      gain.gain.setValueAtTime(0.0001, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.35, now + offset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.25);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.3);
+    });
+  } catch (err) {
+    console.error('beep failed:', err);
+  }
+  if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+}
+
+function toggleWakeAlert(leg, btnEl, statusEl) {
+  if (wakeState && wakeState.btnEl === btnEl) {
+    stopWakeAlert(true);
+    return;
+  }
+  startWakeAlert(leg, btnEl, statusEl);
+}
+
+function startWakeAlert(leg, btnEl, statusEl) {
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  stopWakeAlert(false); // only one active watch at a time
+
+  const targetName = leg.to || 'your stop';
+  wakeState = { watchId: null, repeatTimer: null, btnEl, statusEl, targetName, triggered: false };
+  btnEl.textContent = '🔕 Cancel alert';
+  btnEl.classList.add('active');
+  statusEl.textContent = 'Locating you…';
+  showToast(`We'll wake you up near ${targetName}.`);
+
+  wakeState.watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      if (!wakeState) return;
+      const dist = haversineMeters(pos.coords.latitude, pos.coords.longitude, leg.toLat, leg.toLon);
+      wakeState.statusEl.textContent = `📍 ${formatDistance(dist)} to ${targetName}`;
+      if (dist <= WAKE_ALERT_THRESHOLD_M && !wakeState.triggered) {
+        wakeState.triggered = true;
+        triggerWakeAlert(targetName);
+      }
+    },
+    () => {
+      showToast('Could not get your location for the wake-up alert.');
+      stopWakeAlert(false);
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+}
+
+function triggerWakeAlert(targetName) {
+  playWakeBeep();
+  els.wakeAlertText.textContent = `Approaching ${targetName} — get ready to alight!`;
+  els.wakeAlert.classList.remove('hidden');
+  if (wakeState) {
+    clearInterval(wakeState.repeatTimer);
+    wakeState.repeatTimer = setInterval(playWakeBeep, WAKE_REPEAT_MS);
+  }
+}
+
+function stopWakeAlert(showMsg) {
+  if (!wakeState) {
+    els.wakeAlert.classList.add('hidden');
+    return;
+  }
+  if (wakeState.watchId != null) navigator.geolocation.clearWatch(wakeState.watchId);
+  clearInterval(wakeState.repeatTimer);
+  if (wakeState.btnEl) {
+    wakeState.btnEl.textContent = '🔔 Wake me up';
+    wakeState.btnEl.classList.remove('active');
+  }
+  if (wakeState.statusEl) wakeState.statusEl.textContent = '';
+  els.wakeAlert.classList.add('hidden');
+  if (showMsg) showToast('Wake-up alert cancelled.');
+  wakeState = null;
+}
+
+els.wakeAlertDismiss.addEventListener('click', () => stopWakeAlert(false));
+
 // ---------- Geolocation ----------
 
 els.locateBtn.addEventListener('click', () => {
@@ -570,41 +626,28 @@ els.locateBtn.addEventListener('click', () => {
   }
   els.locateBtn.textContent = '…';
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
+    async (pos) => {
       const { latitude, longitude } = pos.coords;
-      map.setView([latitude, longitude], 16);
-      L.circleMarker([latitude, longitude], {
-        radius: 8, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9, weight: 2
-      }).addTo(map).bindPopup('You are here').openPopup();
-      els.locateBtn.textContent = '🎯';
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const displayName = data?.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        currentPlace = { lat: latitude, lon: longitude, display_name: displayName };
+        els.placeName.textContent = shortLabel({ display_name: displayName });
+        els.placeAddress.textContent = displayName;
+        els.placeCard.classList.remove('hidden');
+        document.querySelector('.tab-btn[data-tab="search"]').click();
+      } catch (err) {
+        console.error(err);
+        showToast('Could not determine your address.');
+      } finally {
+        els.locateBtn.textContent = '🎯';
+      }
     },
     () => {
       showToast('Could not get your location.');
       els.locateBtn.textContent = '🎯';
     }
   );
-});
-
-// ---------- Map click: reverse geocode ----------
-
-map.on('click', async (e) => {
-  const { lat, lng } = e.latlng;
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data && data.display_name) {
-      currentPlace = { lat, lon: lng, display_name: data.display_name };
-      if (searchMarker) map.removeLayer(searchMarker);
-      searchMarker = L.marker([lat, lng]).addTo(map)
-        .bindPopup(`<strong>${shortLabel({ display_name: data.display_name })}</strong><br>${data.display_name}`)
-        .openPopup();
-      els.placeName.textContent = shortLabel({ display_name: data.display_name });
-      els.placeAddress.textContent = data.display_name;
-      els.placeCard.classList.remove('hidden');
-      document.querySelector('.tab-btn[data-tab="search"]').click();
-    }
-  } catch (err) {
-    console.error(err);
-  }
 });
