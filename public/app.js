@@ -72,6 +72,26 @@ function showToast(msg, ms = 2500) {
   showToast._t = setTimeout(() => els.toast.classList.add('hidden'), ms);
 }
 
+// Turns a GeolocationPositionError into an actionable message instead of a
+// generic "Could not get your location" for every possible cause — permission
+// denial, no GPS/wifi fix available, and a timeout all need different fixes
+// from the user, and code 0 ("Geolocation is not supported...") is handled
+// separately by each caller before this ever runs.
+function geoErrorMessage(err) {
+  switch (err && err.code) {
+    case 1: // PERMISSION_DENIED
+      return 'Location access is blocked for this site — check your browser/site permissions and allow location, then try again.';
+    case 2: // POSITION_UNAVAILABLE
+      return 'Could not get a location fix — try again with GPS/Wi-Fi on, ideally outdoors.';
+    case 3: // TIMEOUT
+      return 'Location request timed out — try again.';
+    default:
+      return 'Could not get your location.';
+  }
+}
+
+const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 };
+
 async function geocode(query) {
   if (!query || query.trim().length < 2) return [];
   const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6`
@@ -761,8 +781,9 @@ function startWakeAlert(leg, btnEl, statusEl) {
         triggerWakeAlert(targetName);
       }
     },
-    () => {
-      showToast('Could not get your location for the wake-up alert.');
+    (err) => {
+      console.error('wake-alert geolocation error:', err);
+      showToast(geoErrorMessage(err) + ' (needed for the wake-up alert)');
       stopWakeAlert(false);
     },
     { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
@@ -1038,11 +1059,13 @@ els.nearbyStopsBtn.addEventListener('click', () => {
         els.nearbyStopsBtn.textContent = originalText;
       }
     },
-    () => {
-      showToast('Could not get your location.');
+    (err) => {
+      console.error('nearby-stops geolocation error:', err);
+      showToast(geoErrorMessage(err));
       els.nearbyStopsBtn.disabled = false;
       els.nearbyStopsBtn.textContent = originalText;
-    }
+    },
+    GEO_OPTIONS
   );
 });
 
@@ -1089,10 +1112,12 @@ els.locateBtn.addEventListener('click', () => {
         els.locateBtn.textContent = '🎯';
       }
     },
-    () => {
-      showToast('Could not get your location.');
+    (err) => {
+      console.error('locate-me geolocation error:', err);
+      showToast(geoErrorMessage(err));
       els.locateBtn.textContent = '🎯';
-    }
+    },
+    GEO_OPTIONS
   );
 });
 
