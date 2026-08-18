@@ -420,12 +420,15 @@ function renderTransitSteps(itinerary) {
 
     const text = document.createElement('span');
     if (leg.mode === 'walk') {
-      text.textContent = `Walk to ${leg.to} — ${formatDistance(leg.distance)}, ${formatDuration(leg.duration)}`;
+      const toCode = leg.toStopCode ? ` (Bus Stop ${leg.toStopCode})` : '';
+      text.textContent = `Walk to ${leg.to}${toCode} — ${formatDistance(leg.distance)}, ${formatDuration(leg.duration)}`;
     } else {
       const line = leg.routeName ? `${leg.mode === 'train' ? 'Line' : 'Bus'} ${leg.routeName}` : leg.mode;
       const headsign = leg.headsign ? ` towards ${leg.headsign}` : '';
+      const fromCode = leg.fromStopCode ? ` (${leg.fromStopCode})` : '';
+      const toCode = leg.toStopCode ? ` (${leg.toStopCode})` : '';
       text.innerHTML = `<strong>${line}</strong>${headsign}<br>`
-        + `${leg.from} → ${leg.to} — ${formatDuration(leg.duration)} (${formatClockTime(leg.startTime)})`;
+        + `${leg.from}${fromCode} → ${leg.to}${toCode} — ${formatDuration(leg.duration)} (${formatClockTime(leg.startTime)})`;
     }
     row.appendChild(icon);
     row.appendChild(text);

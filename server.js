@@ -52,8 +52,8 @@ app.get('/api/transit-plan', async (req, res) => {
             distance
             startTime
             endTime
-            from { name lat lon }
-            to { name lat lon }
+            from { name lat lon stop { code } }
+            to { name lat lon stop { code } }
             route { shortName longName color textColor }
             headsign
             legGeometry { points }
@@ -109,9 +109,11 @@ app.get('/api/transit-plan', async (req, res) => {
         from: leg.from?.name,
         fromLat: leg.from?.lat ?? null,
         fromLon: leg.from?.lon ?? null,
+        fromStopCode: leg.from?.stop?.code ?? null,
         to: leg.to?.name,
         toLat: leg.to?.lat ?? null,
         toLon: leg.to?.lon ?? null,
+        toStopCode: leg.to?.stop?.code ?? null,
         routeName: leg.route ? (leg.route.shortName || leg.route.longName) : null,
         routeColor: leg.route?.color || null,
         headsign: leg.headsign || null,
