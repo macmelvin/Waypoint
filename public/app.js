@@ -36,6 +36,7 @@ const els = {
   wakeAlert: document.getElementById('wakeAlert'),
   wakeAlertText: document.getElementById('wakeAlertText'),
   wakeAlertDismiss: document.getElementById('wakeAlertDismiss'),
+  shareBtn: document.getElementById('shareBtn'),
 };
 
 let currentPlace = null; // last searched place result
@@ -755,4 +756,31 @@ els.locateBtn.addEventListener('click', () => {
       els.locateBtn.textContent = '🎯';
     }
   );
+});
+
+// ---------- Share ----------
+
+els.shareBtn.addEventListener('click', async () => {
+  const shareData = {
+    title: 'Waypoint',
+    text: 'Waypoint — a clean, ad-free maps & directions app for Singapore.',
+    url: location.origin,
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+    } catch (err) {
+      if (err.name !== 'AbortError') console.error(err);
+    }
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(shareData.url);
+    showToast('Link copied — share it with a friend!');
+  } catch (err) {
+    console.error(err);
+    showToast(shareData.url, 5000);
+  }
 });

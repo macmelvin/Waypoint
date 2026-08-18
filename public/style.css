@@ -455,6 +455,24 @@ html, body {
   50% { box-shadow: 0 2px 24px rgba(220,38,38,0.6); }
 }
 
+.share-footer {
+  margin: 8px 16px 16px;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+.share-footer:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #eff4ff;
+}
+
 .toast {
   position: fixed;
   bottom: 20px;
