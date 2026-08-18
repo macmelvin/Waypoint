@@ -36,6 +36,9 @@ const els = {
   rainBannerText: document.getElementById('rainBannerText'),
   locateBtn: document.getElementById('locateBtn'),
   weatherWidget: document.getElementById('weatherWidget'),
+  weatherPanel: document.getElementById('weatherPanel'),
+  weatherPanelBody: document.getElementById('weatherPanelBody'),
+  weatherPanelClose: document.getElementById('weatherPanelClose'),
   toast: document.getElementById('toast'),
   tabs: document.querySelectorAll('.tab-btn'),
   panels: document.querySelectorAll('.panel'),
@@ -1251,9 +1254,57 @@ function initWeatherWidget() {
   );
 }
 
-els.weatherWidget.addEventListener('click', () => {
-  const { area, forecast } = els.weatherWidget.dataset;
-  if (area && forecast) showToast(`${forecast} near ${area}`);
+// ---------- Today's detailed weather panel ----------
+// Tapping the widget opens a fuller outlook (temperature/humidity/wind range
+// for today, via NEA's 24-hour forecast) alongside the hyper-local 2-hour
+// condition the widget itself already shows.
+
+function renderWeatherPanel(daily) {
+  const area = els.weatherWidget.dataset.area;
+  const nowForecast = els.weatherWidget.dataset.forecast;
+  const nowLine = area && nowForecast
+    ? `<p class="weather-panel-now">📍 Right now near <strong>${area}</strong>: ${nowForecast}</p>`
+    : '';
+  const temp = daily.tempLow != null && daily.tempHigh != null ? `${daily.tempLow}–${daily.tempHigh}°C` : '—';
+  const humidity = daily.humidityLow != null && daily.humidityHigh != null ? `${daily.humidityLow}–${daily.humidityHigh}%` : '—';
+  const wind = daily.windSpeedLow != null && daily.windSpeedHigh != null
+    ? `${daily.windDirection || ''} ${daily.windSpeedLow}–${daily.windSpeedHigh} km/h`.trim()
+    : '—';
+
+  els.weatherPanelBody.innerHTML = `
+    <div class="weather-panel-icon">${daily.icon || '🌤️'}</div>
+    <h3 class="weather-panel-headline">${daily.forecast || "Today's outlook"}</h3>
+    ${nowLine}
+    <div class="weather-panel-grid">
+      <div><span class="weather-panel-label">Temperature</span><span class="weather-panel-value">${temp}</span></div>
+      <div><span class="weather-panel-label">Humidity</span><span class="weather-panel-value">${humidity}</span></div>
+      <div><span class="weather-panel-label">Wind</span><span class="weather-panel-value">${wind}</span></div>
+    </div>
+    <p class="weather-panel-note">Today's outlook, Singapore-wide — via NEA.</p>
+  `;
+}
+
+async function openWeatherPanel() {
+  els.weatherPanel.classList.remove('hidden');
+  els.weatherPanelBody.innerHTML = '<div class="weather-panel-loading">Loading…</div>';
+  try {
+    const res = await fetch('/api/weather-today');
+    const data = await res.json();
+    if (!res.ok) {
+      els.weatherPanelBody.innerHTML = `<div class="weather-panel-loading">${data.error || 'Could not load forecast.'}</div>`;
+      return;
+    }
+    renderWeatherPanel(data);
+  } catch (err) {
+    console.error('weather panel failed:', err);
+    els.weatherPanelBody.innerHTML = '<div class="weather-panel-loading">Could not load forecast.</div>';
+  }
+}
+
+els.weatherWidget.addEventListener('click', openWeatherPanel);
+els.weatherPanelClose.addEventListener('click', () => els.weatherPanel.classList.add('hidden'));
+els.weatherPanel.addEventListener('click', (e) => {
+  if (e.target === els.weatherPanel) els.weatherPanel.classList.add('hidden');
 });
 
 initWeatherWidget();

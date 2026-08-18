@@ -435,12 +435,64 @@ app.get('/api/weather-nearby', async (req, res) => {
     res.json({
       area: nearest.name,
       forecast: forecastText,
+      icon: forecastIcon(forecastText),
       isRainy: forecastText ? RAINY_PATTERN.test(forecastText) : false,
       validPeriod,
     });
   } catch (err) {
     console.error('weather-nearby error:', err.message);
     res.status(502).json({ error: 'Could not fetch weather forecast.', detail: err.message });
+  }
+});
+
+// Today's detailed outlook (NEA 24-hour forecast) — general Singapore-wide
+// forecast text, temperature range, humidity range, and wind. Distinct from
+// the 2-hour nearby forecast above: that one is hyper-local and used for the
+// rain alert; this one is the fuller "what's today going to be like" view
+// shown when the weather widget is tapped.
+
+let dailyWeatherCache = null; // { general, validPeriod }
+let dailyWeatherCacheAt = 0;
+const DAILY_WEATHER_TTL_MS = 30 * 60 * 1000; // NEA refreshes this a few times a day
+
+async function getDailyForecast() {
+  if (dailyWeatherCache && Date.now() - dailyWeatherCacheAt < DAILY_WEATHER_TTL_MS) return dailyWeatherCache;
+  const res = await fetch('https://api.data.gov.sg/v1/environment/24-hour-weather-forecast');
+  if (!res.ok) throw new Error(`NEA 24-hour forecast API responded ${res.status}`);
+  const data = await res.json();
+  const item = data.items?.[0];
+  if (!item) throw new Error('No forecast data returned');
+  dailyWeatherCache = {
+    general: item.general || null,
+    validPeriod: item.valid_period || null,
+  };
+  dailyWeatherCacheAt = Date.now();
+  return dailyWeatherCache;
+}
+
+app.get('/api/weather-today', async (req, res) => {
+  try {
+    const { general, validPeriod } = await getDailyForecast();
+    if (!general) {
+      return res.status(502).json({ error: 'No forecast data available.' });
+    }
+
+    res.json({
+      forecast: general.forecast || null,
+      icon: forecastIcon(general.forecast),
+      isRainy: general.forecast ? RAINY_PATTERN.test(general.forecast) : false,
+      tempLow: general.temperature?.low ?? null,
+      tempHigh: general.temperature?.high ?? null,
+      humidityLow: general.relative_humidity?.low ?? null,
+      humidityHigh: general.relative_humidity?.high ?? null,
+      windDirection: general.wind?.direction ?? null,
+      windSpeedLow: general.wind?.speed?.low ?? null,
+      windSpeedHigh: general.wind?.speed?.high ?? null,
+      validPeriod,
+    });
+  } catch (err) {
+    console.error('weather-today error:', err.message);
+    res.status(502).json({ error: "Could not fetch today's forecast.", detail: err.message });
   }
 });
 
