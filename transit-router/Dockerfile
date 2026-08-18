@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Transit router for Waypoint — OpenTripPlanner serving Singapore bus + MRT/LRT.
 # Internal-only service: the main "waypoint" service proxies to this over
 # Railway's private network, so nothing here needs a public domain.
@@ -34,8 +35,12 @@ COPY build-config.json router-config.json /graph/
 # Inspect the GTFS feed's route_type breakdown and rail trip/schedule data
 # directly, then abort *before* the ~10min graph build so this comes back
 # fast. Remove this whole RUN block once the cause is found.
-RUN mkdir -p /tmp/gtfs-inspect && cd /tmp/gtfs-inspect && unzip -oq /graph/singapore-gtfs.zip && \
-    python3 -c "
+RUN <<'SCRIPT'
+set -e
+mkdir -p /tmp/gtfs-inspect
+cd /tmp/gtfs-inspect
+unzip -oq /graph/singapore-gtfs.zip
+cat > inspect.py <<'PYEOF'
 import csv, os
 from collections import Counter
 
@@ -81,8 +86,11 @@ with open('stop_times.txt', newline='', encoding='utf-8-sig') as f:
                 sample_rows.append(row)
 print('=== stop_times rows for rail trips ===', st_count)
 print('=== sample rail stop_times ===', sample_rows)
-" \
-    && echo '=== DIAGNOSTIC DONE, ABORTING BUILD ON PURPOSE ===' && exit 1
+PYEOF
+python3 inspect.py
+echo '=== DIAGNOSTIC DONE, ABORTING BUILD ON PURPOSE ==='
+exit 1
+SCRIPT
 # --- END TEMP DIAGNOSTIC -----------------------------------------------------
 
 RUN java -Xmx7g -jar otp.jar --build --save /graph
