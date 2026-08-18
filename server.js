@@ -261,6 +261,49 @@ async function getBusStops() {
 // paginated LTA calls. Harmless no-op if the key isn't set yet.
 if (LTA_ACCOUNT_KEY) getBusStops().catch((err) => console.error('bus stop cache warmup failed:', err.message));
 
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// "Stops near me" for the Favourites tab — sorts the full cached stop
+// directory by straight-line distance from the given position instead of
+// requiring the user to know/type a stop name.
+app.get('/api/stop-search-nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+  if (!LTA_ACCOUNT_KEY) {
+    return res.status(503).json({ error: 'Bus stop search isn\'t set up yet — needs an LTA DataMall API key.' });
+  }
+
+  try {
+    const stops = await getBusStops();
+    const results = stops
+      .map((s) => ({
+        code: s.BusStopCode,
+        name: s.Description,
+        road: s.RoadName,
+        lat: s.Latitude,
+        lon: s.Longitude,
+        distance: haversineMeters(lat, lon, s.Latitude, s.Longitude),
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 10);
+    res.json({ results });
+  } catch (err) {
+    console.error('stop-search-nearby error:', err.message);
+    res.status(502).json({ error: 'Could not search nearby bus stops.', detail: err.message });
+  }
+});
+
 app.get('/api/stop-search', async (req, res) => {
   const q = (req.query.q || '').trim().toLowerCase();
   if (q.length < 1) return res.json({ results: [] });

@@ -41,6 +41,7 @@ const els = {
   wakeAlertText: document.getElementById('wakeAlertText'),
   wakeAlertDismiss: document.getElementById('wakeAlertDismiss'),
   shareBtn: document.getElementById('shareBtn'),
+  nearbyStopsBtn: document.getElementById('nearbyStopsBtn'),
   favSearchInput: document.getElementById('favSearchInput'),
   favSearchResults: document.getElementById('favSearchResults'),
   favList: document.getElementById('favList'),
@@ -915,7 +916,10 @@ function renderStopSearchResults(results) {
     title.textContent = `${r.name} (${r.code})`;
     const sub = document.createElement('span');
     sub.className = 'r-sub';
-    sub.textContent = r.road || '';
+    const subParts = [];
+    if (r.distance != null) subParts.push(`${formatDistance(r.distance)} away`);
+    if (r.road) subParts.push(r.road);
+    sub.textContent = subParts.join(' · ');
     li.appendChild(title);
     li.appendChild(sub);
     li.addEventListener('click', () => {
@@ -948,6 +952,43 @@ const runStopSearch = debounce(async (q) => {
     els.favSearchResults.innerHTML = '<li class="r-sub">Could not search bus stops.</li>';
   }
 }, 350);
+
+els.nearbyStopsBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  const originalText = els.nearbyStopsBtn.textContent;
+  els.nearbyStopsBtn.disabled = true;
+  els.nearbyStopsBtn.textContent = 'Locating…';
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        const { latitude, longitude } = pos.coords;
+        const res = await fetch(`/api/stop-search-nearby?lat=${latitude}&lon=${longitude}`);
+        const data = await res.json();
+        if (!res.ok) {
+          els.favSearchResults.innerHTML = `<li class="r-sub">${data.error || 'Search unavailable.'}</li>`;
+          return;
+        }
+        els.favSearchInput.value = '';
+        renderStopSearchResults(data.results || []);
+      } catch (err) {
+        console.error(err);
+        els.favSearchResults.innerHTML = '<li class="r-sub">Could not find nearby stops.</li>';
+      } finally {
+        els.nearbyStopsBtn.disabled = false;
+        els.nearbyStopsBtn.textContent = originalText;
+      }
+    },
+    () => {
+      showToast('Could not get your location.');
+      els.nearbyStopsBtn.disabled = false;
+      els.nearbyStopsBtn.textContent = originalText;
+    }
+  );
+});
 
 els.favSearchInput.addEventListener('input', (e) => {
   const v = e.target.value.trim();
