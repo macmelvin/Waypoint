@@ -41,6 +41,9 @@ const els = {
   wakeAlertText: document.getElementById('wakeAlertText'),
   wakeAlertDismiss: document.getElementById('wakeAlertDismiss'),
   shareBtn: document.getElementById('shareBtn'),
+  installBanner: document.getElementById('installBanner'),
+  installBtn: document.getElementById('installBtn'),
+  installDismissBtn: document.getElementById('installDismissBtn'),
   nearbyStopsBtn: document.getElementById('nearbyStopsBtn'),
   favSearchInput: document.getElementById('favSearchInput'),
   favSearchResults: document.getElementById('favSearchResults'),
@@ -1065,4 +1068,58 @@ els.shareBtn.addEventListener('click', async () => {
     console.error(err);
     showToast(shareData.url, 5000);
   }
+});
+
+// ---------- PWA install banner ----------
+// Chrome/Edge (Android + desktop) fire "beforeinstallprompt" when the app
+// qualifies for install (has a manifest + icons, which we already set up).
+// iOS Safari never fires this event — there's no equivalent prompt to hook.
+
+const INSTALL_DISMISS_KEY = 'waypoint_install_dismissed_at';
+const INSTALL_DISMISS_DAYS = 14; // don't nag again for a couple weeks after "Not now"
+
+let deferredInstallPrompt = null;
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function installDismissedRecently() {
+  const raw = localStorage.getItem(INSTALL_DISMISS_KEY);
+  if (!raw) return false;
+  const daysSince = (Date.now() - parseInt(raw, 10)) / (1000 * 60 * 60 * 24);
+  return daysSince < INSTALL_DISMISS_DAYS;
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  if (isStandalone() || installDismissedRecently()) return;
+  deferredInstallPrompt = e;
+  els.installBanner.classList.remove('hidden');
+});
+
+els.installBtn.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  els.installBanner.classList.add('hidden');
+  deferredInstallPrompt.prompt();
+  try {
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome !== 'accepted') {
+      localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now()));
+    }
+  } catch (err) {
+    console.error(err);
+  }
+  deferredInstallPrompt = null;
+});
+
+els.installDismissBtn.addEventListener('click', () => {
+  els.installBanner.classList.add('hidden');
+  localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now()));
+  deferredInstallPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  els.installBanner.classList.add('hidden');
+  deferredInstallPrompt = null;
 });

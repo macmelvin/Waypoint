@@ -542,6 +542,29 @@ html, body {
   50% { box-shadow: 0 2px 24px rgba(220,38,38,0.6); }
 }
 
+.install-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ink, #1a1a1a);
+  color: white;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: min(92vw, 420px);
+  flex-wrap: wrap;
+}
+.install-banner.hidden { display: none; }
+.install-banner-text { font-size: 13.5px; font-weight: 600; }
+.install-banner-actions { display: flex; gap: 8px; flex-shrink: 0; margin-left: auto; }
+.install-banner .pill-btn.ghost { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.3); }
+.install-banner .pill-btn.ghost:hover { color: white; border-color: white; }
+
 .share-footer {
   margin: 8px 16px 16px;
   padding: 10px;
