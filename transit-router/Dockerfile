@@ -97,15 +97,14 @@ print('=== total stops ===', len(stops))
 
 rail_stops = [s for s in stops if s.get('stop_id') in rail_stop_ids]
 print('=== rail stop records found ===', len(rail_stops))
-for s in rail_stops[:20]:
-    print('  ', {k: s.get(k) for k in ('stop_id','stop_name','stop_lat','stop_lon','location_type','parent_station')})
+print('=== ALL rail stop names ===')
+for s in sorted(rail_stops, key=lambda s: s.get('stop_name') or ''):
+    print('  ', s.get('stop_id'), '|', s.get('stop_name'), '|', s.get('stop_lat'), s.get('stop_lon'))
 
-# Sanity-check specific well-known stations by name.
-for needle in ('Punggol', 'Orchard', 'Dhoby Ghaut', 'Serangoon'):
-    matches = [s for s in stops if needle.lower() in (s.get('stop_name') or '').lower()]
-    print(f'=== stops matching "{needle}" ({len(matches)}) ===')
-    for s in matches[:8]:
-        print('  ', {k: s.get(k) for k in ('stop_id','stop_name','stop_lat','stop_lon','location_type','parent_station')})
+# Sanity-check specific well-known stations by name, restricted to rail stops only.
+for needle in ('Punggol', 'Orchard'):
+    matches = [s for s in rail_stops if needle.lower() in (s.get('stop_name') or '').lower()]
+    print(f'=== RAIL stops matching "{needle}" ({len(matches)}) ===', matches)
 
 print('=== has pathways.txt ===', os.path.exists('pathways.txt'))
 print('=== has transfers.txt ===', os.path.exists('transfers.txt'))
