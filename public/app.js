@@ -1,9 +1,10 @@
 // Waypoint — a clean, ad-free directions app.
-// Geocoding: Nominatim. Routing: OSRM public demo server (driving/cycling/walking)
-// and OpenTripPlanner via /api/transit-plan (bus/MRT).
-
-// Singapore's bounding box, used to keep search results confined to Singapore.
-const SG_VIEWBOX = '103.550,1.485,104.130,1.130'; // left,top,right,bottom for Nominatim
+// Geocoding: OneMap (Singapore's official government geocoder, via our own
+// /api/geocode proxy) for place/address/postal-code search. Reverse geocoding
+// ("what's near my current GPS position") still uses Nominatim, since that
+// direction isn't prone to the ambiguous/under-construction-POI problem OneMap
+// fixed for forward search. Routing: OSRM public demo server (driving/cycling/
+// walking) and OpenTripPlanner via /api/transit-plan (bus/MRT).
 
 let fromCoords = null; // { lat, lon, label }
 let toCoords = null;
@@ -98,21 +99,29 @@ const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000
 
 async function geocode(query) {
   if (!query || query.trim().length < 2) return [];
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6`
-    + `&countrycodes=sg&viewbox=${SG_VIEWBOX}&bounded=1`
-    + `&q=${encodeURIComponent(query)}`;
   try {
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error('geocode failed');
-    return await res.json();
+    const data = await res.json();
+    return data.results || [];
   } catch (err) {
     console.error(err);
     return [];
   }
 }
 
+// Results can come from two shapes: OneMap forward-search results ({ label,
+// address, lat, lon }, already short/clean — no OSM-style comma-hierarchy to
+// trim) or a Nominatim reverse-geocode result ({ display_name }) from the
+// "use my location" button.
 function shortLabel(result) {
-  return result.display_name.split(',').slice(0, 2).join(',').trim();
+  if (result.label) return result.label;
+  if (result.display_name) return result.display_name.split(',').slice(0, 2).join(',').trim();
+  return '';
+}
+
+function addressText(result) {
+  return result.address || result.display_name || '';
 }
 
 // ---------- Tabs ----------
@@ -165,7 +174,7 @@ function renderResultList(listEl, results, onPick) {
     title.textContent = shortLabel(r);
     const sub = document.createElement('span');
     sub.className = 'r-sub';
-    sub.textContent = r.display_name;
+    sub.textContent = addressText(r);
     li.appendChild(title);
     li.appendChild(sub);
     li.addEventListener('click', () => onPick(r));
@@ -179,7 +188,7 @@ function selectSearchResult(r) {
   els.searchInput.value = shortLabel(r);
 
   els.placeName.textContent = shortLabel(r);
-  els.placeAddress.textContent = r.display_name;
+  els.placeAddress.textContent = addressText(r);
   els.placeCard.classList.remove('hidden');
 }
 

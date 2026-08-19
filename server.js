@@ -50,6 +50,51 @@ function stopCode(stop) {
   return null;
 }
 
+// ---- Geocoding (OneMap, Singapore's official government address search) ---
+// Replaces the old client-side Nominatim/OpenStreetMap search. OneMap (run by
+// the Singapore Land Authority) returns exact station/building names and
+// postal codes reliably — Nominatim would sometimes surface under-construction
+// future-line POIs (e.g. "Cross Island Line, Punggol Central") ahead of the
+// actual operating "Punggol MRT Station" for a plain "Punggol MRT" search.
+// No API key needed for this basic search endpoint.
+
+app.get('/api/geocode', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 2) return res.json({ results: [] });
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const url = `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${encodeURIComponent(q)}&returnGeom=Y&getAddrDetails=Y&pageNum=1`;
+    const omRes = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; WaypointSG/1.0; +https://waypoint-production-0307.up.railway.app/)',
+        Accept: 'application/json',
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!omRes.ok) throw new Error(`OneMap responded ${omRes.status}`);
+    const data = await omRes.json();
+
+    const results = (data.results || [])
+      .slice(0, 6)
+      .map((r) => ({
+        label: r.SEARCHVAL || r.BUILDING || r.ADDRESS || '',
+        address: r.ADDRESS || '',
+        lat: parseFloat(r.LATITUDE),
+        lon: parseFloat(r.LONGITUDE),
+      }))
+      .filter((r) => r.label && !Number.isNaN(r.lat) && !Number.isNaN(r.lon));
+
+    res.json({ results });
+  } catch (err) {
+    console.error('geocode error:', err.message);
+    res.status(502).json({ error: 'Could not search that location.', detail: err.message });
+  }
+});
+
 // Approximate adult SimplyGo/EZ-Link card fare. Singapore's transit card
 // charges ONE combined fare per journey based on total distance actually
 // travelled by bus/train (not per leg, and excluding walking), as long as
