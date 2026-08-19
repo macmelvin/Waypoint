@@ -35,6 +35,9 @@ const els = {
   itineraryOptions: document.getElementById('itineraryOptions'),
   rainBanner: document.getElementById('rainBanner'),
   rainBannerText: document.getElementById('rainBannerText'),
+  trainAlertBanner: document.getElementById('trainAlertBanner'),
+  trainAlertText: document.getElementById('trainAlertText'),
+  trainAlertDismiss: document.getElementById('trainAlertDismiss'),
   locateBtn: document.getElementById('locateBtn'),
   weatherWidget: document.getElementById('weatherWidget'),
   weatherPanel: document.getElementById('weatherPanel'),
@@ -845,6 +848,7 @@ const ARRIVALS_REFRESH_MS = 20000;
 function clearArrivalIntervalsIn(container) {
   container.querySelectorAll('.arrivals-panel').forEach((panel) => {
     if (panel._refreshInterval) clearInterval(panel._refreshInterval);
+    if (panel._tickInterval) clearInterval(panel._tickInterval);
   });
 }
 
@@ -852,6 +856,20 @@ function formatArrivalMins(iso) {
   if (!iso) return null;
   const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
   return mins <= 0 ? 'Arr' : `${mins} min`;
+}
+
+// "Xs ago" / "Xm ago" label so it's always clear how fresh the data on
+// screen actually is, rather than silently trusting a stale fetch.
+function formatAgo(fetchedAtMs) {
+  const secs = Math.max(0, Math.round((Date.now() - fetchedAtMs) / 1000));
+  if (secs < 5) return 'just now';
+  if (secs < 60) return `${secs}s ago`;
+  return `${Math.round(secs / 60)}m ago`;
+}
+
+function updateArrivalsMeta(panel) {
+  const el = panel.querySelector('.arrivals-updated');
+  if (el && panel._fetchedAt) el.textContent = formatAgo(panel._fetchedAt);
 }
 
 async function fetchAndRenderArrivals(busStopCode, panel) {
@@ -869,7 +887,14 @@ async function fetchAndRenderArrivals(busStopCode, panel) {
       return;
     }
 
+    panel._fetchedAt = data.fetchedAt ? new Date(data.fetchedAt).getTime() : Date.now();
+
     panel.innerHTML = '';
+    const meta = document.createElement('div');
+    meta.className = 'arrivals-meta';
+    meta.innerHTML = '<span class="arrivals-live-dot">●</span> Live · updated <span class="arrivals-updated">just now</span>';
+    panel.appendChild(meta);
+
     data.services.forEach((svc) => {
       const row = document.createElement('div');
       row.className = 'arrival-row';
@@ -884,6 +909,8 @@ async function fetchAndRenderArrivals(busStopCode, panel) {
       row.appendChild(times);
       panel.appendChild(row);
     });
+
+    updateArrivalsMeta(panel);
   } catch (err) {
     console.error(err);
     panel.innerHTML = `<div class="arrivals-error">Could not load live arrivals.</div>`;
@@ -899,6 +926,10 @@ function toggleArrivalsPanel(busStopCode, btnEl, panel) {
       clearInterval(panel._refreshInterval);
       panel._refreshInterval = null;
     }
+    if (panel._tickInterval) {
+      clearInterval(panel._tickInterval);
+      panel._tickInterval = null;
+    }
     btnEl.textContent = '🚌 Live arrivals';
     btnEl.classList.remove('active');
     return;
@@ -910,6 +941,7 @@ function toggleArrivalsPanel(busStopCode, btnEl, panel) {
   btnEl.classList.add('active');
   fetchAndRenderArrivals(busStopCode, panel);
   panel._refreshInterval = setInterval(() => fetchAndRenderArrivals(busStopCode, panel), ARRIVALS_REFRESH_MS);
+  panel._tickInterval = setInterval(() => updateArrivalsMeta(panel), 1000);
 }
 
 // ---------- Favourites — saved bus stops with live arrivals on demand ----------
@@ -1317,3 +1349,43 @@ els.weatherPanel.addEventListener('click', (e) => {
 });
 
 initWeatherWidget();
+
+// ---------- MRT/LRT service disruption banner (LTA TrainServiceAlerts) ----------
+// Polls a cached server endpoint every couple of minutes. Dismissing a
+// specific alert hides it for the rest of this browser session; a genuinely
+// new disruption message (different text) will still show even if an older
+// one was dismissed.
+
+const TRAIN_ALERTS_POLL_MS = 2 * 60 * 1000;
+let currentTrainAlertMessage = null;
+let dismissedTrainAlertMessage = null;
+
+async function checkTrainAlerts() {
+  try {
+    const res = await fetch('/api/train-alerts');
+    const data = await res.json();
+
+    if (!data.disrupted || !data.message) {
+      currentTrainAlertMessage = null;
+      els.trainAlertBanner.classList.add('hidden');
+      return;
+    }
+
+    currentTrainAlertMessage = data.message;
+    if (currentTrainAlertMessage === dismissedTrainAlertMessage) return;
+
+    const linesPrefix = data.lines && data.lines.length ? `${data.lines.join(', ')}: ` : '';
+    els.trainAlertText.textContent = `${linesPrefix}${data.message}`;
+    els.trainAlertBanner.classList.remove('hidden');
+  } catch (err) {
+    console.error('train alerts check failed:', err);
+  }
+}
+
+els.trainAlertDismiss.addEventListener('click', () => {
+  dismissedTrainAlertMessage = currentTrainAlertMessage;
+  els.trainAlertBanner.classList.add('hidden');
+});
+
+checkTrainAlerts();
+setInterval(checkTrainAlerts, TRAIN_ALERTS_POLL_MS);

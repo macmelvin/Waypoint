@@ -294,10 +294,64 @@ app.get('/api/bus-arrivals', async (req, res) => {
         return an - bn || as_.localeCompare(bs);
       });
 
-    res.json({ busStopCode, services });
+    res.json({ busStopCode, services, fetchedAt: new Date().toISOString() });
   } catch (err) {
     console.error('bus-arrivals error:', err.message);
-    res.status(502).json({ error: 'Could not reach LTA DataMall.', detail: err.message });
+    res.status(502).json({
+      error: "⚠️ Bus times are temporarily unavailable — LTA's live data feed is having issues right now (not a Waypoint bug). Try again in a few minutes.",
+      detail: err.message,
+    });
+  }
+});
+
+// ---- MRT/LRT service disruption alerts (LTA DataMall TrainServiceAlerts) ---
+// Polled by the client every couple of minutes to show a dismissible banner
+// when a line is disrupted. Status 1 = Normal, 2 = Disrupted (per LTA docs).
+// Cached briefly so a burst of client polls doesn't hammer LTA.
+
+let trainAlertsCache = null;
+let trainAlertsCacheAt = 0;
+const TRAIN_ALERTS_TTL_MS = 2 * 60 * 1000;
+
+async function getTrainAlerts() {
+  if (trainAlertsCache && Date.now() - trainAlertsCacheAt < TRAIN_ALERTS_TTL_MS) {
+    return trainAlertsCache;
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const ltaRes = await fetch('https://datamall2.mytransport.sg/ltaodataservice/TrainServiceAlerts', {
+      headers: { AccountKey: LTA_ACCOUNT_KEY, accept: 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!ltaRes.ok) throw new Error(`LTA TrainServiceAlerts responded ${ltaRes.status}`);
+    const data = await ltaRes.json();
+    trainAlertsCache = (data.value && data.value[0]) || { Status: 1, AffectedSegments: [], Message: [] };
+    trainAlertsCacheAt = Date.now();
+    return trainAlertsCache;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
+app.get('/api/train-alerts', async (req, res) => {
+  if (!LTA_ACCOUNT_KEY) {
+    return res.json({ disrupted: false, message: null, lines: [] });
+  }
+  try {
+    const alert = await getTrainAlerts();
+    const disrupted = alert.Status === 2;
+    res.json({
+      disrupted,
+      message: disrupted && alert.Message && alert.Message[0] ? alert.Message[0].Content : null,
+      lines: disrupted ? [...new Set((alert.AffectedSegments || []).map((s) => s.Line).filter(Boolean))] : [],
+    });
+  } catch (err) {
+    console.error('train-alerts error:', err.message);
+    // Fail quietly — a broken alerts feed shouldn't masquerade as a real disruption.
+    res.json({ disrupted: false, message: null, lines: [] });
   }
 });
 
