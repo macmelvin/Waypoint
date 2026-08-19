@@ -420,10 +420,10 @@ async function fetchAllCarParks() {
   const all = [];
   let skip = 0;
   for (;;) {
-    const res = await fetch(`https://datamall2.mytransport.sg/ltaodataservice/CarParkAvailability?$skip=${skip}`, {
+    const res = await fetch(`https://datamall2.mytransport.sg/ltaodataservice/CarParkAvailabilityv2?$skip=${skip}`, {
       headers: { AccountKey: LTA_ACCOUNT_KEY, accept: 'application/json' },
     });
-    if (!res.ok) throw new Error(`LTA CarParkAvailability responded ${res.status}`);
+    if (!res.ok) throw new Error(`LTA CarParkAvailabilityv2 responded ${res.status}`);
     const data = await res.json();
     const batch = data.value || [];
     all.push(...batch);
