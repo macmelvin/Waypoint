@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy Policy — Waypoint</title>
+<meta name="description" content="Privacy Policy for Waypoint, an ad-free directions and transit app for Singapore." />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<style>
+  :root {
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --ink: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --bg: #ffffff;
+    --panel-bg: #fafafa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  a { color: var(--accent); }
+  a:hover { color: var(--accent-dark); }
+  .back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  header.page-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  header.page-head .flag { font-size: 26px; }
+  h1 { font-size: 24px; margin: 0; }
+  .updated { color: var(--muted); font-size: 13px; margin: 4px 0 32px; }
+  h2 {
+    font-size: 16px;
+    margin: 32px 0 10px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+  p, li { font-size: 14.5px; color: #333; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 8px; }
+  .callout {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 20px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin: 12px 0;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { color: var(--muted); font-weight: 600; }
+  footer.page-foot {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back-link" href="/">&larr; Back to Waypoint</a>
+
+  <header class="page-head">
+    <span class="flag">🇸🇬</span>
+    <h1>Waypoint — Privacy Policy</h1>
+  </header>
+  <p class="updated">Last updated: 19 August 2026</p>
+
+  <p>Waypoint ("we", "our", "the app") is a free, ad-free directions and transit app for Singapore, available as a website and as an Android app. This page explains what information Waypoint collects, how it's used, and the third-party services it relies on to work. There is no user account or sign-in, and we do not sell or rent your data to anyone.</p>
+
+  <h2>Location data</h2>
+  <p>Waypoint asks for your device's location when you use a feature that needs it — for example, tapping "Where am I," searching for places "near me," getting directions from your current location, checking nearby bus stops or carparks, or using live turn-by-turn driving navigation.</p>
+  <ul>
+    <li>Your location is used only to power the feature you triggered, at the moment you use it.</li>
+    <li>We do not run a server-side database of your location history, and Waypoint does not track your location in the background — it's only accessed while the app is open and you've triggered a feature that needs it.</li>
+    <li>Coordinates are sent to the specific external service needed to answer your request (see "Third-party services" below) — for example, your coordinates go to the routing engine when you ask for directions, or to Singapore's LTA DataMall when you check nearby carpark availability.</li>
+  </ul>
+
+  <h2>Information stored only on your device</h2>
+  <p>Some information you choose to save is stored locally in your browser or device (using standard browser local storage) and is never transmitted to Waypoint's own servers:</p>
+  <ul>
+    <li><strong>Home and Work addresses</strong> — if you set these as quick shortcuts.</li>
+    <li><strong>Your parked car location</strong> — if you save it manually, or it's auto-saved when live driving navigation detects you've arrived.</li>
+    <li><strong>Saved bus stops</strong> — any stops you've bookmarked for quick live-arrival checks.</li>
+    <li>Minor app preferences, such as whether you've dismissed the "Add to Home Screen" prompt.</li>
+  </ul>
+  <p>This data lives only on your own device. We have no way to see it, back it up, or recover it if you clear your browser data or uninstall the app. Clearing your browser's site data (or uninstalling the Android app) permanently deletes it.</p>
+
+  <h2>Third-party services Waypoint relies on</h2>
+  <p>Waypoint doesn't run its own maps, routing engine, or transit database — it's built on top of the following services. When you use a feature, the minimum data needed (usually just coordinates or a search term) is sent to that service:</p>
+  <table>
+    <tr><th>Service</th><th>Used for</th></tr>
+    <tr><td>OneMap (Singapore Land Authority)</td><td>Address and place search</td></tr>
+    <tr><td>OpenStreetMap / Nominatim</td><td>Converting your GPS coordinates into a readable location</td></tr>
+    <tr><td>OSRM (Open Source Routing Machine)</td><td>Calculating driving, walking, and cycling routes</td></tr>
+    <tr><td>LTA DataMall (Land Transport Authority)</td><td>Live bus arrivals, bus/MRT routing, carpark availability, MRT/LRT service alerts, ERP rates</td></tr>
+    <tr><td>data.gov.sg</td><td>ERP gantry location data (for estimating gantries crossed on a driving route)</td></tr>
+    <tr><td>NEA (National Environment Agency)</td><td>Weather and rain-area data</td></tr>
+  </table>
+  <p>These are Singapore government or open-source services; Waypoint acts only as a pass-through and does not control their own data practices. We don't add any tracking identifiers to these requests beyond what's needed to answer your query.</p>
+
+  <h2>Analytics</h2>
+  <p>We use two tools to understand how Waypoint is used, so we can improve it:</p>
+  <ul>
+    <li><strong>Umami</strong> — a self-hosted, privacy-friendly analytics tool. It records anonymous, aggregate usage statistics (like page views) and does not use cookies or track you individually across sites.</li>
+    <li><strong>Hotjar</strong> — a third-party service that may record session activity (such as clicks, taps, and scrolling) to help us understand how people use the app and spot usability issues. Hotjar may use cookies or similar technology as part of this. Hotjar does not receive your precise GPS location or anything you type into address/search fields is treated per Hotjar's own data-masking settings. You can read Hotjar's own privacy practices at <a href="https://www.hotjar.com/legal/policies/privacy/" target="_blank" rel="noopener">hotjar.com/legal/policies/privacy</a>.</li>
+  </ul>
+
+  <h2>WhatsApp contact button</h2>
+  <p>The floating WhatsApp button opens a chat with our contact number through WhatsApp's own app or website. We don't automatically collect anything from this — it simply opens WhatsApp the way any "wa.me" link does. Any conversation that follows is subject to WhatsApp's own privacy policy.</p>
+
+  <h2>Offline support</h2>
+  <p>Waypoint can cache parts of the app (like the interface itself, and the last bus/weather/train-alert data you loaded) on your device so it still opens with no internet connection. This is stored locally using your browser's standard caching mechanism and is not sent anywhere.</p>
+
+  <h2>Children's privacy</h2>
+  <p>Waypoint is a general-audience directions app and is not directed at children. We do not knowingly collect personal information from children.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li>You can deny or revoke location permission at any time in your browser or Android system settings — Waypoint will still work for search and browsing, just without location-based features.</li>
+    <li>You can clear your saved Home/Work/parked-car data at any time from within the app (the "Clear" option next to your parked car, for example), or by clearing your browser's site data / uninstalling the app.</li>
+  </ul>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, we'll update the "Last updated" date at the top of this page.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this policy or how Waypoint works? Reach out via WhatsApp at <a href="https://wa.me/6588877041" target="_blank" rel="noopener">+65 8887 7041</a>.</p>
+
+  <footer class="page-foot">
+    Waypoint — an independent, ad-free project. Not affiliated with the Singapore government or LTA.
+  </footer>
+
+</div>
+</body>
+</html>
