@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-<title>Waypoint — Maps &amp; Directions</title>
-<meta name="description" content="A clean, ad-free map and directions app." />
+<title>🇸🇬 Waypoint — Your Singapore Journey, Simplified.</title>
+<meta name="description" content="Search. Navigate. Check your bus. One app." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📍</text></svg>" />
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#2563eb" />
@@ -12,13 +12,13 @@
 
 <!-- Open Graph / social share preview (WhatsApp, Telegram, etc.) -->
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Waypoint — Maps & Directions for Singapore" />
-<meta property="og:description" content="A clean, ad-free map and directions app for Singapore — driving, walking, cycling, and live bus/MRT directions with real-time bus arrivals." />
+<meta property="og:title" content="🇸🇬 Waypoint — Your Singapore Journey, Simplified." />
+<meta property="og:description" content="Search. Navigate. Check your bus. One app." />
 <meta property="og:image" content="https://waypoint-production-0307.up.railway.app/icons/icon-512.png" />
 <meta property="og:url" content="https://waypoint-production-0307.up.railway.app/" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="Waypoint — Maps & Directions for Singapore" />
-<meta name="twitter:description" content="A clean, ad-free map and directions app for Singapore — driving, walking, cycling, and live bus/MRT directions with real-time bus arrivals." />
+<meta name="twitter:title" content="🇸🇬 Waypoint — Your Singapore Journey, Simplified." />
+<meta name="twitter:description" content="Search. Navigate. Check your bus. One app." />
 <meta name="twitter:image" content="https://waypoint-production-0307.up.railway.app/icons/icon-512.png" />
 
 <link rel="stylesheet" href="/style.css" />
@@ -44,12 +44,14 @@
 
   <header id="topbar">
     <div class="brand">
-      <span class="brand-mark">📍</span>
+      <span class="brand-mark">🇸🇬</span>
       <span class="brand-name">Waypoint</span>
     </div>
     <div class="topbar-actions">
       <button id="weatherWidget" class="weather-widget hidden" type="button" title="Current weather"></button>
-      <button id="locateBtn" class="icon-btn" title="Use my location" aria-label="Use my location">🎯</button>
+      <button id="locateBtn" class="icon-btn locate-btn" type="button" title="Where am I" aria-label="Where am I">
+        <span id="locateBtnIcon">🎯</span> Where am I
+      </button>
     </div>
   </header>
 
@@ -57,6 +59,11 @@
     <span class="train-alert-icon">🚨</span>
     <span id="trainAlertText" class="train-alert-text"></span>
     <button id="trainAlertDismiss" class="train-alert-dismiss" type="button" aria-label="Dismiss">✕</button>
+  </div>
+
+  <div id="offlineBanner" class="offline-banner hidden">
+    <span class="offline-banner-icon">📡</span>
+    <span class="offline-banner-text">You're offline — showing saved places &amp; last-known data. Search, routing and live arrivals need a connection.</span>
   </div>
 
   <div id="body">
@@ -123,13 +130,29 @@
 
         <div id="itineraryOptions" class="itinerary-options hidden"></div>
         <div id="routeSummary" class="route-summary hidden"></div>
+        <button id="startNavBtn" class="primary-btn nav-start-btn hidden" type="button">▶️ Start Navigation</button>
         <div id="parkingInfo" class="driving-extra hidden"></div>
         <div id="erpInfo" class="driving-extra hidden"></div>
+        <div id="cyclingExtra" class="driving-extra hidden"></div>
         <div id="rainBanner" class="rain-banner hidden">☔ <span id="rainBannerText"></span></div>
         <ol id="routeSteps" class="route-steps"></ol>
       </section>
 
       <section id="panel-favourites" class="panel">
+        <div id="parkedCarCard" class="parked-car-card hidden">
+          <div class="parked-car-info">
+            <span class="parked-car-icon">🅿️</span>
+            <div class="parked-car-text">
+              <div class="parked-car-title">Car parked <span id="parkedCarAgo"></span></div>
+              <div class="parked-car-sub" id="parkedCarDistance">Tap below to walk back to it</div>
+            </div>
+          </div>
+          <div class="parked-car-actions">
+            <button id="parkedCarDirectionsBtn" class="pill-btn primary" type="button">Walk to my car</button>
+            <button id="parkedCarClearBtn" class="pill-btn ghost" type="button">Clear</button>
+          </div>
+        </div>
+        <button id="saveParkingBtn" class="pill-btn nearby-btn" type="button">🅿️ Save my parking spot</button>
         <button id="nearbyStopsBtn" class="pill-btn nearby-btn" type="button">📍 Stops near me</button>
         <div class="search-box">
           <input id="favSearchInput" type="text" placeholder="Add a bus stop — code or name…" autocomplete="off" />
@@ -173,6 +196,16 @@
 </div>
 
 <div id="toast" class="toast hidden"></div>
+
+<div id="navBanner" class="nav-banner hidden">
+  <div id="navBannerIcon" class="nav-banner-icon">➜</div>
+  <div class="nav-banner-main">
+    <div id="navBannerDistance" class="nav-banner-distance">—</div>
+    <div id="navBannerInstruction" class="nav-banner-instruction">Starting navigation…</div>
+  </div>
+  <button id="navMuteBtn" class="nav-banner-btn" type="button" aria-label="Mute voice">🔊</button>
+  <button id="navStopBtn" class="nav-banner-btn nav-banner-stop" type="button" aria-label="Stop navigation">✕</button>
+</div>
 
 <div id="weatherPanel" class="weather-panel hidden">
   <div class="weather-panel-card">

@@ -40,7 +40,23 @@ const els = {
   trainAlertDismiss: document.getElementById('trainAlertDismiss'),
   parkingInfo: document.getElementById('parkingInfo'),
   erpInfo: document.getElementById('erpInfo'),
+  cyclingExtra: document.getElementById('cyclingExtra'),
+  startNavBtn: document.getElementById('startNavBtn'),
+  navBanner: document.getElementById('navBanner'),
+  navBannerIcon: document.getElementById('navBannerIcon'),
+  navBannerDistance: document.getElementById('navBannerDistance'),
+  navBannerInstruction: document.getElementById('navBannerInstruction'),
+  navMuteBtn: document.getElementById('navMuteBtn'),
+  navStopBtn: document.getElementById('navStopBtn'),
+  parkedCarCard: document.getElementById('parkedCarCard'),
+  parkedCarAgo: document.getElementById('parkedCarAgo'),
+  parkedCarDistance: document.getElementById('parkedCarDistance'),
+  parkedCarDirectionsBtn: document.getElementById('parkedCarDirectionsBtn'),
+  parkedCarClearBtn: document.getElementById('parkedCarClearBtn'),
+  saveParkingBtn: document.getElementById('saveParkingBtn'),
   locateBtn: document.getElementById('locateBtn'),
+  locateBtnIcon: document.getElementById('locateBtnIcon'),
+  offlineBanner: document.getElementById('offlineBanner'),
   weatherWidget: document.getElementById('weatherWidget'),
   weatherPanel: document.getElementById('weatherPanel'),
   weatherPanelBody: document.getElementById('weatherPanelBody'),
@@ -139,6 +155,7 @@ els.tabs.forEach(btn => {
     const target = btn.dataset.tab;
     els.panels.forEach(p => p.classList.remove('active'));
     document.getElementById(`panel-${target}`).classList.add('active');
+    if (target === 'favourites') renderParkedCar();
   });
 });
 
@@ -282,6 +299,113 @@ function useQuickLocation(key, label) {
 els.quickHomeBtn.addEventListener('click', () => useQuickLocation(HOME_KEY, 'Home'));
 els.quickWorkBtn.addEventListener('click', () => useQuickLocation(WORK_KEY, 'Work'));
 
+// ---------- "My Parked Car" — remember where you left it ----------
+// Saved locally only (never sent anywhere). Auto-saved the moment live
+// driving navigation reaches your destination; can also be saved manually
+// from the Favourites tab for trips driven without in-app navigation.
+
+const PARKED_CAR_KEY = 'waypoint_parked_car';
+
+function loadParkedCar() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PARKED_CAR_KEY) || 'null');
+    return raw && typeof raw.lat === 'number' && typeof raw.lon === 'number' ? raw : null;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+function saveParkedCar(lat, lon) {
+  try {
+    localStorage.setItem(PARKED_CAR_KEY, JSON.stringify({ lat, lon, savedAt: Date.now() }));
+  } catch (err) {
+    console.error(err);
+  }
+  renderParkedCar();
+}
+
+function clearParkedCar() {
+  try {
+    localStorage.removeItem(PARKED_CAR_KEY);
+  } catch (err) {
+    console.error(err);
+  }
+  renderParkedCar();
+}
+
+function formatAgoLong(ms) {
+  const mins = Math.round((Date.now() - ms) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  return `${Math.round(hrs / 24)} day(s) ago`;
+}
+
+function renderParkedCar() {
+  const car = loadParkedCar();
+  els.parkedCarCard.classList.toggle('hidden', !car);
+  if (car) els.parkedCarAgo.textContent = formatAgoLong(car.savedAt);
+}
+
+function saveParkingSpotFromGeolocation(silent) {
+  if (!navigator.geolocation) {
+    if (!silent) showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      saveParkedCar(pos.coords.latitude, pos.coords.longitude);
+      if (!silent) showToast('🅿️ Parking spot saved.');
+    },
+    (err) => {
+      if (!silent) showToast(geoErrorMessage(err) + ' (needed to save your parking spot)');
+    },
+    GEO_OPTIONS
+  );
+}
+
+els.saveParkingBtn.addEventListener('click', () => saveParkingSpotFromGeolocation(false));
+
+els.parkedCarClearBtn.addEventListener('click', () => {
+  clearParkedCar();
+  showToast('Parking spot cleared.');
+});
+
+els.parkedCarDirectionsBtn.addEventListener('click', () => {
+  const car = loadParkedCar();
+  if (!car) return;
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  showToast('Locating you…');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      // GPS works fine offline, but the walking route itself comes from OSRM,
+      // which needs a connection — so offline, skip straight to a straight-line
+      // distance + compass heading instead of a route that would just fail.
+      if (!navigator.onLine) {
+        const dist = haversineMeters(pos.coords.latitude, pos.coords.longitude, car.lat, car.lon);
+        const { label } = bearingCompass(pos.coords.latitude, pos.coords.longitude, car.lat, car.lon);
+        showToast(`🅿️ You're offline — no turn-by-turn, but your car is roughly ${formatDistanceShort(dist)} to the ${label}.`, 5000);
+        return;
+      }
+      setFrom({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'Your location' });
+      setTo({ lat: car.lat, lon: car.lon, label: 'Your parked car' });
+      selectedMode = 'walking';
+      els.modeButtons.forEach((b) => b.classList.toggle('active', b.dataset.mode === 'walking'));
+      switchToDirectionsTab();
+      getDirections();
+    },
+    (err) => showToast(geoErrorMessage(err) + ' (needed to walk back to your car)'),
+    GEO_OPTIONS
+  );
+});
+
+renderParkedCar();
+
 // ---------- Directions panel ----------
 
 function setFrom(coords) {
@@ -382,6 +506,12 @@ els.modeButtons.forEach(btn => {
     els.modeButtons.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedMode = btn.dataset.mode;
+    if (selectedMode === 'cycling') {
+      showCyclingExtra(); // instant, doesn't need a calculated route
+    } else {
+      els.cyclingExtra.classList.add('hidden');
+      els.cyclingExtra.innerHTML = '';
+    }
     if (fromCoords && toCoords && hasRoute) {
       getDirections();
     }
@@ -395,6 +525,29 @@ function hideDrivingExtras() {
   els.parkingInfo.innerHTML = '';
   els.erpInfo.classList.add('hidden');
   els.erpInfo.innerHTML = '';
+  els.cyclingExtra.classList.add('hidden');
+  els.cyclingExtra.innerHTML = '';
+  els.startNavBtn.classList.add('hidden');
+  stopNavigation(false);
+}
+
+// Anywheel (and every other Singapore dockless bike-share operator) doesn't
+// publish a public API or GBFS feed — checked the official GBFS registry,
+// LTA DataMall's full dataset list, and community bike-share API docs, none
+// have it. So rather than guess at bike locations, this just opens Anywheel's
+// own app/site where their live map actually lives.
+function anywheelLink() {
+  const ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'https://play.google.com/store/apps/details?id=com.ytyiot.ebike.anywheel';
+  if (/iphone|ipad|ipod/i.test(ua)) return 'https://apps.apple.com/sg/app/anywheel/id1453812982';
+  return 'https://www.anywheel.sg/';
+}
+
+function showCyclingExtra() {
+  els.cyclingExtra.classList.remove('hidden');
+  els.cyclingExtra.innerHTML = '<div class="driving-extra-title">🚲 Need a bike?</div>'
+    + '<div class="driving-extra-note">Waypoint doesn\'t have live Anywheel bike locations (no public API exists) — check their own live map instead.</div>'
+    + `<a href="${anywheelLink()}" target="_blank" rel="noopener" class="pill-btn primary driving-extra-link">Open Anywheel</a>`;
 }
 
 async function loadParkingInfo(coords) {
@@ -449,6 +602,19 @@ async function loadErpInfo(coordinates) {
 async function getDirections() {
   if (!fromCoords || !toCoords) return;
   hideDrivingExtras();
+
+  // OSRM routing (and OneMap/LTA transit data) genuinely need a connection —
+  // GPS/localStorage don't. Rather than let the fetch below fail with a
+  // generic error offline, short-circuit with a straight-line distance +
+  // compass heading, which is the most useful thing we can offer with no
+  // signal.
+  if (!navigator.onLine) {
+    const dist = haversineMeters(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon);
+    const { label } = bearingCompass(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon);
+    showToast(`📡 You're offline — no live routing, but ${toCoords.label || 'your destination'} is roughly ${formatDistanceShort(dist)} to the ${label}.`, 6000);
+    return;
+  }
+
   if (selectedMode === 'transit') return getTransitDirections();
 
   stopWakeAlert(false);
@@ -482,6 +648,11 @@ async function getDirections() {
     if (selectedMode === 'driving') {
       loadParkingInfo(toCoords);
       loadErpInfo(route.geometry.coordinates);
+      navRouteSteps = route.legs.flatMap((leg) => leg.steps);
+      navRouteCoords = route.geometry.coordinates;
+      els.startNavBtn.classList.remove('hidden');
+    } else if (selectedMode === 'cycling') {
+      showCyclingExtra();
     }
   } catch (err) {
     console.error(err);
@@ -491,6 +662,158 @@ async function getDirections() {
     els.getDirectionsBtn.textContent = 'Get Directions';
   }
 }
+
+// ---------- Live driving navigation (GPS-tracked, voice-guided turn-by-turn) ----------
+// Watches your position and walks through the same steps rendered above,
+// speaking each upcoming instruction as you approach it. Deliberately does
+// NOT reroute automatically if you go off-path — that needs continuously
+// re-querying the routing engine and is a bigger project on its own; instead
+// it just flags that you've drifted from the route.
+
+const NAV_ARRIVAL_THRESHOLD_M = 25; // close enough to a maneuver to count as "reached it"
+const NAV_OFFROUTE_THRESHOLD_M = 80; // distance from the route line before we warn
+const NAV_OFFROUTE_COOLDOWN_MS = 30000; // don't spam the off-route toast
+
+let navRouteSteps = [];
+let navRouteCoords = [];
+let navWatchId = null;
+let navWakeLock = null;
+let navTargetIndex = 1; // index into navRouteSteps we're currently heading toward
+let navMuted = false;
+let navLastOffRouteWarnAt = 0;
+
+function navStepInstruction(step) {
+  const name = step.name ? ` onto ${step.name}` : '';
+  return `${stepVerb(step.maneuver)}${name}`;
+}
+
+function speakNav(text) {
+  if (navMuted || !('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.speak(utter);
+  } catch (err) {
+    console.error('speech synthesis failed:', err);
+  }
+}
+
+function distanceToRouteLine(lat, lon) {
+  // Cheap approximation: closest of the route's polyline vertices, not a true
+  // point-to-segment distance — good enough at typical GPS/road sample density.
+  let min = Infinity;
+  for (const [clon, clat] of navRouteCoords) {
+    const d = haversineMeters(lat, lon, clat, clon);
+    if (d < min) min = d;
+  }
+  return min;
+}
+
+function updateNavBanner(distanceM, step) {
+  els.navBannerDistance.textContent = formatDistance(distanceM);
+  els.navBannerInstruction.textContent = navStepInstruction(step);
+  els.navBannerIcon.textContent = stepIcon(step.maneuver);
+}
+
+function highlightNavStep(index) {
+  els.routeSteps.querySelectorAll('.nav-current-step').forEach((li) => li.classList.remove('nav-current-step'));
+  const li = document.getElementById(`route-step-${index}`);
+  if (li) {
+    li.classList.add('nav-current-step');
+    li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function handleNavPosition(pos) {
+  if (!navRouteSteps.length) return;
+  const { latitude: lat, longitude: lon } = pos.coords;
+
+  const target = navRouteSteps[navTargetIndex];
+  const [tlon, tlat] = target.maneuver.location;
+  const distToTarget = haversineMeters(lat, lon, tlat, tlon);
+
+  updateNavBanner(distToTarget, target);
+  highlightNavStep(navTargetIndex);
+
+  const offRoute = distanceToRouteLine(lat, lon) > NAV_OFFROUTE_THRESHOLD_M;
+  if (offRoute && Date.now() - navLastOffRouteWarnAt > NAV_OFFROUTE_COOLDOWN_MS) {
+    navLastOffRouteWarnAt = Date.now();
+    showToast("You look off-route — Waypoint won't reroute automatically, get new directions if needed.");
+  }
+
+  if (distToTarget <= NAV_ARRIVAL_THRESHOLD_M) {
+    if (navTargetIndex >= navRouteSteps.length - 1) {
+      speakNav('You have arrived at your destination.');
+      saveParkedCar(lat, lon);
+      stopNavigation(false);
+      showToast('🅿️ You have arrived — parking spot saved to ★ Favourites.');
+      return;
+    }
+    navTargetIndex += 1;
+    const next = navRouteSteps[navTargetIndex];
+    speakNav(navStepInstruction(next));
+  }
+}
+
+async function startNavigation() {
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  if (!navRouteSteps.length) return;
+
+  navTargetIndex = navRouteSteps.length > 1 ? 1 : 0;
+  navLastOffRouteWarnAt = 0;
+
+  els.navBanner.classList.remove('hidden');
+  els.navMuteBtn.textContent = navMuted ? '🔇' : '🔊';
+  els.navBannerDistance.textContent = 'Locating…';
+  els.navBannerInstruction.textContent = navStepInstruction(navRouteSteps[navTargetIndex]);
+  els.navBannerIcon.textContent = stepIcon(navRouteSteps[navTargetIndex].maneuver);
+  highlightNavStep(navTargetIndex);
+  speakNav(`Starting navigation. ${navStepInstruction(navRouteSteps[navTargetIndex])}`);
+
+  if ('wakeLock' in navigator) {
+    try {
+      navWakeLock = await navigator.wakeLock.request('screen');
+    } catch (err) {
+      console.error('wake lock failed:', err); // non-fatal — screen may just dim/sleep during nav
+    }
+  }
+
+  navWatchId = navigator.geolocation.watchPosition(
+    handleNavPosition,
+    (err) => {
+      console.error('navigation geolocation error:', err);
+      showToast(geoErrorMessage(err) + ' (needed for live navigation)');
+      stopNavigation(false);
+    },
+    { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+  );
+}
+
+function stopNavigation(showMsg) {
+  if (navWatchId != null) {
+    navigator.geolocation.clearWatch(navWatchId);
+    navWatchId = null;
+  }
+  if (navWakeLock) {
+    navWakeLock.release().catch(() => {});
+    navWakeLock = null;
+  }
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  els.navBanner.classList.add('hidden');
+  els.routeSteps.querySelectorAll('.nav-current-step').forEach((li) => li.classList.remove('nav-current-step'));
+  if (showMsg) showToast('Navigation stopped.');
+}
+
+els.startNavBtn.addEventListener('click', startNavigation);
+els.navStopBtn.addEventListener('click', () => stopNavigation(true));
+els.navMuteBtn.addEventListener('click', () => {
+  navMuted = !navMuted;
+  els.navMuteBtn.textContent = navMuted ? '🔇' : '🔊';
+  if (navMuted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+});
 
 // ---------- Transit (bus / MRT) directions ----------
 
@@ -763,20 +1086,25 @@ function stepIcon(maneuver) {
   return STEP_ICONS[maneuver.type] || STEP_ICONS.default;
 }
 
+function stepVerb(maneuver) {
+  return maneuver.type === 'depart' ? 'Head out'
+    : maneuver.type === 'arrive' ? 'Arrive at destination'
+    : `${maneuver.type.replace(/_/g, ' ')}${maneuver.modifier ? ' ' + maneuver.modifier : ''}`;
+}
+
 function renderRouteSteps(route) {
   els.routeSteps.innerHTML = '';
   const steps = route.legs.flatMap(leg => leg.steps);
   steps.forEach((step, i) => {
     const li = document.createElement('li');
+    li.id = `route-step-${i}`;
+    li.dataset.stepIndex = String(i);
     const num = document.createElement('span');
     num.className = 'step-num';
     num.textContent = stepIcon(step.maneuver);
     const text = document.createElement('span');
     const name = step.name ? ` onto ${step.name}` : '';
-    const verb = step.maneuver.type === 'depart' ? 'Head out'
-      : step.maneuver.type === 'arrive' ? 'Arrive at destination'
-      : `${step.maneuver.type.replace(/_/g, ' ')}${step.maneuver.modifier ? ' ' + step.maneuver.modifier : ''}`;
-    text.textContent = `${verb}${name} — ${formatDistance(step.distance)}`;
+    text.textContent = `${stepVerb(step.maneuver)}${name} — ${formatDistance(step.distance)}`;
     li.appendChild(num);
     li.appendChild(text);
     els.routeSteps.appendChild(li);
@@ -802,6 +1130,25 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
   const a = Math.sin(dLat / 2) ** 2
     + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Straight-line compass direction from point 1 to point 2, as an 8-point
+// compass label (N/NE/E/...). Used as an offline fallback when OSRM routing
+// isn't reachable — GPS still works with no signal, turn-by-turn doesn't.
+function bearingCompass(lat1, lon1, lat2, lon2) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const y = Math.sin(toRad(lon2 - lon1)) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2))
+    - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2 - lon1));
+  const bearingDeg = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  const points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const label = points[Math.round(bearingDeg / 45) % 8];
+  return { degrees: Math.round(bearingDeg), label };
+}
+
+function formatDistanceShort(meters) {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toFixed(1)} km`;
 }
 
 function playWakeBeep() {
@@ -1260,7 +1607,7 @@ els.locateBtn.addEventListener('click', () => {
     showToast('Geolocation is not supported by your browser.');
     return;
   }
-  els.locateBtn.textContent = '…';
+  els.locateBtnIcon.textContent = '…';
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
       const { latitude, longitude } = pos.coords;
@@ -1278,13 +1625,13 @@ els.locateBtn.addEventListener('click', () => {
         console.error(err);
         showToast('Could not determine your address.');
       } finally {
-        els.locateBtn.textContent = '🎯';
+        els.locateBtnIcon.textContent = '🎯';
       }
     },
     (err) => {
       console.error('locate-me geolocation error:', err);
       showToast(geoErrorMessage(err));
-      els.locateBtn.textContent = '🎯';
+      els.locateBtnIcon.textContent = '🎯';
     },
     GEO_OPTIONS
   );
@@ -1316,6 +1663,35 @@ els.shareBtn.addEventListener('click', async () => {
     showToast(shareData.url, 5000);
   }
 });
+
+// ---------- Offline support ----------
+// Registers the service worker (public/sw.js) so the app shell loads
+// instantly with no signal, and shows a banner while offline. Search,
+// routing, and live bus/weather/carpark data still need a connection —
+// this only covers the app shell + whatever a browser cache can hold.
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.error('Service worker registration failed:', err);
+    });
+  });
+}
+
+function updateOfflineBanner() {
+  if (!els.offlineBanner) return;
+  els.offlineBanner.classList.toggle('hidden', navigator.onLine);
+}
+
+window.addEventListener('online', () => {
+  updateOfflineBanner();
+  showToast('✅ Back online.');
+});
+window.addEventListener('offline', () => {
+  updateOfflineBanner();
+  showToast("📡 You're offline — saved places still work, but search/routing/live data need a connection.", 4000);
+});
+updateOfflineBanner();
 
 // ---------- PWA install banner ----------
 // Chrome/Edge (Android + desktop) fire "beforeinstallprompt" when the app

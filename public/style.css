@@ -63,6 +63,21 @@ html, body {
 }
 .train-alert-dismiss:hover { opacity: 1; }
 
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.offline-banner.hidden { display: none; }
+.offline-banner-icon { flex-shrink: 0; }
+.offline-banner-text { flex: 1; }
+
 .brand {
   display: flex;
   align-items: center;
@@ -88,6 +103,17 @@ html, body {
 }
 .icon-btn:hover { background: #f2f4f7; }
 .icon-btn.small { width: 32px; height: 32px; font-size: 14px; }
+
+.locate-btn {
+  width: auto;
+  border-radius: 999px;
+  padding: 0 12px 0 10px;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
 
 .weather-widget {
   border: 1px solid var(--border);
@@ -347,6 +373,24 @@ html, body {
   margin-bottom: 10px;
 }
 .nearby-btn:disabled { opacity: 0.6; cursor: default; }
+
+.parked-car-card {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.parked-car-card.hidden { display: none; }
+.parked-car-info { display: flex; align-items: center; gap: 10px; }
+.parked-car-icon { font-size: 22px; flex-shrink: 0; }
+.parked-car-title { font-size: 13.5px; font-weight: 700; }
+.parked-car-sub { font-size: 12px; color: var(--muted); }
+.parked-car-actions { display: flex; gap: 8px; }
+.parked-car-actions .pill-btn { flex: 1; text-align: center; }
 
 .hint {
   color: var(--muted);
@@ -685,6 +729,12 @@ html, body {
   color: var(--muted);
 }
 .driving-extra-note a { color: var(--accent); }
+.driving-extra-link {
+  display: block;
+  text-align: center;
+  margin-top: 8px;
+  text-decoration: none;
+}
 .arrivals-error {
   font-size: 12px;
   color: var(--muted);
@@ -856,6 +906,56 @@ html, body {
   box-shadow: var(--shadow);
 }
 .toast.hidden { display: none; }
+
+.nav-start-btn.hidden { display: none; }
+
+.nav-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #1a1a1a;
+  color: white;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.nav-banner.hidden { display: none; }
+.nav-banner-icon { font-size: 26px; flex-shrink: 0; width: 30px; text-align: center; }
+.nav-banner-main { flex: 1; min-width: 0; }
+.nav-banner-distance { font-size: 17px; font-weight: 700; }
+.nav-banner-instruction {
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-banner-btn {
+  border: none;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.nav-banner-btn:hover { background: rgba(255,255,255,0.25); }
+.nav-banner-stop { background: rgba(220,38,38,0.85); }
+.nav-banner-stop:hover { background: rgba(220,38,38,1); }
+
+.route-steps li.nav-current-step {
+  background: #eff4ff;
+  border-radius: var(--radius);
+  margin: 0 -4px;
+  padding-left: 8px;
+  padding-right: 4px;
+}
 
 .whatsapp-float {
   position: fixed;
