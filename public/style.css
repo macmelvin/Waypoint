@@ -165,10 +165,11 @@ html, body {
 
 .tab-btn {
   flex: 1;
-  padding: 14px 8px;
+  padding: 14px 4px;
   border: none;
   background: none;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.25;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
