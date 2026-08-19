@@ -858,6 +858,16 @@ function formatArrivalMins(iso) {
   return mins <= 0 ? 'Arr' : `${mins} min`;
 }
 
+// LTA's Load field on each bus: SEA = seats available, SDA = standing
+// available (no seats but comfortable), LSD = limited standing (packed).
+const LOAD_LABELS = { SEA: 'Seats available', SDA: 'Standing available', LSD: 'Limited standing — packed' };
+function loadClass(load) {
+  return load && LOAD_LABELS[load] ? `load-${load.toLowerCase()}` : 'load-unknown';
+}
+function loadLabel(load) {
+  return LOAD_LABELS[load] || 'Crowding unknown';
+}
+
 // "Xs ago" / "Xm ago" label so it's always clear how fresh the data on
 // screen actually is, rather than silently trusting a stale fetch.
 function formatAgo(fetchedAtMs) {
@@ -895,6 +905,14 @@ async function fetchAndRenderArrivals(busStopCode, panel) {
     meta.innerHTML = '<span class="arrivals-live-dot">●</span> Live · updated <span class="arrivals-updated">just now</span>';
     panel.appendChild(meta);
 
+    const legend = document.createElement('div');
+    legend.className = 'arrivals-legend';
+    legend.innerHTML =
+      '<span class="load-dot load-sea"></span>Seats' +
+      '<span class="load-dot load-sda"></span>Standing' +
+      '<span class="load-dot load-lsd"></span>Packed';
+    panel.appendChild(legend);
+
     data.services.forEach((svc) => {
       const row = document.createElement('div');
       row.className = 'arrival-row';
@@ -903,8 +921,25 @@ async function fetchAndRenderArrivals(busStopCode, panel) {
       num.textContent = svc.serviceNo;
       const times = document.createElement('span');
       times.className = 'arrival-times';
-      const parts = svc.nextArrivals.map((a) => formatArrivalMins(a.estimatedArrival)).filter(Boolean);
-      times.textContent = parts.length ? parts.join(', ') : 'No estimate';
+
+      const validArrivals = svc.nextArrivals.filter((a) => formatArrivalMins(a.estimatedArrival));
+      if (!validArrivals.length) {
+        times.textContent = 'No estimate';
+      } else {
+        validArrivals.forEach((a) => {
+          const chip = document.createElement('span');
+          chip.className = 'arrival-chip';
+          chip.title = loadLabel(a.load);
+          const label = document.createElement('span');
+          label.textContent = formatArrivalMins(a.estimatedArrival);
+          const dot = document.createElement('span');
+          dot.className = `load-dot ${loadClass(a.load)}`;
+          chip.appendChild(label);
+          chip.appendChild(dot);
+          times.appendChild(chip);
+        });
+      }
+
       row.appendChild(num);
       row.appendChild(times);
       panel.appendChild(row);
