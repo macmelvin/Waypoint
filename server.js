@@ -455,7 +455,7 @@ app.get('/api/carparks-nearby', async (req, res) => {
 
   try {
     const parks = await getCarParks();
-    const results = parks
+    const mapped = parks
       .filter((p) => p.LotType !== 'Y') // exclude motorcycle-only lots
       .map((p) => {
         const [plat, plon] = (p.Location || '').split(' ').map(Number);
@@ -468,7 +468,18 @@ app.get('/api/carparks-nearby', async (req, res) => {
           distanceMeters: Math.round(haversineMeters(lat, lon, plat, plon)),
         };
       })
-      .filter(Boolean)
+      .filter(Boolean);
+
+    // LTA's feed has multiple sub-records per physical carpark (e.g. separate
+    // lot-type/scheme entries under the same CarParkID) — dedupe so nearby
+    // results aren't 5 copies of the same carpark, keeping the fuller count.
+    const byId = new Map();
+    mapped.forEach((p) => {
+      const existing = byId.get(p.id);
+      if (!existing || p.availableLots > existing.availableLots) byId.set(p.id, p);
+    });
+
+    const results = [...byId.values()]
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
       .slice(0, 5);
     res.json({ carparks: results, fetchedAt: new Date().toISOString() });
