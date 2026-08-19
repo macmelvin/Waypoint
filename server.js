@@ -15,6 +15,7 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+app.use(express.json());
 
 // ---- Transit planning proxy -------------------------------------------------
 // The frontend calls this same-origin endpoint instead of talking to the
@@ -405,6 +406,140 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
     + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
+
+// ---- Carpark availability (LTA DataMall CarParkAvailability, cached) -------
+// Powers "nearby parking" for driving directions. LTA paginates this 50 at a
+// time like the bus stop directory; refreshed every 2 minutes since LTA's
+// own feed updates roughly every minute.
+
+let carParksCache = [];
+let carParksCacheAt = 0;
+const CARPARKS_TTL_MS = 2 * 60 * 1000;
+
+async function fetchAllCarParks() {
+  const all = [];
+  let skip = 0;
+  for (;;) {
+    const res = await fetch(`https://datamall2.mytransport.sg/ltaodataservice/CarParkAvailability?$skip=${skip}`, {
+      headers: { AccountKey: LTA_ACCOUNT_KEY, accept: 'application/json' },
+    });
+    if (!res.ok) throw new Error(`LTA CarParkAvailability responded ${res.status}`);
+    const data = await res.json();
+    const batch = data.value || [];
+    all.push(...batch);
+    if (batch.length < 50) break;
+    skip += 50;
+  }
+  return all;
+}
+
+async function getCarParks() {
+  if (carParksCache.length && Date.now() - carParksCacheAt < CARPARKS_TTL_MS) return carParksCache;
+  const parks = await fetchAllCarParks();
+  if (parks.length) {
+    carParksCache = parks;
+    carParksCacheAt = Date.now();
+  }
+  return carParksCache;
+}
+
+app.get('/api/carparks-nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+  if (!LTA_ACCOUNT_KEY) {
+    return res.status(503).json({ error: 'Carpark availability isn\'t set up yet — needs an LTA DataMall API key.' });
+  }
+
+  try {
+    const parks = await getCarParks();
+    const results = parks
+      .filter((p) => p.LotType !== 'Y') // exclude motorcycle-only lots
+      .map((p) => {
+        const [plat, plon] = (p.Location || '').split(' ').map(Number);
+        if (Number.isNaN(plat) || Number.isNaN(plon)) return null;
+        return {
+          id: p.CarParkID,
+          development: p.Development,
+          agency: p.Agency,
+          availableLots: Number(p.AvailableLots),
+          distanceMeters: Math.round(haversineMeters(lat, lon, plat, plon)),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters)
+      .slice(0, 5);
+    res.json({ carparks: results, fetchedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error('carparks-nearby error:', err.message);
+    res.status(502).json({ error: 'Could not load carpark availability.', detail: err.message });
+  }
+});
+
+// ---- ERP gantry crossings along a driving route -----------------------------
+// LTA doesn't publish an API that maps a route to an exact ERP dollar cost —
+// its ERPRates feed (rates by zone/time/vehicle type) has no published link
+// back to physical gantry locations. Rather than guess at a dollar figure
+// that could be wrong, this detects which physical gantries (from data.gov.sg's
+// static LTA Gantry geometry dataset) a route's polyline passes near, and
+// leaves the exact cost to LTA's own rate table via a link in the UI.
+
+let gantryCache = null;
+let gantryCacheAt = 0;
+const GANTRY_TTL_MS = 24 * 60 * 60 * 1000;
+const GANTRY_DATASET_ID = 'd_753090823cc9920ac41efaa6530c5893';
+
+async function getGantries() {
+  if (gantryCache && Date.now() - gantryCacheAt < GANTRY_TTL_MS) return gantryCache;
+
+  const pollRes = await fetch(
+    `https://api-open.data.gov.sg/v1/public/api/datasets/${GANTRY_DATASET_ID}/poll-download`
+  );
+  if (!pollRes.ok) throw new Error(`gantry poll-download responded ${pollRes.status}`);
+  const pollData = await pollRes.json();
+  const url = pollData?.data?.url;
+  if (!url) throw new Error('gantry dataset URL missing from poll-download response');
+
+  const geoRes = await fetch(url);
+  if (!geoRes.ok) throw new Error(`gantry geojson fetch responded ${geoRes.status}`);
+  const geojson = await geoRes.json();
+
+  const gantries = (geojson.features || [])
+    .map((f, i) => {
+      const coords = f.geometry && f.geometry.type === 'LineString' ? f.geometry.coordinates : null;
+      if (!coords || !coords.length) return null;
+      const [lon, lat] = coords[Math.floor(coords.length / 2)];
+      return { id: f.properties?.Name || `gantry-${i}`, lat, lon };
+    })
+    .filter(Boolean);
+
+  if (gantries.length) {
+    gantryCache = gantries;
+    gantryCacheAt = Date.now();
+  }
+  return gantryCache || [];
+}
+
+app.post('/api/erp-crossings', async (req, res) => {
+  const coords = req.body?.coordinates; // [[lon, lat], ...] — e.g. OSRM route geometry
+  if (!Array.isArray(coords) || coords.length < 2) {
+    return res.status(400).json({ error: 'coordinates array is required' });
+  }
+  try {
+    const gantries = await getGantries();
+    const THRESHOLD_METERS = 30;
+    const crossedCount = gantries.filter((g) =>
+      coords.some(([lon, lat]) => haversineMeters(lat, lon, g.lat, g.lon) < THRESHOLD_METERS)
+    ).length;
+    res.json({ gantryCount: crossedCount });
+  } catch (err) {
+    console.error('erp-crossings error:', err.message);
+    // Fail quietly — this is informational, not core routing.
+    res.json({ gantryCount: null });
+  }
+});
 
 // "Stops near me" for the Favourites tab — sorts the full cached stop
 // directory by straight-line distance from the given position instead of

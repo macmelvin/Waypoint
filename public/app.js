@@ -38,6 +38,8 @@ const els = {
   trainAlertBanner: document.getElementById('trainAlertBanner'),
   trainAlertText: document.getElementById('trainAlertText'),
   trainAlertDismiss: document.getElementById('trainAlertDismiss'),
+  parkingInfo: document.getElementById('parkingInfo'),
+  erpInfo: document.getElementById('erpInfo'),
   locateBtn: document.getElementById('locateBtn'),
   weatherWidget: document.getElementById('weatherWidget'),
   weatherPanel: document.getElementById('weatherPanel'),
@@ -388,8 +390,65 @@ els.modeButtons.forEach(btn => {
 
 els.getDirectionsBtn.addEventListener('click', getDirections);
 
+function hideDrivingExtras() {
+  els.parkingInfo.classList.add('hidden');
+  els.parkingInfo.innerHTML = '';
+  els.erpInfo.classList.add('hidden');
+  els.erpInfo.innerHTML = '';
+}
+
+async function loadParkingInfo(coords) {
+  els.parkingInfo.classList.remove('hidden');
+  els.parkingInfo.innerHTML = '<div class="driving-extra-title">🅿️ Parking near destination</div><div class="driving-extra-row">Loading…</div>';
+  try {
+    const res = await fetch(`/api/carparks-nearby?lat=${coords.lat}&lon=${coords.lon}`);
+    const data = await res.json();
+    if (!res.ok || !data.carparks || !data.carparks.length) {
+      els.parkingInfo.classList.add('hidden');
+      return;
+    }
+    els.parkingInfo.innerHTML = '<div class="driving-extra-title">🅿️ Parking near destination</div>' + data.carparks.map((c) => `
+      <div class="driving-extra-row">
+        <span>${c.development} (${c.agency}) · ${formatDistance(c.distanceMeters)}</span>
+        <span class="driving-extra-lots">${Number.isFinite(c.availableLots) ? c.availableLots + ' lots' : '—'}</span>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('parking info failed:', err);
+    els.parkingInfo.classList.add('hidden');
+  }
+}
+
+async function loadErpInfo(coordinates) {
+  els.erpInfo.classList.remove('hidden');
+  els.erpInfo.innerHTML = '<div class="driving-extra-title">🛣️ ERP</div><div class="driving-extra-row">Checking route…</div>';
+  try {
+    const res = await fetch('/api/erp-crossings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coordinates }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.gantryCount == null) {
+      els.erpInfo.classList.add('hidden');
+      return;
+    }
+    if (data.gantryCount === 0) {
+      els.erpInfo.innerHTML = '<div class="driving-extra-title">🛣️ ERP</div><div class="driving-extra-row">No ERP gantries on this route.</div>';
+    } else {
+      els.erpInfo.innerHTML = '<div class="driving-extra-title">🛣️ ERP</div>'
+        + `<div class="driving-extra-row"><span>Gantries on this route</span><span class="driving-extra-lots">${data.gantryCount}</span></div>`
+        + '<div class="driving-extra-note">We can flag gantries but not the exact charge yet (LTA doesn\'t publish a route-to-rate link) — charges only apply during operating hours and vary by vehicle type. <a href="https://onemotoring.lta.gov.sg/" target="_blank" rel="noopener">Check current rates</a>.</div>';
+    }
+  } catch (err) {
+    console.error('erp info failed:', err);
+    els.erpInfo.classList.add('hidden');
+  }
+}
+
 async function getDirections() {
   if (!fromCoords || !toCoords) return;
+  hideDrivingExtras();
   if (selectedMode === 'transit') return getTransitDirections();
 
   stopWakeAlert(false);
@@ -420,6 +479,10 @@ async function getDirections() {
     renderRouteSteps(route);
     if (selectedMode === 'walking') checkRainAlert(fromCoords, toCoords);
     else hideRainAlert();
+    if (selectedMode === 'driving') {
+      loadParkingInfo(toCoords);
+      loadErpInfo(route.geometry.coordinates);
+    }
   } catch (err) {
     console.error(err);
     showToast('Routing service unavailable. Please try again.');
@@ -929,13 +992,39 @@ async function fetchAndRenderArrivals(busStopCode, panel) {
         validArrivals.forEach((a) => {
           const chip = document.createElement('span');
           chip.className = 'arrival-chip';
-          chip.title = loadLabel(a.load);
+          const titleParts = [loadLabel(a.load)];
+
           const label = document.createElement('span');
           label.textContent = formatArrivalMins(a.estimatedArrival);
+          chip.appendChild(label);
+
+          if (a.type === 'DD') {
+            const badge = document.createElement('span');
+            badge.className = 'bus-badge';
+            badge.textContent = 'DD';
+            chip.appendChild(badge);
+            titleParts.push('Double-deck bus');
+          } else if (a.type === 'BD') {
+            const badge = document.createElement('span');
+            badge.className = 'bus-badge';
+            badge.textContent = 'BD';
+            chip.appendChild(badge);
+            titleParts.push('Bendy bus');
+          }
+
+          if (a.wheelchairAccessible) {
+            const wc = document.createElement('span');
+            wc.className = 'bus-badge wc-badge';
+            wc.textContent = '♿';
+            chip.appendChild(wc);
+            titleParts.push('Wheelchair accessible');
+          }
+
           const dot = document.createElement('span');
           dot.className = `load-dot ${loadClass(a.load)}`;
-          chip.appendChild(label);
           chip.appendChild(dot);
+
+          chip.title = titleParts.join(' · ');
           times.appendChild(chip);
         });
       }
