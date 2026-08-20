@@ -32,6 +32,7 @@ const els = {
   getDirectionsBtn: document.getElementById('getDirectionsBtn'),
   routeSummary: document.getElementById('routeSummary'),
   routeSteps: document.getElementById('routeSteps'),
+  itineraryOptionsLabel: document.getElementById('itineraryOptionsLabel'),
   itineraryOptions: document.getElementById('itineraryOptions'),
   rainBanner: document.getElementById('rainBanner'),
   rainBannerText: document.getElementById('rainBannerText'),
@@ -986,10 +987,20 @@ function renderItineraryOptions() {
 
   if (transitItineraries.length < 2) {
     els.itineraryOptions.classList.add('hidden');
+    if (els.itineraryOptionsLabel) els.itineraryOptionsLabel.classList.add('hidden');
     return;
   }
 
   els.itineraryOptions.classList.remove('hidden');
+
+  // Easy to miss that the fastest pick isn't the only option (e.g. an
+  // MRT+bus alternative a couple minutes slower than the top all-bus
+  // pick) — flag how many others there are to compare.
+  if (els.itineraryOptionsLabel) {
+    const moreCount = transitItineraries.length - 1;
+    els.itineraryOptionsLabel.textContent = `${moreCount} more option${moreCount === 1 ? '' : 's'}`;
+    els.itineraryOptionsLabel.classList.remove('hidden');
+  }
 
   transitItineraries.forEach((itinerary, i) => {
     const card = document.createElement('button');
