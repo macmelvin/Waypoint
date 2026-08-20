@@ -193,6 +193,73 @@ function estimateFareCents(totalKm) {
   return FARE_MAX_CENTS;
 }
 
+// TEMPORARY DEBUG ENDPOINT — investigating why LRT lines never appear in
+// transit itineraries. Queries OTP's own graph introspection (not the raw
+// GTFS source file) to see whether Bukit Panjang/Sengkang/Punggol LRT routes
+// have any usable trips at all. Safe to delete once the LRT gap is resolved.
+app.get('/api/debug/lrt', async (req, res) => {
+  try {
+    const routesQuery = `
+      query { routes { gtfsId shortName longName mode } }
+    `;
+    const controller1 = new AbortController();
+    const t1 = setTimeout(() => controller1.abort(), 20000);
+    const routesRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: routesQuery }),
+      signal: controller1.signal,
+    });
+    clearTimeout(t1);
+    const routesBody = await routesRes.json();
+    const allRoutes = routesBody?.data?.routes || [];
+
+    const lrtCodes = new Set(['BP', 'SE', 'SW', 'PE', 'PW']);
+    const lrtRoutes = allRoutes.filter(
+      (r) =>
+        lrtCodes.has(r.shortName) ||
+        (r.longName || '').toUpperCase().includes('LRT')
+    );
+
+    const detail = [];
+    for (const route of lrtRoutes) {
+      const tripsQuery = `
+        query($id: String!) {
+          route(id: $id) {
+            gtfsId
+            shortName
+            longName
+            mode
+            patterns {
+              code
+              trips { gtfsId tripHeadsign }
+            }
+          }
+        }
+      `;
+      const controller2 = new AbortController();
+      const t2 = setTimeout(() => controller2.abort(), 20000);
+      const tripsRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: tripsQuery, variables: { id: route.gtfsId } }),
+        signal: controller2.signal,
+      });
+      clearTimeout(t2);
+      const tripsBody = await tripsRes.json();
+      detail.push(tripsBody?.data?.route || { gtfsId: route.gtfsId, error: 'no data' });
+    }
+
+    res.json({
+      totalRouteCount: allRoutes.length,
+      lrtRoutesFound: lrtRoutes.length,
+      detail,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/transit-plan', async (req, res) => {
   const { fromLat, fromLon, toLat, toLon } = req.query;
 
