@@ -316,8 +316,20 @@ app.get('/api/transit-plan', async (req, res) => {
         bestByShape.set(shape, itinerary);
       }
     }
+    // MRT/LRT is generally faster and far less affected by road traffic than
+    // a bus, so give rail-inclusive itineraries a modest priority over pure
+    // duration — a route with a train leg only needs to be within 5 minutes
+    // of the fastest bus-only option to rank above it, rather than requiring
+    // it to literally win on raw time. Actual duration (shown to the user
+    // and used for the "Fastest" badge below) is never altered — this only
+    // affects display order.
+    const RAIL_PRIORITY_BONUS_SECONDS = 5 * 60;
+    const rankScore = (it) => {
+      const hasRail = it.legs.some((l) => l.mode === 'train');
+      return hasRail ? it.duration - RAIL_PRIORITY_BONUS_SECONDS : it.duration;
+    };
     const dedupedItineraries = [...bestByShape.values()]
-      .sort((a, b) => a.duration - b.duration)
+      .sort((a, b) => rankScore(a) - rankScore(b))
       .slice(0, 6);
 
     res.json({

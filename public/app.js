@@ -968,10 +968,12 @@ async function getTransitDirections() {
       return;
     }
 
-    // Sort fastest-first so the quickest option is always what's shown/selected
-    // by default — OTP's own return order is by internal search criteria
-    // (roughly departure time), not duration.
-    transitItineraries = [...data.itineraries].sort((a, b) => a.duration - b.duration);
+    // The server already sorts these — fastest first, with a modest priority
+    // boost for MRT/LRT-inclusive routes (rail is generally faster and less
+    // traffic-prone than an all-bus trip, so it's shown/selected by default
+    // even when a bus option is a few minutes quicker on paper). Trust that
+    // order here rather than re-sorting by raw duration, which would undo it.
+    transitItineraries = [...data.itineraries];
     renderItineraryOptions();
     selectItinerary(0);
     checkRainAlert(fromCoords, toCoords); // transit always includes walk legs to/from stops
@@ -1006,6 +1008,12 @@ function renderItineraryOptions() {
     els.itineraryOptionsLabel.textContent = `${moreCount} more option${moreCount === 1 ? '' : 's'}`;
     els.itineraryOptionsLabel.classList.remove('hidden');
   }
+
+  // The server may put an MRT/LRT-inclusive itinerary first even when it's
+  // not literally the quickest by the clock (rail gets a modest priority
+  // boost over bus — see server.js). So "Fastest" needs to track actual
+  // duration, not just array position, or it'd mislabel a slower option.
+  const fastestDuration = Math.min(...transitItineraries.map((it) => it.duration));
 
   transitItineraries.forEach((itinerary, i) => {
     const card = document.createElement('button');
@@ -1048,11 +1056,17 @@ function renderItineraryOptions() {
       main.appendChild(fare);
     }
 
-    const badge = document.createElement('span');
-    badge.className = 'io-badge' + (i === 0 ? ' io-badge-fastest' : '');
     const transferCount = Math.max(transitLegs.length - 1, 0);
     const transferText = transferCount > 0 ? `${transferCount} transfer${transferCount > 1 ? 's' : ''}` : 'Direct';
-    badge.textContent = i === 0 ? `Fastest · ${transferText}` : transferText;
+    const isFastest = itinerary.duration === fastestDuration;
+    const hasRail = transitLegs.some((l) => l.mode === 'train');
+    const isRecommendedPick = i === 0 && !isFastest && hasRail;
+
+    const badge = document.createElement('span');
+    badge.className = 'io-badge' + (isFastest || isRecommendedPick ? ' io-badge-fastest' : '');
+    if (isFastest) badge.textContent = `Fastest · ${transferText}`;
+    else if (isRecommendedPick) badge.textContent = `🚇 Recommended · ${transferText}`;
+    else badge.textContent = transferText;
 
     card.appendChild(modes);
     card.appendChild(main);
