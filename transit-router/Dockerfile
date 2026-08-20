@@ -25,8 +25,17 @@ RUN curl -fsSL -o singapore-gtfs-raw.zip \
 # stubs that never connect to each other. Reinsert them — see
 # patch_rail_gtfs.py for the full explanation. Bus data is left untouched.
 COPY patch_rail_gtfs.py /graph/
-RUN python3 patch_rail_gtfs.py singapore-gtfs-raw.zip singapore-gtfs.zip && \
+RUN python3 patch_rail_gtfs.py singapore-gtfs-raw.zip singapore-gtfs-mrt.zip && \
     rm singapore-gtfs-raw.zip
+
+# The feed has ZERO LRT service at all (Bukit Panjang / Sengkang / Punggol
+# routes don't exist, not even as empty timetables) — see add_lrt_gtfs.py
+# for the full explanation and sourcing. Synthesizes real GTFS service for
+# all 3 lines from scratch (real station topology + coordinates, headway-
+# based frequencies.txt) on top of the MRT-patched feed above.
+COPY add_lrt_gtfs.py /graph/
+RUN python3 add_lrt_gtfs.py singapore-gtfs-mrt.zip singapore-gtfs.zip && \
+    rm singapore-gtfs-mrt.zip
 
 # Street network for walk/transfer legs: Geofabrik's Malaysia/Singapore/Brunei
 # extract, clipped down to just Singapore (+ a small border buffer) so the
