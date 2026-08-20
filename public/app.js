@@ -48,6 +48,8 @@ const els = {
   navBannerInstruction: document.getElementById('navBannerInstruction'),
   navMuteBtn: document.getElementById('navMuteBtn'),
   navStopBtn: document.getElementById('navStopBtn'),
+  navMapOverlay: document.getElementById('navMapOverlay'),
+  navRecenterBtn: document.getElementById('navRecenterBtn'),
   parkedCarCard: document.getElementById('parkedCarCard'),
   parkedCarAgo: document.getElementById('parkedCarAgo'),
   parkedCarDistance: document.getElementById('parkedCarDistance'),
@@ -57,6 +59,7 @@ const els = {
   locateBtn: document.getElementById('locateBtn'),
   locateBtnIcon: document.getElementById('locateBtnIcon'),
   offlineBanner: document.getElementById('offlineBanner'),
+  notifyBtn: document.getElementById('notifyBtn'),
   weatherWidget: document.getElementById('weatherWidget'),
   weatherPanel: document.getElementById('weatherPanel'),
   weatherPanelBody: document.getElementById('weatherPanelBody'),
@@ -682,6 +685,66 @@ let navTargetIndex = 1; // index into navRouteSteps we're currently heading towa
 let navMuted = false;
 let navLastOffRouteWarnAt = 0;
 
+// Visual map — Leaflet, loaded from a CDN (see index.html). Lazily created on
+// the first "Start Navigation" tap, then reused/repositioned for later trips
+// rather than rebuilt each time.
+let navMap = null;
+let navMapRouteLine = null;
+let navMapLiveMarker = null;
+let navFollowing = true; // false once the user manually drags the map, until they tap recenter
+
+function initNavMap() {
+  if (navMap || typeof L === 'undefined') return;
+  navMap = L.map('navMap', { zoomControl: false, attributionControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  }).addTo(navMap);
+  navMap.on('dragstart', () => { navFollowing = false; });
+}
+
+function showNavMap(routeCoords) {
+  if (typeof L === 'undefined') return; // Leaflet didn't load (e.g. no connection to the CDN) — nav still works via the banner/voice, just no map
+  els.navMapOverlay.classList.remove('hidden');
+  initNavMap();
+  if (!navMap) return;
+  // The container was just un-hidden, so Leaflet needs a nudge to notice its real size.
+  setTimeout(() => navMap.invalidateSize(), 0);
+
+  if (navMapRouteLine) {
+    navMap.removeLayer(navMapRouteLine);
+    navMapRouteLine = null;
+  }
+  const latlngs = routeCoords.map(([lon, lat]) => [lat, lon]);
+  navMapRouteLine = L.polyline(latlngs, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(navMap);
+  navMap.fitBounds(navMapRouteLine.getBounds(), { padding: [40, 40] });
+
+  if (!navMapLiveMarker) {
+    const liveIcon = L.divIcon({ className: 'nav-live-dot', iconSize: [18, 18] });
+    navMapLiveMarker = L.marker(latlngs[0], { icon: liveIcon, zIndexOffset: 1000 }).addTo(navMap);
+  } else {
+    navMapLiveMarker.setLatLng(latlngs[0]);
+  }
+  navFollowing = true;
+}
+
+function updateNavMapPosition(lat, lon) {
+  if (!navMap || !navMapLiveMarker) return;
+  navMapLiveMarker.setLatLng([lat, lon]);
+  if (navFollowing) navMap.setView([lat, lon], Math.max(navMap.getZoom(), 16), { animate: true });
+}
+
+function hideNavMap() {
+  els.navMapOverlay.classList.add('hidden');
+}
+
+if (els.navRecenterBtn) {
+  els.navRecenterBtn.addEventListener('click', () => {
+    navFollowing = true;
+    if (navMap && navMapLiveMarker) navMap.setView(navMapLiveMarker.getLatLng(), 16, { animate: true });
+  });
+}
+
 function navStepInstruction(step) {
   const name = step.name ? ` onto ${step.name}` : '';
   return `${stepVerb(step.maneuver)}${name}`;
@@ -728,6 +791,8 @@ function handleNavPosition(pos) {
   if (!navRouteSteps.length) return;
   const { latitude: lat, longitude: lon } = pos.coords;
 
+  updateNavMapPosition(lat, lon);
+
   const target = navRouteSteps[navTargetIndex];
   const [tlon, tlat] = target.maneuver.location;
   const distToTarget = haversineMeters(lat, lon, tlat, tlon);
@@ -765,6 +830,7 @@ async function startNavigation() {
   navTargetIndex = navRouteSteps.length > 1 ? 1 : 0;
   navLastOffRouteWarnAt = 0;
 
+  showNavMap(navRouteCoords);
   els.navBanner.classList.remove('hidden');
   els.navMuteBtn.textContent = navMuted ? '🔇' : '🔊';
   els.navBannerDistance.textContent = 'Locating…';
@@ -803,6 +869,7 @@ function stopNavigation(showMsg) {
   }
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   els.navBanner.classList.add('hidden');
+  hideNavMap();
   els.routeSteps.querySelectorAll('.nav-current-step').forEach((li) => li.classList.remove('nav-current-step'));
   if (showMsg) showToast('Navigation stopped.');
 }
@@ -1692,6 +1759,100 @@ window.addEventListener('offline', () => {
   showToast("📡 You're offline — saved places still work, but search/routing/live data need a connection.", 4000);
 });
 updateOfflineBanner();
+
+// ---------- Push notifications (MRT/LRT disruptions + major traffic incidents) ----------
+// One combined on/off toggle (the 🔔 button in the topbar) rather than
+// separate switches — simpler for a first version. Subscribing asks the
+// browser/OS for notification permission, then registers a Push subscription
+// with our server, which sends a notification the moment it detects a new
+// MRT/LRT disruption or a serious traffic incident (see server.js) — even if
+// Waypoint isn't open.
+
+const PUSH_ENABLED_KEY = 'waypoint_push_enabled';
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+// Web Push wants the VAPID public key as a Uint8Array, but the server hands
+// it over as a URL-safe base64 string — this is the standard conversion.
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+function updateNotifyButton() {
+  if (!els.notifyBtn) return;
+  const enabled = localStorage.getItem(PUSH_ENABLED_KEY) === '1';
+  els.notifyBtn.classList.toggle('active', enabled);
+  els.notifyBtn.title = enabled ? 'Train/traffic alerts are ON — tap to turn off' : 'Turn on train/traffic alerts';
+}
+
+async function enablePushAlerts() {
+  if (!pushSupported()) {
+    showToast("Push notifications aren't supported in this browser.");
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast('Notification permission was not granted — you can allow it later in your browser/app settings.');
+      return;
+    }
+    const { publicKey, enabled } = await (await fetch('/api/push/vapid-public-key')).json();
+    if (!enabled || !publicKey) {
+      showToast("Alerts aren't set up on the server yet — try again later.");
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub }),
+    });
+    localStorage.setItem(PUSH_ENABLED_KEY, '1');
+    updateNotifyButton();
+    showToast("🔔 Alerts enabled — you'll get a notification for MRT/LRT disruptions and major traffic incidents.", 4000);
+  } catch (err) {
+    console.error(err);
+    showToast('Could not enable notifications.');
+  }
+}
+
+async function disablePushAlerts() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await fetch('/api/push/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+      await sub.unsubscribe();
+    }
+  } catch (err) {
+    console.error(err);
+  }
+  localStorage.removeItem(PUSH_ENABLED_KEY);
+  updateNotifyButton();
+  showToast('Alerts turned off.');
+}
+
+if (els.notifyBtn) {
+  els.notifyBtn.addEventListener('click', () => {
+    const enabled = localStorage.getItem(PUSH_ENABLED_KEY) === '1';
+    if (enabled) disablePushAlerts();
+    else enablePushAlerts();
+  });
+}
+updateNotifyButton();
 
 // ---------- PWA install banner ----------
 // Chrome/Edge (Android + desktop) fire "beforeinstallprompt" when the app
