@@ -232,8 +232,10 @@ els.dirToHere.addEventListener('click', () => {
 
 // ---------- Home / Work quick locations ----------
 // Saved once from a search result ("Set as Home"/"Set as Work"), then usable
-// as a one-tap "To" destination from the Directions panel — the common case
-// of "route me home/to work" without retyping the address every time.
+// as a one-tap fill from the Directions panel — Home fills the "From" field
+// (the common case of starting a trip from home) and Work fills "To" (the
+// common case of heading to work), so tapping both in sequence gives a
+// ready-to-go "Home → Work" route without retyping either address.
 
 const HOME_KEY = 'waypoint_home';
 const WORK_KEY = 'waypoint_work';
@@ -268,7 +270,7 @@ function updateQuickButtons() {
   const home = loadQuickLocation(HOME_KEY);
   const work = loadQuickLocation(WORK_KEY);
   els.quickHomeBtn.classList.toggle('unset', !home);
-  els.quickHomeBtn.title = home ? `Directions to ${home.label}` : 'Not set yet — search a place, then "Set as Home"';
+  els.quickHomeBtn.title = home ? `Start from ${home.label}` : 'Not set yet — search a place, then "Set as Home"';
   els.quickWorkBtn.classList.toggle('unset', !work);
   els.quickWorkBtn.title = work ? `Directions to ${work.label}` : 'Not set yet — search a place, then "Set as Work"';
 }
@@ -289,19 +291,21 @@ els.setWorkBtn.addEventListener('click', () => {
   showToast('💼 Work set!');
 });
 
-function useQuickLocation(key, label) {
+function useQuickLocation(key, label, setter) {
   const loc = loadQuickLocation(key);
   if (!loc) {
     showToast(`Set your ${label} first — search a place, then tap "Set as ${label}".`);
     document.querySelector('.tab-btn[data-tab="search"]').click();
     return;
   }
-  setTo(loc);
+  setter(loc);
   switchToDirectionsTab();
 }
 
-els.quickHomeBtn.addEventListener('click', () => useQuickLocation(HOME_KEY, 'Home'));
-els.quickWorkBtn.addEventListener('click', () => useQuickLocation(WORK_KEY, 'Work'));
+// Home fills "From" (you're usually starting a trip from home); Work fills
+// "To" (you're usually heading to work) — tap both for a ready "Home → Work".
+els.quickHomeBtn.addEventListener('click', () => useQuickLocation(HOME_KEY, 'Home', setFrom));
+els.quickWorkBtn.addEventListener('click', () => useQuickLocation(WORK_KEY, 'Work', setTo));
 
 // ---------- "My Parked Car" — remember where you left it ----------
 // Saved locally only (never sent anywhere). Auto-saved the moment live
