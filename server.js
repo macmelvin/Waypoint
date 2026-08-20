@@ -214,12 +214,22 @@ app.get('/api/debug/lrt', async (req, res) => {
     const routesBody = await routesRes.json();
     const allRoutes = routesBody?.data?.routes || [];
 
-    const lrtCodes = new Set(['BP', 'SE', 'SW', 'PE', 'PW']);
-    const lrtRoutes = allRoutes.filter(
-      (r) =>
-        lrtCodes.has(r.shortName) ||
-        (r.longName || '').toUpperCase().includes('LRT')
-    );
+    // Broadened: 0 exact matches on the first pass, so this widens the net —
+    // any mode tally, plus a fuzzy substring match across shortName AND
+    // longName for LRT-related keywords, in case naming differs from what
+    // patch_rail_gtfs.py assumes.
+    const modeCounts = {};
+    for (const r of allRoutes) {
+      modeCounts[r.mode] = (modeCounts[r.mode] || 0) + 1;
+    }
+
+    const exactShortCodes = new Set(['BP', 'SE', 'SW', 'PE', 'PW']);
+    const longNameKeywords = ['LRT', 'BUKIT PANJANG', 'SENGKANG', 'PUNGGOL'];
+    const lrtRoutes = allRoutes.filter((r) => {
+      const sn = (r.shortName || '').toUpperCase();
+      const ln = (r.longName || '').toUpperCase();
+      return exactShortCodes.has(sn) || longNameKeywords.some((k) => ln.includes(k));
+    });
 
     const detail = [];
     for (const route of lrtRoutes) {
@@ -250,10 +260,19 @@ app.get('/api/debug/lrt', async (req, res) => {
       detail.push(tripsBody?.data?.route || { gtfsId: route.gtfsId, error: 'no data' });
     }
 
+    // Sample of non-bus-looking routes (shortName isn't a plain bus service
+    // number) so we can eyeball naming conventions if the keyword filter
+    // above still finds nothing.
+    const nonBusSample = allRoutes
+      .filter((r) => !/^\d+[A-Za-z]?$/.test((r.shortName || '').trim()))
+      .slice(0, 40);
+
     res.json({
       totalRouteCount: allRoutes.length,
+      modeCounts,
       lrtRoutesFound: lrtRoutes.length,
       detail,
+      nonBusSample,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
