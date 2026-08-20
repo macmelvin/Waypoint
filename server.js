@@ -10,12 +10,20 @@ const PORT = process.env.PORT || 3000;
 // Self-generated VAPID keypair identifying this server to push services (not a
 // third-party account credential — just asymmetric keys this app owns). Set
 // VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY on this service in Railway's Variables
-// UI. Until both are set, push features quietly no-op instead of erroring.
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
-const PUSH_ENABLED = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+// UI. Until both are set (or if either is malformed — e.g. stray whitespace
+// from a copy-paste), push features quietly no-op instead of erroring, and
+// crucially this must NEVER be able to crash the whole server over a
+// notifications feature — hence the try/catch around setVapidDetails.
+const VAPID_PUBLIC_KEY = (process.env.VAPID_PUBLIC_KEY || '').trim();
+const VAPID_PRIVATE_KEY = (process.env.VAPID_PRIVATE_KEY || '').trim();
+let PUSH_ENABLED = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
 if (PUSH_ENABLED) {
-  webpush.setVapidDetails('https://waypoint-production-0307.up.railway.app', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  try {
+    webpush.setVapidDetails('https://waypoint-production-0307.up.railway.app', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (err) {
+    console.error('Invalid VAPID keys — push notifications disabled:', err.message);
+    PUSH_ENABLED = false;
+  }
 }
 
 // Subscription store, kept in memory for fast access but persisted to a JSON
