@@ -8,7 +8,14 @@
 // genuinely need a connection to OneMap/OSRM/LTA/NEA, no amount of caching
 // changes that.
 
-const SHELL_CACHE = 'waypoint-shell-v1';
+// Bump this on every deploy that touches app.js/index.html/style.css. It's
+// the only thing that reliably makes the browser notice the service worker
+// itself changed (byte-diff of this file) and run a fresh install — which
+// re-fetches the shell files and clears the old cache in activate() below.
+// Without a bump, the fetch handler switching to network-first (see below)
+// is the real fix for staleness, but bumping this too guarantees today's
+// deploy self-heals immediately instead of waiting for a natural change.
+const SHELL_CACHE = 'waypoint-shell-v2';
 const RUNTIME_CACHE = 'waypoint-runtime-v1';
 
 const SHELL_ASSETS = [
@@ -44,33 +51,28 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Serve the shell from cache instantly, but always re-fetch in the
-// background and update the cache — so it opens instantly offline AND
-// self-updates whenever you're online, without needing a version bump on
-// every deploy.
-function staleWhileRevalidate(request) {
-  return caches.open(SHELL_CACHE).then((cache) => cache.match(request).then((cached) => {
-    const fetchPromise = fetch(request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.ok) cache.put(request, networkResponse.clone());
-        return networkResponse;
-      })
-      .catch(() => cached);
-    return cached || fetchPromise;
-  }));
-}
-
-// Try the network first (so data is always fresh when online); fall back to
-// the last cached response only when the network call fails.
-function networkFirst(request) {
+// Try the network first (so the shell/app code is always the latest deploy
+// when you're online); fall back to the last cached copy only when the
+// network call actually fails — that's the genuine "offline" case.
+//
+// This used to be stale-while-revalidate (serve cache instantly, refresh in
+// the background). That's great for offline speed, but it meant a bug fix
+// shipped to the server wasn't actually visible in the app until the SECOND
+// reload after deploying — the first reload only refreshed the cache in the
+// background while still serving the old, stale JS. That's confusing enough
+// on its own, and it's exactly what made a just-shipped fix look like it
+// hadn't taken effect. Network-first for the shell removes that footgun:
+// online, you always get what's actually live; offline, you still get the
+// last-known-good copy instantly.
+function networkFirst(request, cacheName) {
   return fetch(request)
     .then((networkResponse) => {
       if (networkResponse && networkResponse.ok) {
-        caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, networkResponse.clone()));
+        caches.open(cacheName).then((cache) => cache.put(request, networkResponse.clone()));
       }
       return networkResponse;
     })
-    .catch(() => caches.open(RUNTIME_CACHE).then((cache) => cache.match(request)));
+    .catch(() => caches.open(cacheName).then((cache) => cache.match(request)));
 }
 
 self.addEventListener('fetch', (event) => {
@@ -81,12 +83,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return; // let OSRM/OneMap/LTA/NEA calls pass through untouched
 
   if (url.pathname === '/' || SHELL_ASSETS.includes(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(networkFirst(request, SHELL_CACHE));
     return;
   }
 
   if (CACHEABLE_API_PATHS.includes(url.pathname)) {
-    event.respondWith(networkFirst(request));
+    event.respondWith(networkFirst(request, RUNTIME_CACHE));
   }
 });
 
