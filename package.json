@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "web-push": "^3.6.7"
   }
 }

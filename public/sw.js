@@ -89,3 +89,40 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(networkFirst(request));
   }
 });
+
+// ---- Push notifications (MRT/LRT disruptions, major traffic incidents) -----
+// The server sends a small JSON payload ({ title, body, url }) via Web Push;
+// this just turns that into a real OS-level notification. On Android (the TWA
+// app), this shows exactly like a native app notification since it's Chrome
+// underneath.
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'Waypoint', body: '' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch (err) {
+    if (event.data) data.body = event.data.text();
+  }
+
+  const options = {
+    body: data.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: data.url || '/' },
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title || 'Waypoint', options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
+  );
+});
