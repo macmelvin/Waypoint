@@ -387,14 +387,11 @@ els.parkedCarDirectionsBtn.addEventListener('click', () => {
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       // GPS works fine offline, but the walking route itself comes from OSRM,
-      // which needs a connection — so offline, skip straight to a straight-line
-      // distance + compass heading instead of a route that would just fail.
-      if (!navigator.onLine) {
-        const dist = haversineMeters(pos.coords.latitude, pos.coords.longitude, car.lat, car.lon);
-        const { label } = bearingCompass(pos.coords.latitude, pos.coords.longitude, car.lat, car.lon);
-        showToast(`🅿️ You're offline — no turn-by-turn, but your car is roughly ${formatDistanceShort(dist)} to the ${label}.`, 5000);
-        return;
-      }
+      // which needs a connection. Don't pre-check navigator.onLine here — it's
+      // unreliable and can falsely report offline on a working connection.
+      // getDirections() below already handles a genuine offline/failed fetch
+      // reactively (straight-line distance + compass heading fallback), so
+      // just always proceed and let it decide.
       setFrom({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'Your location' });
       setTo({ lat: car.lat, lon: car.lon, label: 'Your parked car' });
       selectedMode = 'walking';
@@ -606,18 +603,6 @@ async function getDirections() {
   if (!fromCoords || !toCoords) return;
   hideDrivingExtras();
 
-  // OSRM routing (and OneMap/LTA transit data) genuinely need a connection —
-  // GPS/localStorage don't. Rather than let the fetch below fail with a
-  // generic error offline, short-circuit with a straight-line distance +
-  // compass heading, which is the most useful thing we can offer with no
-  // signal.
-  if (!navigator.onLine) {
-    const dist = haversineMeters(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon);
-    const { label } = bearingCompass(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon);
-    showToast(`📡 You're offline — no live routing, but ${toCoords.label || 'your destination'} is roughly ${formatDistanceShort(dist)} to the ${label}.`, 6000);
-    return;
-  }
-
   if (selectedMode === 'transit') return getTransitDirections();
 
   stopWakeAlert(false);
@@ -651,15 +636,35 @@ async function getDirections() {
     if (selectedMode === 'driving') {
       loadParkingInfo(toCoords);
       loadErpInfo(route.geometry.coordinates);
-      navRouteSteps = route.legs.flatMap((leg) => leg.steps);
-      navRouteCoords = route.geometry.coordinates;
-      els.startNavBtn.classList.remove('hidden');
     } else if (selectedMode === 'cycling') {
       showCyclingExtra();
     }
+    // Live turn-by-turn navigation (map + voice + banner) works the same way
+    // for driving and cycling — both come back from OSRM as a turn-by-turn
+    // route. Walking/transit don't get it: walking has no OSRM-driving-style
+    // maneuver steps worth voicing, and transit is its own itinerary UI.
+    if (selectedMode === 'driving' || selectedMode === 'cycling') {
+      navRouteSteps = route.legs.flatMap((leg) => leg.steps);
+      navRouteCoords = route.geometry.coordinates;
+      els.startNavBtn.classList.remove('hidden');
+    }
   } catch (err) {
     console.error(err);
-    showToast('Routing service unavailable. Please try again.');
+    // A failed fetch is a far more reliable "you're actually offline" signal
+    // than navigator.onLine, which is notoriously unreliable — it can report
+    // false even on a perfectly working connection (this caused a real bug:
+    // switching travel modes with a route already loaded would re-trigger
+    // getDirections() and falsely claim "offline" even when fully online).
+    // Only show the offline-flavored fallback once the request has actually
+    // failed AND the browser also agrees we're offline; otherwise it's some
+    // other transient hiccup and the generic message is more honest.
+    if (!navigator.onLine) {
+      const dist = haversineMeters(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon);
+      const { label } = bearingCompass(fromCoords.lat, fromCoords.lon, toCoords.lat, toCoords.lon);
+      showToast(`📡 You're offline — no live routing, but ${toCoords.label || 'your destination'} is roughly ${formatDistanceShort(dist)} to the ${label}.`, 6000);
+    } else {
+      showToast('Routing service unavailable. Please try again.');
+    }
   } finally {
     els.getDirectionsBtn.disabled = false;
     els.getDirectionsBtn.textContent = 'Get Directions';
@@ -809,9 +814,15 @@ function handleNavPosition(pos) {
   if (distToTarget <= NAV_ARRIVAL_THRESHOLD_M) {
     if (navTargetIndex >= navRouteSteps.length - 1) {
       speakNav('You have arrived at your destination.');
-      saveParkedCar(lat, lon);
       stopNavigation(false);
-      showToast('🅿️ You have arrived — parking spot saved to ★ Favourites.');
+      // "Save parked car" only makes sense after driving — for a bike trip
+      // there's no car to remember the spot of.
+      if (selectedMode === 'driving') {
+        saveParkedCar(lat, lon);
+        showToast('🅿️ You have arrived — parking spot saved to ★ Favourites.');
+      } else {
+        showToast('🚲 You have arrived at your destination.');
+      }
       return;
     }
     navTargetIndex += 1;
