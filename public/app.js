@@ -641,10 +641,10 @@ async function getDirections() {
       showCyclingExtra();
     }
     // Live turn-by-turn navigation (map + voice + banner) works the same way
-    // for driving and cycling — both come back from OSRM as a turn-by-turn
-    // route. Walking/transit don't get it: walking has no OSRM-driving-style
-    // maneuver steps worth voicing, and transit is its own itinerary UI.
-    if (selectedMode === 'driving' || selectedMode === 'cycling') {
+    // for driving, cycling, and walking — all three come back from OSRM with
+    // real turn-by-turn maneuver steps. Only transit skips it, since that's
+    // its own itinerary UI (bus/train legs, not a single walkable route).
+    if (selectedMode === 'driving' || selectedMode === 'cycling' || selectedMode === 'walking') {
       navRouteSteps = route.legs.flatMap((leg) => leg.steps);
       navRouteCoords = route.geometry.coordinates;
       els.startNavBtn.classList.remove('hidden');
@@ -816,13 +816,14 @@ function handleNavPosition(pos) {
     if (navTargetIndex >= navRouteSteps.length - 1) {
       speakNav('You have arrived at your destination.');
       stopNavigation(false);
-      // "Save parked car" only makes sense after driving — for a bike trip
-      // there's no car to remember the spot of.
+      // "Save parked car" only makes sense after driving — there's no car
+      // to remember the spot of on a bike or on foot.
       if (selectedMode === 'driving') {
         saveParkedCar(lat, lon);
         showToast('🅿️ You have arrived — parking spot saved to ★ Favourites.');
       } else {
-        showToast('🚲 You have arrived at your destination.');
+        const arrivedIcon = selectedMode === 'walking' ? '🚶' : '🚲';
+        showToast(`${arrivedIcon} You have arrived at your destination.`);
       }
       return;
     }
