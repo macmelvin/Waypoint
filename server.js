@@ -279,6 +279,7 @@ app.get('/api/transit-plan', async (req, res) => {
         toStopCode: stopCode(leg.to?.stop),
         routeName: leg.route ? (leg.route.shortName || leg.route.longName) : null,
         routeColor: leg.route?.color || null,
+        routeTextColor: leg.route?.textColor || null,
         headsign: leg.headsign || null,
         geometry: leg.legGeometry?.points || null,
       }));

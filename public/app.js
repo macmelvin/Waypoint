@@ -897,6 +897,39 @@ els.navMuteBtn.addEventListener('click', () => {
 
 const MODE_ICON = { walk: '🚶', bus: '🚌', train: '🚇', ferry: '⛴' };
 
+// Friendlier tooltip names for MRT/LRT line codes. Purely cosmetic — the
+// actual badge color always comes from the live GTFS feed (leg.routeColor),
+// never hardcoded here, so a brand-new line (or a color change) shows up
+// correctly with zero code changes on our end.
+const MRT_LINE_NAMES = {
+  NS: 'North South Line', EW: 'East West Line', CG: 'East West Line (Changi Airport)',
+  NE: 'North East Line', CC: 'Circle Line', CE: 'Circle Line (Marina Bay)',
+  DT: 'Downtown Line', TE: 'Thomson-East Coast Line',
+  BP: 'Bukit Panjang LRT', SE: 'Sengkang LRT', SW: 'Sengkang LRT', PE: 'Punggol LRT', PW: 'Punggol LRT',
+};
+
+// Picks black or white text for readability against an arbitrary line
+// color (standard relative-luminance formula) — only used as a fallback
+// when the feed doesn't supply its own textColor.
+function contrastTextColor(hex) {
+  if (!hex || hex.length !== 6) return '#fff';
+  const r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? '#000' : '#fff';
+}
+
+// A small colored pill for a train leg, e.g. "DT" on blue, "TE" on brown —
+// matches the real MRT/LRT line colors from the live GTFS feed.
+function lineBadge(leg) {
+  const badge = document.createElement('span');
+  badge.className = 'line-badge';
+  badge.style.background = leg.routeColor ? `#${leg.routeColor}` : '#666';
+  badge.style.color = leg.routeTextColor ? `#${leg.routeTextColor}` : contrastTextColor(leg.routeColor);
+  badge.textContent = leg.routeName || '?';
+  if (leg.routeName && MRT_LINE_NAMES[leg.routeName]) badge.title = MRT_LINE_NAMES[leg.routeName];
+  return badge;
+}
+
 let transitItineraries = []; // all itinerary options returned for the current transit search
 let selectedItineraryIndex = 0;
 
@@ -973,9 +1006,13 @@ function renderItineraryOptions() {
         sep.textContent = '›';
         modes.appendChild(sep);
       }
-      const icon = document.createElement('span');
-      icon.textContent = MODE_ICON[leg.mode] || '➜';
-      modes.appendChild(icon);
+      if (leg.mode === 'train' && leg.routeColor) {
+        modes.appendChild(lineBadge(leg));
+      } else {
+        const icon = document.createElement('span');
+        icon.textContent = MODE_ICON[leg.mode] || '➜';
+        modes.appendChild(icon);
+      }
     });
 
     const main = document.createElement('span');
@@ -1055,16 +1092,26 @@ function renderTransitSteps(itinerary) {
     const row = document.createElement('div');
     row.className = 'route-step-row';
 
-    const icon = document.createElement('span');
-    icon.className = 'step-num';
-    icon.textContent = MODE_ICON[leg.mode] || '➜';
+    const useLineBadge = leg.mode === 'train' && leg.routeColor;
+    const icon = useLineBadge ? lineBadge(leg) : document.createElement('span');
+    if (!useLineBadge) {
+      icon.className = 'step-num';
+      icon.textContent = MODE_ICON[leg.mode] || '➜';
+    } else {
+      icon.classList.add('step-num-badge');
+    }
 
     const text = document.createElement('span');
     if (leg.mode === 'walk') {
       const toCode = leg.toStopCode ? ` (Bus Stop ${leg.toStopCode})` : '';
       text.textContent = `Walk to ${leg.to}${toCode} — ${formatDistance(leg.distance)}, ${formatDuration(leg.duration)}`;
     } else {
-      const line = leg.routeName ? `${leg.mode === 'train' ? 'Line' : 'Bus'} ${leg.routeName}` : leg.mode;
+      // For a train leg with a real line badge already showing "DT"/"TE"/etc,
+      // don't repeat "Line DT" in the text too — just the full line name if
+      // we know it, otherwise fall back to the raw code like before.
+      const line = leg.mode === 'train'
+        ? (useLineBadge && MRT_LINE_NAMES[leg.routeName] ? MRT_LINE_NAMES[leg.routeName] : (leg.routeName ? `Line ${leg.routeName}` : leg.mode))
+        : (leg.routeName ? `Bus ${leg.routeName}` : leg.mode);
       const headsign = leg.headsign ? ` towards ${leg.headsign}` : '';
       const fromCode = leg.fromStopCode ? ` (${leg.fromStopCode})` : '';
       const toCode = leg.toStopCode ? ` (${leg.toStopCode})` : '';
