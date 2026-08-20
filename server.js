@@ -206,7 +206,7 @@ app.get('/api/transit-plan', async (req, res) => {
         from: { lat: $fromLat, lon: $fromLon }
         to: { lat: $toLat, lon: $toLon }
         transportModes: [{ mode: WALK }, { mode: TRANSIT }]
-        numItineraries: 6
+        numItineraries: 12
       ) {
         itineraries {
           duration
@@ -298,8 +298,30 @@ app.get('/api/transit-plan', async (req, res) => {
       };
     });
 
+    // OTP can return several nearly-identical itineraries that differ only
+    // by departure time (e.g. "Bus 168" three times over) — those eat up
+    // slots in the alternatives list without offering anything genuinely
+    // different to pick between. Keep only the fastest instance of each
+    // distinct route "shape" (its sequence of transit legs), so a real
+    // alternative — like an MRT+bus combo — has room to show up instead of
+    // a third copy of the same bus at a different time.
+    const bestByShape = new Map();
+    for (const itinerary of itineraries) {
+      const shape = itinerary.legs
+        .filter((l) => l.mode !== 'walk')
+        .map((l) => `${l.mode}:${l.routeName || '?'}`)
+        .join('>') || 'walk-only';
+      const existing = bestByShape.get(shape);
+      if (!existing || itinerary.duration < existing.duration) {
+        bestByShape.set(shape, itinerary);
+      }
+    }
+    const dedupedItineraries = [...bestByShape.values()]
+      .sort((a, b) => a.duration - b.duration)
+      .slice(0, 6);
+
     res.json({
-      itineraries,
+      itineraries: dedupedItineraries,
       errors: plan.routingErrors || [],
     });
   } catch (err) {
