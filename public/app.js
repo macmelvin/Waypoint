@@ -1276,6 +1276,7 @@ const WAKE_REPEAT_MS = 8000; // how often to re-beep while the banner is up, und
 
 let wakeState = null; // { watchId, repeatTimer, btnEl, statusEl, targetName, triggered, stops, stopCursor }
 let wakeAudioCtx = null;
+let wakeWakeLock = null; // screen wake lock — keeps the tab foregrounded/tracking while armed
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
@@ -1338,12 +1339,24 @@ function toggleWakeAlert(leg, btnEl, statusEl) {
   startWakeAlert(leg, btnEl, statusEl);
 }
 
-function startWakeAlert(leg, btnEl, statusEl) {
+async function startWakeAlert(leg, btnEl, statusEl) {
   if (!navigator.geolocation) {
     showToast('Geolocation is not supported by your browser.');
     return;
   }
   stopWakeAlert(false); // only one active watch at a time
+
+  // Keep the screen on while the alert is armed — without this, mobile
+  // browsers dim/lock the screen and then suspend the background tab,
+  // silently killing the geolocation watch (the #1 reason this alert
+  // wouldn't fire). Same approach turn-by-turn nav already uses.
+  if ('wakeLock' in navigator) {
+    try {
+      wakeWakeLock = await navigator.wakeLock.request('screen');
+    } catch (err) {
+      console.error('wake lock failed:', err); // non-fatal — screen may just dim/sleep
+    }
+  }
 
   const targetName = leg.to || 'your stop';
   // leg.stops is the full boarding-to-alighting stop sequence (from server.js,
@@ -1421,6 +1434,10 @@ function stopWakeAlert(showMsg) {
   }
   if (wakeState.watchId != null) navigator.geolocation.clearWatch(wakeState.watchId);
   clearInterval(wakeState.repeatTimer);
+  if (wakeWakeLock) {
+    wakeWakeLock.release().catch(() => {});
+    wakeWakeLock = null;
+  }
   if (wakeState.btnEl) {
     wakeState.btnEl.textContent = '🔔 Wake me up';
     wakeState.btnEl.classList.remove('active');
