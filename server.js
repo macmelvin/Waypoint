@@ -196,6 +196,56 @@ function estimateFareCents(totalKm) {
 // TEMPORARY DEBUG ENDPOINT — checking whether the synthesized LRT routes
 // actually made it into the built graph this time. Safe to delete once
 // resolved.
+app.get('/api/debug/lrt3', async (req, res) => {
+  try {
+    const { fromLat, fromLon, toLat, toLon } = req.query;
+    const q = `
+      query($fromLat: Float!, $fromLon: Float!, $toLat: Float!, $toLon: Float!) {
+        plan(
+          from: { lat: $fromLat, lon: $fromLon }
+          to: { lat: $toLat, lon: $toLon }
+          transportModes: [{ mode: WALK }, { mode: TRANSIT }]
+          numItineraries: 20
+        ) {
+          itineraries {
+            duration
+            legs { mode route { shortName } from { name } to { name } }
+          }
+          routingErrors { code description }
+        }
+      }
+    `;
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 20000);
+    const r = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: q,
+        variables: {
+          fromLat: parseFloat(fromLat), fromLon: parseFloat(fromLon),
+          toLat: parseFloat(toLat), toLon: parseFloat(toLon),
+        },
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(t);
+    const body = await r.json();
+    const itineraries = body?.data?.plan?.itineraries || [];
+    res.json({
+      count: itineraries.length,
+      routingErrors: body?.data?.plan?.routingErrors,
+      summaries: itineraries.map((it) => ({
+        duration: it.duration,
+        modes: it.legs.map((l) => `${l.mode}${l.route?.shortName ? ':' + l.route.shortName : ''}`),
+      })),
+      graphqlErrors: body?.errors,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/debug/lrt2', async (req, res) => {
   try {
     const q = `
