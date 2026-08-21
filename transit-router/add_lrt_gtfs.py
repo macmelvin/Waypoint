@@ -72,7 +72,7 @@ STATION_COORDS = {
     "Kupang": (1.3982128284, 103.881256222),
     "Thanggam": (1.3973181559, 103.875635156),
     "Fernvale": (1.39188588774, 103.876308611),
-    "Layar": (1.39691205306, 103.908950217),
+    "Layar": (1.39207983877, 103.880029601),
     "Tongkang": (1.38934795386, 103.88584415),
     "Renjong": (1.38672392153, 103.890539427),
     "Cove": (1.39928198502, 103.905961944),
@@ -167,6 +167,16 @@ def seconds_to_hms(total):
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
+def haversine_meters(lat1, lon1, lat2, lon2):
+    import math
+    r = 6371000
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlambda / 2) ** 2
+    return 2 * r * math.asin(min(1, math.sqrt(a)))
+
+
 def main():
     if len(sys.argv) != 3:
         print("Usage: add_lrt_gtfs.py <input.zip> <output.zip>")
@@ -181,10 +191,11 @@ def main():
         stop_times = read_csv(zf, "stop_times.txt")
         calendar = read_csv(zf, "calendar.txt") if "calendar.txt" in names else []
         frequencies = read_csv(zf, "frequencies.txt") if "frequencies.txt" in names else []
+        shapes = read_csv(zf, "shapes.txt") if "shapes.txt" in names else []
         other_names = [
             n for n in names
             if n not in ("stops.txt", "routes.txt", "trips.txt", "stop_times.txt",
-                          "calendar.txt", "frequencies.txt")
+                          "calendar.txt", "frequencies.txt", "shapes.txt")
         ]
         other_files = {n: zf.read(n) for n in other_names}
 
@@ -244,6 +255,7 @@ def main():
     new_trips = []
     new_stop_times = []
     new_frequencies = list(frequencies)
+    new_shapes = list(shapes)
 
     # The raw feed already uses short 2-letter route_ids for its own (non-LRT)
     # routes in places — confirmed the hard way: a private-operator route
@@ -271,23 +283,51 @@ def main():
     def add_trip(route_id, trip_code, headsign, stop_sequence):
         """stop_sequence: list of stop_id, in order (a real physical LRT
         stop_id can repeat, e.g. Bukit Panjang appears twice on one BP
-        loop-trip — that's correct, matches the real service)."""
+        loop-trip — that's correct, matches the real service).
+
+        Explicitly generates shapes.txt (straight lines between consecutive
+        stops) and shape_dist_traveled on every stop_times row. Frequency-
+        based trips with no shape and no shape_dist_traveled apparently hit
+        a real bug in this OTP version's distance computation — confirmed
+        live: a query that had no viable non-LRT alternative (forcing OTP to
+        actually consider one of these trips) crashed the whole /plan
+        response with a "distanceMeters" DataFetchingException, while
+        queries with a good bus alternative just silently produced zero LRT
+        candidates instead of crashing. Giving OTP explicit geometry and
+        cumulative distance removes the ambiguity/fallback path entirely."""
         trip_id = f"SGX_LRT_{trip_code}"
+        shape_id = f"SGX_LRT_SHAPE_{trip_code}"
         new_trips.append({
             "route_id": route_id,
             "service_id": SERVICE_ID,
             "trip_id": trip_id,
             "trip_headsign": headsign,
             "direction_id": "0",
+            "shape_id": shape_id,
         })
         t = 0
+        dist = 0.0
+        prev_latlon = None
         for seq, stop_id in enumerate(stop_sequence, start=1):
+            stop_row = stops_by_id[stop_id]
+            lat, lon = float(stop_row["stop_lat"]), float(stop_row["stop_lon"])
+            if prev_latlon is not None:
+                dist += haversine_meters(prev_latlon[0], prev_latlon[1], lat, lon)
+            prev_latlon = (lat, lon)
+            new_shapes.append({
+                "shape_id": shape_id,
+                "shape_pt_lat": f"{lat:.6f}",
+                "shape_pt_lon": f"{lon:.6f}",
+                "shape_pt_sequence": str(seq),
+                "shape_dist_traveled": f"{dist:.1f}",
+            })
             new_stop_times.append({
                 "trip_id": trip_id,
                 "arrival_time": seconds_to_hms(t),
                 "departure_time": seconds_to_hms(t),
                 "stop_id": stop_id,
                 "stop_sequence": str(seq),
+                "shape_dist_traveled": f"{dist:.1f}",
             })
             t += HOP_SECONDS
         for start, end, headway in FREQUENCY_BANDS:
@@ -338,15 +378,18 @@ def main():
         if extra not in routes_fieldnames:
             routes_fieldnames.append(extra)
     trips_fieldnames = list(trips[0].keys()) if trips else list(new_trips[0].keys())
-    for extra in ("trip_headsign", "direction_id"):
+    for extra in ("trip_headsign", "direction_id", "shape_id"):
         if extra not in trips_fieldnames:
             trips_fieldnames.append(extra)
-    st_fieldnames = ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"]
+    st_fieldnames = ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence",
+                      "shape_dist_traveled"]
     stops_fieldnames = ["stop_id", "stop_name", "stop_lat", "stop_lon", "location_type", "parent_station"]
     calendar_fieldnames = (list(calendar[0].keys()) if calendar else
                             ["service_id", "monday", "tuesday", "wednesday", "thursday",
                              "friday", "saturday", "sunday", "start_date", "end_date"])
     frequencies_fieldnames = ["trip_id", "start_time", "end_time", "headway_secs", "exact_times"]
+    shapes_fieldnames = ["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence",
+                          "shape_dist_traveled"]
 
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zf:
         write_csv(zf, "stops.txt", stops_fieldnames, stops)
@@ -355,6 +398,7 @@ def main():
         write_csv(zf, "stop_times.txt", st_fieldnames, stop_times_out)
         write_csv(zf, "calendar.txt", calendar_fieldnames, calendar_out)
         write_csv(zf, "frequencies.txt", frequencies_fieldnames, new_frequencies)
+        write_csv(zf, "shapes.txt", shapes_fieldnames, new_shapes)
         for name, data in other_files.items():
             zf.writestr(name, data)
 
