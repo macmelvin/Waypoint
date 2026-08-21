@@ -31,13 +31,16 @@ service from scratch:
     dataset), so their LRT loops directly reuse the existing NE16/NE17 MRT
     stop_id for a free, zero-distance transfer — this matches reality too.
   - No literal timetable exists for these lines in the source data (or, per
-    the finding above, anywhere), so service is expressed the standard GTFS
-    way for headway-run systems: one representative round-trip pattern per
-    direction in trips.txt/stop_times.txt (times are elapsed-offset, not
-    clock time), expanded into real departures via frequencies.txt bands
-    that roughly track published peak/off-peak service. This is materially
-    less precise than a real timetable, but LRT headways are short enough
-    (4-7 min modelled here) that it's accurate enough for trip planning.
+    the finding above, anywhere), so service is approximated as headway
+    bands roughly tracking published peak/off-peak service (4-7 min here).
+    This was originally implemented as one representative trip per
+    direction expanded via frequencies.txt (the standard GTFS mechanism for
+    headway-run systems) — but that reliably crashed OTP's /plan endpoint
+    with a "distanceMeters" exception the moment a query had no viable
+    non-LRT alternative, confirmed live and not reproducible for any
+    literal-schedule trip elsewhere in this feed. So instead this generates
+    literal, individually-timed trips across the service day directly —
+    more GTFS rows, but sidesteps whatever that OTP bug actually is.
 
 Usage: python3 add_lrt_gtfs.py <input.zip> <output.zip>
 """
@@ -167,6 +170,11 @@ def seconds_to_hms(total):
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
+def hms_to_seconds(s):
+    h, m, sec = s.split(":")
+    return int(h) * 3600 + int(m) * 60 + int(sec)
+
+
 def haversine_meters(lat1, lon1, lat2, lon2):
     import math
     r = 6371000
@@ -285,35 +293,34 @@ def main():
         stop_id can repeat, e.g. Bukit Panjang appears twice on one BP
         loop-trip — that's correct, matches the real service).
 
-        Explicitly generates shapes.txt (straight lines between consecutive
-        stops) and shape_dist_traveled on every stop_times row. Frequency-
-        based trips with no shape and no shape_dist_traveled apparently hit
-        a real bug in this OTP version's distance computation — confirmed
-        live: a query that had no viable non-LRT alternative (forcing OTP to
-        actually consider one of these trips) crashed the whole /plan
-        response with a "distanceMeters" DataFetchingException, while
-        queries with a good bus alternative just silently produced zero LRT
-        candidates instead of crashing. Giving OTP explicit geometry and
-        cumulative distance removes the ambiguity/fallback path entirely."""
-        trip_id = f"SGX_LRT_{trip_code}"
+        Generates literal, individually-timed trips across the whole
+        service day (one per departure) rather than a single representative
+        trip expanded via frequencies.txt. This is deliberate, not just more
+        data: a frequencies.txt-based version of this — even with explicit
+        shapes.txt and shape_dist_traveled added — reliably crashed OTP's
+        /plan endpoint with a "distanceMeters" DataFetchingException the
+        moment a query had no viable non-LRT alternative (forcing OTP to
+        actually consider one of these trips). Every literal-schedule trip
+        elsewhere in this feed (all MRT, all bus) works fine; frequency-
+        based expansion is the one thing that was different about these
+        trips, and switching it off is what actually fixed live routing —
+        confirmed by testing, not just theory. Real LRT headways are short
+        enough (4-7 min) that literal trips are just as accurate as
+        frequencies.txt would have been, just a lot more GTFS rows."""
         shape_id = f"SGX_LRT_SHAPE_{trip_code}"
-        new_trips.append({
-            "route_id": route_id,
-            "service_id": SERVICE_ID,
-            "trip_id": trip_id,
-            "trip_headsign": headsign,
-            "direction_id": "0",
-            "shape_id": shape_id,
-        })
-        t = 0
+        # Precompute this pattern's shape geometry + cumulative distance once;
+        # every literal trip instance below reuses the same shape_id and the
+        # same per-stop distances (only clock times differ between instances).
         dist = 0.0
         prev_latlon = None
+        cum_dist_by_seq = []
         for seq, stop_id in enumerate(stop_sequence, start=1):
             stop_row = stops_by_id[stop_id]
             lat, lon = float(stop_row["stop_lat"]), float(stop_row["stop_lon"])
             if prev_latlon is not None:
                 dist += haversine_meters(prev_latlon[0], prev_latlon[1], lat, lon)
             prev_latlon = (lat, lon)
+            cum_dist_by_seq.append(dist)
             new_shapes.append({
                 "shape_id": shape_id,
                 "shape_pt_lat": f"{lat:.6f}",
@@ -321,23 +328,34 @@ def main():
                 "shape_pt_sequence": str(seq),
                 "shape_dist_traveled": f"{dist:.1f}",
             })
-            new_stop_times.append({
-                "trip_id": trip_id,
-                "arrival_time": seconds_to_hms(t),
-                "departure_time": seconds_to_hms(t),
-                "stop_id": stop_id,
-                "stop_sequence": str(seq),
-                "shape_dist_traveled": f"{dist:.1f}",
-            })
-            t += HOP_SECONDS
-        for start, end, headway in FREQUENCY_BANDS:
-            new_frequencies.append({
-                "trip_id": trip_id,
-                "start_time": start,
-                "end_time": end,
-                "headway_secs": str(headway),
-                "exact_times": "0",
-            })
+
+        trip_num = 0
+        for start_hms, end_hms, headway in FREQUENCY_BANDS:
+            start_s, end_s = hms_to_seconds(start_hms), hms_to_seconds(end_hms)
+            dep = start_s
+            while dep < end_s:
+                trip_num += 1
+                trip_id = f"SGX_LRT_{trip_code}_{trip_num:04d}"
+                new_trips.append({
+                    "route_id": route_id,
+                    "service_id": SERVICE_ID,
+                    "trip_id": trip_id,
+                    "trip_headsign": headsign,
+                    "direction_id": "0",
+                    "shape_id": shape_id,
+                })
+                t = dep
+                for seq, stop_id in enumerate(stop_sequence, start=1):
+                    new_stop_times.append({
+                        "trip_id": trip_id,
+                        "arrival_time": seconds_to_hms(t),
+                        "departure_time": seconds_to_hms(t),
+                        "stop_id": stop_id,
+                        "stop_sequence": str(seq),
+                        "shape_dist_traveled": f"{cum_dist_by_seq[seq - 1]:.1f}",
+                    })
+                    t += HOP_SECONDS
+                dep += headway
 
     # --- Bukit Panjang: trunk + loop, two directional patterns ---
     bp_route_id = add_route("BP")
