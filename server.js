@@ -193,6 +193,67 @@ function estimateFareCents(totalKm) {
   return FARE_MAX_CENTS;
 }
 
+// TEMPORARY DEBUG ENDPOINT — checking whether the synthesized LRT routes
+// actually made it into the built graph this time. Safe to delete once
+// resolved.
+app.get('/api/debug/lrt2', async (req, res) => {
+  try {
+    const q = `
+      query($id: String!) {
+        route(id: $id) {
+          gtfsId shortName longName mode
+          patterns {
+            code
+            trips { gtfsId tripHeadsign }
+          }
+        }
+      }
+    `;
+    const ids = ['SGX_LRT_BP', 'SGX_LRT_SE', 'SGX_LRT_SW', 'SGX_LRT_PE', 'SGX_LRT_PW']
+      .map((c) => `1:${c}`);
+    const results = {};
+    for (const id of ids) {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 15000);
+      const r = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q, variables: { id } }),
+        signal: controller.signal,
+      });
+      clearTimeout(t);
+      const body = await r.json();
+      results[id] = body?.data?.route || body?.errors || 'no data';
+    }
+
+    // Also: does a nearby stop query find our minted LRT stops at all?
+    const stopsNearQuery = `
+      query($lat: Float!, $lon: Float!, $radius: Int!) {
+        stopsByRadius(lat: $lat, lon: $lon, radius: $radius) {
+          edges { node { stop { gtfsId name lat lon } distance } }
+        }
+      }
+    `;
+    const controller2 = new AbortController();
+    const t2 = setTimeout(() => controller2.abort(), 15000);
+    const nearRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: stopsNearQuery,
+        variables: { lat: 1.396731877474007, lon: 103.9108129126804, radius: 600 },
+      }),
+      signal: controller2.signal,
+    });
+    clearTimeout(t2);
+    const nearBody = await nearRes.json();
+
+    res.json({ routes: results, stopsNear822174: nearBody?.data ?? nearBody?.errors ?? 'no data' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/transit-plan', async (req, res) => {
   const { fromLat, fromLon, toLat, toLon } = req.query;
 
