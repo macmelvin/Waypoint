@@ -245,22 +245,34 @@ def main():
     new_stop_times = []
     new_frequencies = list(frequencies)
 
-    def add_route(route_id):
-        meta = ROUTE_META[route_id]
+    # The raw feed already uses short 2-letter route_ids for its own (non-LRT)
+    # routes in places — confirmed the hard way: a private-operator route
+    # already exists with route_id "BP" (agency "GAS"), and OTP hard-fails on
+    # any duplicate route_id. So the *internal* route_id is namespaced
+    # ("SGX_LRT_BP"), while route_short_name stays the clean "BP" the app
+    # already keys its line badges/colors off of — those are independent
+    # GTFS fields. Trip IDs get the same namespacing as a precaution, since
+    # this feed has already shown its short-code IDs aren't as empty a
+    # namespace as they looked from the outside.
+    def add_route(short_code):
+        meta = ROUTE_META[short_code]
+        route_id = f"SGX_LRT_{short_code}"
         new_routes.append({
             "route_id": route_id,
             "agency_id": (routes[0].get("agency_id", "") if routes else ""),
-            "route_short_name": route_id,
+            "route_short_name": short_code,
             "route_long_name": meta["long_name"],
             "route_type": "0",  # tram/light rail
             "route_color": meta["color"],
             "route_text_color": meta["text_color"],
         })
+        return route_id
 
-    def add_trip(route_id, trip_id, headsign, stop_sequence):
+    def add_trip(route_id, trip_code, headsign, stop_sequence):
         """stop_sequence: list of stop_id, in order (a real physical LRT
         stop_id can repeat, e.g. Bukit Panjang appears twice on one BP
         loop-trip — that's correct, matches the real service)."""
+        trip_id = f"SGX_LRT_{trip_code}"
         new_trips.append({
             "route_id": route_id,
             "service_id": SERVICE_ID,
@@ -288,27 +300,27 @@ def main():
             })
 
     # --- Bukit Panjang: trunk + loop, two directional patterns ---
-    add_route("BP")
+    bp_route_id = add_route("BP")
     trunk_ids = [cck_lrt_id, mint_stop("South View"), mint_stop("Keat Hong"),
                  mint_stop("Teck Whye"), mint_stop("Phoenix"), bp_lrt_id]
     for label, loop_names in (("A", BP_LOOP_VIA_SENJA), ("B", BP_LOOP_VIA_PETIR)):
         loop_ids = [mint_stop(n) for n in loop_names]
         sequence = trunk_ids + loop_ids + [bp_lrt_id] + list(reversed(trunk_ids[:-1]))
-        add_trip("BP", f"BP-{label}", f"Bukit Panjang LRT (Service {label})", sequence)
+        add_trip(bp_route_id, f"BP-{label}", f"Bukit Panjang LRT (Service {label})", sequence)
 
     # --- Sengkang / Punggol: independent loops off a shared MRT stop ---
-    def add_loop_route(route_id, hub_id, loop_names, hub_name):
-        add_route(route_id)
+    def add_loop_route(short_code, hub_id, loop_names):
+        route_id = add_route(short_code)
         loop_ids = [mint_stop(n) for n in loop_names]
-        add_trip(route_id, f"{route_id}-CW", f"{route_id} Loop via {loop_names[0]}",
+        add_trip(route_id, f"{short_code}-CW", f"{short_code} Loop via {loop_names[0]}",
                   [hub_id] + loop_ids + [hub_id])
-        add_trip(route_id, f"{route_id}-CCW", f"{route_id} Loop via {loop_names[-1]}",
+        add_trip(route_id, f"{short_code}-CCW", f"{short_code} Loop via {loop_names[-1]}",
                   [hub_id] + list(reversed(loop_ids)) + [hub_id])
 
-    add_loop_route("SE", sengkang_id, SE_LOOP, "Sengkang")
-    add_loop_route("SW", sengkang_id, SW_LOOP, "Sengkang")
-    add_loop_route("PE", punggol_id, PE_LOOP, "Punggol")
-    add_loop_route("PW", punggol_id, PW_LOOP, "Punggol")
+    add_loop_route("SE", sengkang_id, SE_LOOP)
+    add_loop_route("SW", sengkang_id, SW_LOOP)
+    add_loop_route("PE", punggol_id, PE_LOOP)
+    add_loop_route("PW", punggol_id, PW_LOOP)
 
     calendar_out = calendar + [{
         "service_id": SERVICE_ID,
