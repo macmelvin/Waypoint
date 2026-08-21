@@ -224,6 +224,7 @@ app.get('/api/transit-plan', async (req, res) => {
             route { shortName longName color textColor }
             headsign
             legGeometry { points }
+            intermediateStops { name lat lon }
           }
         }
         routingErrors { code description }
@@ -282,6 +283,21 @@ app.get('/api/transit-plan', async (req, res) => {
         routeTextColor: leg.route?.textColor || null,
         headsign: leg.headsign || null,
         geometry: leg.legGeometry?.points || null,
+        // Full boarding-to-alighting stop sequence (for the "Wake me up"
+        // live stop countdown) — only meaningful for bus/train legs; walk
+        // legs have no intermediateStops so this is just [from, to].
+        stops:
+          leg.mode === 'WALK'
+            ? null
+            : [
+                { name: leg.from?.name, lat: leg.from?.lat ?? null, lon: leg.from?.lon ?? null },
+                ...(leg.intermediateStops || []).map((s) => ({
+                  name: s.name,
+                  lat: s.lat,
+                  lon: s.lon,
+                })),
+                { name: leg.to?.name, lat: leg.to?.lat ?? null, lon: leg.to?.lon ?? null },
+              ],
       }));
 
       const transitKm = legs

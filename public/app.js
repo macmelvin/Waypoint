@@ -1274,7 +1274,7 @@ function renderRouteSteps(route) {
 const WAKE_ALERT_THRESHOLD_M = 300; // distance to alighting stop that triggers the alert
 const WAKE_REPEAT_MS = 8000; // how often to re-beep while the banner is up, undismissed
 
-let wakeState = null; // { watchId, repeatTimer, btnEl, statusEl, targetName, triggered }
+let wakeState = null; // { watchId, repeatTimer, btnEl, statusEl, targetName, triggered, stops, stopCursor }
 let wakeAudioCtx = null;
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
@@ -1346,7 +1346,15 @@ function startWakeAlert(leg, btnEl, statusEl) {
   stopWakeAlert(false); // only one active watch at a time
 
   const targetName = leg.to || 'your stop';
-  wakeState = { watchId: null, repeatTimer: null, btnEl, statusEl, targetName, triggered: false };
+  // leg.stops is the full boarding-to-alighting stop sequence (from server.js,
+  // via OTP's intermediateStops) — used to count down remaining stops, not
+  // just distance. Falls back to distance-only if it's missing or too short
+  // to be meaningful (e.g. an older cached itinerary from before this shipped).
+  const stops = Array.isArray(leg.stops) && leg.stops.length >= 2 ? leg.stops : null;
+  wakeState = {
+    watchId: null, repeatTimer: null, btnEl, statusEl, targetName, triggered: false,
+    stops, stopCursor: 0,
+  };
   btnEl.textContent = '🔕 Cancel alert';
   btnEl.classList.add('active');
   statusEl.textContent = 'Locating you…';
@@ -1356,7 +1364,32 @@ function startWakeAlert(leg, btnEl, statusEl) {
     (pos) => {
       if (!wakeState) return;
       const dist = haversineMeters(pos.coords.latitude, pos.coords.longitude, leg.toLat, leg.toLon);
-      wakeState.statusEl.textContent = `📍 ${formatDistance(dist)} to ${targetName}`;
+
+      let stopsText = '';
+      if (wakeState.stops) {
+        const { lat, lon } = pos.coords;
+        const lastIdx = wakeState.stops.length - 1;
+        // Advance past any stop we're now clearly closer to the NEXT stop
+        // than to it — handles sparse GPS updates (e.g. bus passed 2 stops
+        // between fixes) by looping rather than only checking one step.
+        while (wakeState.stopCursor < lastIdx) {
+          const cur = wakeState.stops[wakeState.stopCursor];
+          const next = wakeState.stops[wakeState.stopCursor + 1];
+          if (cur.lat == null || cur.lon == null || next.lat == null || next.lon == null) break;
+          const distCur = haversineMeters(lat, lon, cur.lat, cur.lon);
+          const distNext = haversineMeters(lat, lon, next.lat, next.lon);
+          if (distNext < distCur) wakeState.stopCursor += 1;
+          else break;
+        }
+        const stopsRemaining = lastIdx - wakeState.stopCursor;
+        if (stopsRemaining > 0) {
+          stopsText = ` · ${stopsRemaining} stop${stopsRemaining === 1 ? '' : 's'} to go`;
+        } else {
+          stopsText = ' · next stop';
+        }
+      }
+
+      wakeState.statusEl.textContent = `📍 ${formatDistance(dist)} to ${targetName}${stopsText}`;
       if (dist <= WAKE_ALERT_THRESHOLD_M && !wakeState.triggered) {
         wakeState.triggered = true;
         triggerWakeAlert(targetName);
