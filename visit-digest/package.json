@@ -1,0 +1,16 @@
+{
+  "name": "visit-digest",
+  "description": "Daily email digest of visitor stats across Melvin's sites, pulled from self-hosted Umami and sent via Gmail SMTP. Runs once per Railway Cron Schedule trigger, then exits.",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.16"
+  }
+}
