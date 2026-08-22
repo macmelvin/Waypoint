@@ -7,19 +7,21 @@
 //   UMAMI_USERNAME   Umami dashboard login username (usually "admin")
 //   UMAMI_PASSWORD   Umami dashboard login password
 //   SITES_JSON       JSON array of { "name": "...", "id": "<umami website id>" }
-//   SMTP_USER        e.g. macmelvin.tan@gmail.com
-//   SMTP_PASSWORD    Gmail App Password
-//   RECIPIENT_EMAIL  e.g. macmelvin.tan@gmail.com
-
-const nodemailer = require('nodemailer');
+//   RESEND_API_KEY   API key from resend.com (Railway blocks outbound SMTP on
+//                    non-Pro plans, so email is sent over HTTPS via Resend
+//                    instead of nodemailer/SMTP)
+//   RECIPIENT_EMAIL  e.g. macmelvin.tan@gmail.com — must match the email the
+//                    Resend account itself is registered under, unless/until
+//                    a custom sending domain is verified in Resend (the
+//                    resend.dev sender only allows sending to your own
+//                    account email otherwise)
 
 const UMAMI_BASE_URL = (process.env.UMAMI_BASE_URL || '').replace(/\/+$/, '');
 const UMAMI_USERNAME = process.env.UMAMI_USERNAME;
 const UMAMI_PASSWORD = process.env.UMAMI_PASSWORD;
 const SITES = JSON.parse(process.env.SITES_JSON || '[]');
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
-const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || SMTP_USER;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL;
 
 function assertConfigured() {
   const missing = [];
@@ -27,8 +29,8 @@ function assertConfigured() {
   if (!UMAMI_USERNAME) missing.push('UMAMI_USERNAME');
   if (!UMAMI_PASSWORD) missing.push('UMAMI_PASSWORD');
   if (!SITES.length) missing.push('SITES_JSON (empty or missing)');
-  if (!SMTP_USER) missing.push('SMTP_USER');
-  if (!SMTP_PASSWORD) missing.push('SMTP_PASSWORD');
+  if (!RESEND_API_KEY) missing.push('RESEND_API_KEY');
+  if (!RECIPIENT_EMAIL) missing.push('RECIPIENT_EMAIL');
   if (missing.length) {
     throw new Error(`Missing required config: ${missing.join(', ')}`);
   }
@@ -122,20 +124,24 @@ async function main() {
   const { text, html } = buildEmail(results, windowLabel);
   console.log(text);
 
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: { user: SMTP_USER, pass: SMTP_PASSWORD },
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Visit Digest <onboarding@resend.dev>',
+      to: RECIPIENT_EMAIL,
+      subject: `Visitor digest — ${new Date(endAt).toISOString().slice(0, 10)}`,
+      text,
+      html,
+    }),
   });
 
-  await transporter.sendMail({
-    from: SMTP_USER,
-    to: RECIPIENT_EMAIL,
-    subject: `Visitor digest — ${new Date(endAt).toISOString().slice(0, 10)}`,
-    text,
-    html,
-  });
+  if (!res.ok) {
+    throw new Error(`Resend send failed: ${res.status} ${await res.text()}`);
+  }
 
   console.log('Digest email sent successfully.');
 }
