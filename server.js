@@ -233,27 +233,55 @@ app.get('/api/transit-plan', async (req, res) => {
   `;
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
+    // transit-router sleeps when idle (Railway serverless mode, enabled to
+    // cut hosting cost on a low-traffic app) — its first request after a
+    // nap can come back as a 502, or hang while OTP reloads the transit
+    // graph into memory, rather than just responding slowly. Retry a
+    // couple of times with a short pause so a cold start reads to the user
+    // as "took a bit longer" instead of an outright error.
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 3000;
+    let otpRes;
+    let lastErr;
 
-    const otpRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        variables: {
-          fromLat: parseFloat(fromLat),
-          fromLon: parseFloat(fromLon),
-          toLat: parseFloat(toLat),
-          toLon: parseFloat(toLon),
-        },
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      try {
+        otpRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query,
+            variables: {
+              fromLat: parseFloat(fromLat),
+              fromLon: parseFloat(fromLon),
+              toLat: parseFloat(toLat),
+              toLon: parseFloat(toLon),
+            },
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
 
-    if (!otpRes.ok) {
-      throw new Error(`transit router responded ${otpRes.status}`);
+        if (otpRes.ok) {
+          lastErr = null;
+          break;
+        }
+        lastErr = new Error(`transit router responded ${otpRes.status}`);
+      } catch (err) {
+        clearTimeout(timeout);
+        lastErr = err;
+      }
+
+      if (attempt < MAX_ATTEMPTS) {
+        console.warn(`transit-plan attempt ${attempt} failed (${lastErr.message}), retrying in ${RETRY_DELAY_MS}ms...`);
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      }
+    }
+
+    if (lastErr) {
+      throw lastErr;
     }
 
     const body = await otpRes.json();
