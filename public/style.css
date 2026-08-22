@@ -923,6 +923,26 @@ html, body {
   background: #eff4ff;
 }
 
+.support-footer {
+  display: block;
+  margin: 8px 16px 16px;
+  padding: 10px;
+  border: 1px solid #ffdd00;
+  border-radius: var(--radius);
+  background: #fff9db;
+  color: #7a5b00;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+.support-footer:hover {
+  background: #ffdd00;
+  color: #1a1a1a;
+  border-color: #e6c700;
+}
+
 .credits-footer {
   margin: 0 16px 16px;
   padding: 12px 10px 4px;
