@@ -23,6 +23,7 @@ const els = {
   searchInput: document.getElementById('searchInput'),
   searchClear: document.getElementById('searchClear'),
   searchResults: document.getElementById('searchResults'),
+  categoryRow: document.getElementById('categoryRow'),
   placeCard: document.getElementById('placeCard'),
   placeName: document.getElementById('placeName'),
   placeAddress: document.getElementById('placeAddress'),
@@ -659,7 +660,15 @@ els.toInput.addEventListener('input', (e) => {
 document.addEventListener('click', (e) => {
   if (!els.fromInput.contains(e.target)) els.fromResults.innerHTML = '';
   if (!els.toInput.contains(e.target)) els.toResults.innerHTML = '';
-  if (!els.searchInput.contains(e.target) && !els.searchResults.contains(e.target)) els.searchResults.innerHTML = '';
+  // Tapping a category chip (🏥/🍽️/etc) lives outside both the search input
+  // and the results list, so without this it would immediately wipe out the
+  // "Finding your location…" text the same click was meant to trigger —
+  // the search would then run with zero visible feedback until it either
+  // finished or the person gave up waiting.
+  const clickedCategoryChip = els.categoryRow && els.categoryRow.contains(e.target);
+  if (!els.searchInput.contains(e.target) && !els.searchResults.contains(e.target) && !clickedCategoryChip) {
+    els.searchResults.innerHTML = '';
+  }
 });
 
 els.swapBtn.addEventListener('click', () => {
