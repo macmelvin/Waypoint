@@ -52,6 +52,7 @@ const els = {
   evChargingInfo: document.getElementById('evChargingInfo'),
   petrolInfo: document.getElementById('petrolInfo'),
   erpInfo: document.getElementById('erpInfo'),
+  trafficInfo: document.getElementById('trafficInfo'),
   cyclingExtra: document.getElementById('cyclingExtra'),
   startNavBtn: document.getElementById('startNavBtn'),
   navBanner: document.getElementById('navBanner'),
@@ -706,6 +707,9 @@ function hideDrivingExtras() {
   els.petrolInfo.innerHTML = '';
   els.erpInfo.classList.add('hidden');
   els.erpInfo.innerHTML = '';
+  els.trafficInfo.classList.add('hidden');
+  els.trafficInfo.innerHTML = '';
+  navTrafficOverlays = [];
   els.cyclingExtra.classList.add('hidden');
   els.cyclingExtra.innerHTML = '';
   els.startNavBtn.classList.add('hidden');
@@ -871,6 +875,51 @@ async function loadErpInfo(coordinates) {
   }
 }
 
+// Checks LTA's live speed-band data against the route and, if any stretch is
+// jammed or slow-moving, both shows a summary here and stashes the matched
+// segments in navTrafficOverlays so the nav map can draw them in red/amber
+// on top of the usual blue route line (see drawTrafficOverlays()).
+async function loadRouteTraffic(coordinates) {
+  els.trafficInfo.classList.remove('hidden');
+  els.trafficInfo.innerHTML = '<div class="driving-extra-title">🚦 Traffic</div><div class="driving-extra-row">Checking live conditions…</div>';
+  navTrafficOverlays = [];
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch('/api/route-traffic', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coordinates }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.overlays) {
+      els.trafficInfo.classList.add('hidden');
+      return;
+    }
+    navTrafficOverlays = data.overlays;
+    const { redMeters = 0, amberMeters = 0 } = data.meta || {};
+    if (!redMeters && !amberMeters) {
+      els.trafficInfo.innerHTML = '<div class="driving-extra-title">🚦 Traffic</div><div class="driving-extra-row">Flowing smoothly along this route.</div>';
+    } else {
+      const parts = [];
+      if (redMeters) parts.push(`<span class="traffic-dot traffic-dot-red"></span>${formatDistance(redMeters)} heavy traffic`);
+      if (amberMeters) parts.push(`<span class="traffic-dot traffic-dot-amber"></span>${formatDistance(amberMeters)} slow-moving`);
+      els.trafficInfo.innerHTML = '<div class="driving-extra-title">🚦 Traffic</div>'
+        + `<div class="driving-extra-row">${parts.join(' &nbsp; ')}</div>`
+        + '<div class="driving-extra-note">From LTA\'s live speed data (refreshes every few min) — highlighted on the map once you start navigation.</div>';
+    }
+    // If navigation is already underway, redraw immediately rather than
+    // waiting for the next showNavMap() call.
+    if (!els.navMapOverlay.classList.contains('hidden')) drawTrafficOverlays();
+  } catch (err) {
+    console.error('route traffic failed:', err);
+    els.trafficInfo.classList.add('hidden');
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function getDirections() {
   if (!fromCoords || !toCoords) return;
   hideDrivingExtras();
@@ -919,6 +968,7 @@ async function getDirections() {
       loadEvChargingInfo(toCoords);
       loadPetrolInfo(toCoords);
       loadErpInfo(route.geometry.coordinates);
+      loadRouteTraffic(route.geometry.coordinates);
     } else if (selectedMode === 'cycling') {
       showCyclingExtra();
     }
@@ -981,6 +1031,28 @@ let navMapRouteLine = null;
 let navMapLiveMarker = null;
 let navFollowing = true; // false once the user manually drags the map, until they tap recenter
 
+// Live-traffic overlay segments matched against the current route by
+// /api/route-traffic (see loadRouteTraffic()) — [{ color: 'red'|'amber',
+// points: [[lat,lon], ...] }]. Drawn on top of navMapRouteLine.
+let navTrafficOverlays = [];
+let navMapTrafficLines = [];
+
+function drawTrafficOverlays() {
+  if (!navMap) return;
+  navMapTrafficLines.forEach((line) => navMap.removeLayer(line));
+  navMapTrafficLines = [];
+  const colors = { red: '#dc2626', amber: '#f59e0b' };
+  navTrafficOverlays.forEach((overlay) => {
+    const line = L.polyline(overlay.points, {
+      color: colors[overlay.color] || colors.red,
+      weight: 7,
+      opacity: 0.9,
+    }).addTo(navMap);
+    line.bringToFront();
+    navMapTrafficLines.push(line);
+  });
+}
+
 function initNavMap() {
   if (navMap || typeof L === 'undefined') return;
   navMap = L.map('navMap', { zoomControl: false, attributionControl: true });
@@ -1006,6 +1078,7 @@ function showNavMap(routeCoords) {
   const latlngs = routeCoords.map(([lon, lat]) => [lat, lon]);
   navMapRouteLine = L.polyline(latlngs, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(navMap);
   navMap.fitBounds(navMapRouteLine.getBounds(), { padding: [40, 40] });
+  drawTrafficOverlays();
 
   if (!navMapLiveMarker) {
     const liveIcon = L.divIcon({ className: 'nav-live-dot', iconSize: [18, 18] });

@@ -1091,6 +1091,224 @@ app.post('/api/erp-crossings', async (req, res) => {
   }
 });
 
+// ---- Live traffic speed on a driving route (LTA DataMall TrafficSpeedBandsv2) ----
+// LTA publishes near-real-time speed bands (refreshed roughly every 5 min) for
+// road links across Singapore. This fetches the full island-wide dataset,
+// caches it briefly, then matches a route's polyline against it so jammed
+// stretches can be drawn in red/amber on the nav map instead of the usual
+// plain blue line.
+
+let trafficSpeedBandsCache = [];
+let trafficSpeedBandsGrid = null;
+let trafficSpeedBandsCacheAt = 0;
+const TRAFFIC_SPEED_BANDS_TTL_MS = 3 * 60 * 1000; // LTA's own feed refreshes ~every 5 min
+const TRAFFIC_GRID_CELL_DEG = 0.01; // ~1.1km lat / ~1km lon at SG's latitude — spatial index bucket size
+
+// SpeedBand 1-8 -> approx km/h, per LTA's API guide:
+// 1: 0-9, 2: 10-19, 3: 20-29, 4: 30-39, 5: 40-49, 6: 50-59, 7: 60-69, 8: 70+
+function classifySpeedBand(band) {
+  if (band <= 2) return 'red';   // heavy jam
+  if (band <= 4) return 'amber'; // slow-moving
+  return null;                   // flowing fine — no overlay needed
+}
+
+function parseSpeedBandLocation(loc) {
+  if (!loc) return null;
+  const parts = loc.trim().split(/\s+/).map(Number);
+  if (parts.length !== 4 || parts.some(Number.isNaN)) return null;
+  const [lat1, lon1, lat2, lon2] = parts;
+  return { lat1, lon1, lat2, lon2 };
+}
+
+function trafficGridKey(lat, lon) {
+  return `${Math.floor(lat / TRAFFIC_GRID_CELL_DEG)}_${Math.floor(lon / TRAFFIC_GRID_CELL_DEG)}`;
+}
+
+// Buckets each link under the grid cell(s) it touches so matching a route
+// point only has to check a handful of nearby links, not the whole island.
+function buildTrafficGrid(links) {
+  const grid = new Map();
+  links.forEach((link, idx) => {
+    const cells = new Set([
+      trafficGridKey(link.lat1, link.lon1),
+      trafficGridKey(link.lat2, link.lon2),
+      trafficGridKey((link.lat1 + link.lat2) / 2, (link.lon1 + link.lon2) / 2),
+    ]);
+    cells.forEach((key) => {
+      if (!grid.has(key)) grid.set(key, []);
+      grid.get(key).push(idx);
+    });
+  });
+  return grid;
+}
+
+async function fetchAllTrafficSpeedBands() {
+  const all = [];
+  let skip = 0;
+  for (;;) {
+    const res = await fetch(`https://datamall2.mytransport.sg/ltaodataservice/TrafficSpeedBandsv2?$skip=${skip}`, {
+      headers: { AccountKey: LTA_ACCOUNT_KEY, accept: 'application/json' },
+    });
+    if (!res.ok) throw new Error(`LTA TrafficSpeedBandsv2 responded ${res.status}`);
+    const data = await res.json();
+    const batch = data.value || [];
+    for (const item of batch) {
+      const loc = parseSpeedBandLocation(item.Location);
+      const band = parseInt(item.SpeedBand, 10);
+      if (loc && Number.isFinite(band)) all.push({ ...loc, speedBand: band });
+    }
+    if (batch.length < 500) break; // LTA pages this endpoint 500 records at a time
+    skip += 500;
+  }
+  return all;
+}
+
+async function getTrafficSpeedBands() {
+  if (trafficSpeedBandsCache.length && Date.now() - trafficSpeedBandsCacheAt < TRAFFIC_SPEED_BANDS_TTL_MS) {
+    return { links: trafficSpeedBandsCache, grid: trafficSpeedBandsGrid };
+  }
+  const links = await fetchAllTrafficSpeedBands();
+  if (links.length) {
+    trafficSpeedBandsCache = links;
+    trafficSpeedBandsGrid = buildTrafficGrid(links);
+    trafficSpeedBandsCacheAt = Date.now();
+  }
+  return { links: trafficSpeedBandsCache, grid: trafficSpeedBandsGrid };
+}
+
+// Warm the cache at boot so the first driving route doesn't have to wait on a
+// few dozen paginated LTA calls. Harmless no-op if the key isn't set yet.
+if (LTA_ACCOUNT_KEY) getTrafficSpeedBands().catch((err) => console.error('traffic speed bands warmup failed:', err.message));
+
+// Flat-earth projection referenced to Singapore's latitude — plenty accurate
+// over the ~50km the island spans, and much cheaper than haversine when run
+// per-candidate-link across an entire route's worth of sample points.
+const SG_M_PER_DEG_LAT = 110574;
+const SG_M_PER_DEG_LON = 111320 * Math.cos((1.35 * Math.PI) / 180);
+
+function pointToSegmentMeters(plat, plon, alat, alon, blat, blon) {
+  const px = plon * SG_M_PER_DEG_LON, py = plat * SG_M_PER_DEG_LAT;
+  const ax = alon * SG_M_PER_DEG_LON, ay = alat * SG_M_PER_DEG_LAT;
+  const bx = blon * SG_M_PER_DEG_LON, by = blat * SG_M_PER_DEG_LAT;
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * dx, cy = ay + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+
+// LTA's road-link geometry doesn't line up exactly with OSRM/OSM's, so this
+// is deliberately generous — wide enough to catch the right road, tight
+// enough to not bleed onto a parallel one.
+const TRAFFIC_MATCH_THRESHOLD_M = 35;
+
+function findNearestSpeedBand(grid, links, lat, lon) {
+  const baseLatCell = Math.floor(lat / TRAFFIC_GRID_CELL_DEG);
+  const baseLonCell = Math.floor(lon / TRAFFIC_GRID_CELL_DEG);
+  let best = null, bestDist = Infinity;
+  for (let dLat = -1; dLat <= 1; dLat++) {
+    for (let dLon = -1; dLon <= 1; dLon++) {
+      const bucket = grid.get(`${baseLatCell + dLat}_${baseLonCell + dLon}`);
+      if (!bucket) continue;
+      for (const idx of bucket) {
+        const link = links[idx];
+        const d = pointToSegmentMeters(lat, lon, link.lat1, link.lon1, link.lat2, link.lon2);
+        if (d < bestDist) { bestDist = d; best = link; }
+      }
+    }
+  }
+  return bestDist <= TRAFFIC_MATCH_THRESHOLD_M ? best : null;
+}
+
+// Walks a route's [lon,lat] geometry and drops a point roughly every
+// `stepMeters`, independent of how sparse/dense OSRM's own vertices are —
+// gives consistent-granularity samples to match against speed band links.
+function resampleRouteMeters(coordsLonLat, stepMeters) {
+  if (!coordsLonLat.length) return [];
+  const out = [coordsLonLat[0]];
+  let carry = 0;
+  for (let i = 1; i < coordsLonLat.length; i++) {
+    let [lon0, lat0] = coordsLonLat[i - 1];
+    const [lon1, lat1] = coordsLonLat[i];
+    let segLen = haversineMeters(lat0, lon0, lat1, lon1);
+    if (segLen === 0) continue;
+    while (carry + segLen >= stepMeters) {
+      const t = (stepMeters - carry) / segLen;
+      const lat = lat0 + (lat1 - lat0) * t;
+      const lon = lon0 + (lon1 - lon0) * t;
+      out.push([lon, lat]);
+      lat0 = lat; lon0 = lon;
+      segLen = haversineMeters(lat0, lon0, lat1, lon1);
+      carry = 0;
+    }
+    carry += segLen;
+  }
+  out.push(coordsLonLat[coordsLonLat.length - 1]);
+  return out;
+}
+
+const TRAFFIC_SAMPLE_STEP_M = 40;
+const TRAFFIC_MAX_ROUTE_POINTS = 5000;
+
+app.post('/api/route-traffic', async (req, res) => {
+  const coords = req.body?.coordinates; // [[lon, lat], ...] — e.g. OSRM route geometry
+  if (!Array.isArray(coords) || coords.length < 2) {
+    return res.status(400).json({ error: 'coordinates array is required' });
+  }
+  if (coords.length > TRAFFIC_MAX_ROUTE_POINTS) {
+    return res.status(400).json({ error: 'Route is too long to check for live traffic.' });
+  }
+  if (!LTA_ACCOUNT_KEY) {
+    return res.json({ overlays: [], meta: { redMeters: 0, amberMeters: 0 } });
+  }
+
+  try {
+    const { links, grid } = await getTrafficSpeedBands();
+    if (!links.length || !grid) {
+      return res.json({ overlays: [], meta: { redMeters: 0, amberMeters: 0 } });
+    }
+
+    const sampled = resampleRouteMeters(coords, TRAFFIC_SAMPLE_STEP_M);
+    const classified = sampled.map(([lon, lat]) => {
+      const link = findNearestSpeedBand(grid, links, lat, lon);
+      return { lat, lon, cls: link ? classifySpeedBand(link.speedBand) : null };
+    });
+
+    // Collapse consecutive same-classification samples into overlay
+    // segments, so the client just draws a handful of colored polylines on
+    // top of the base route instead of one styled segment per sample point.
+    const overlays = [];
+    let redMeters = 0;
+    let amberMeters = 0;
+    let i = 0;
+    while (i < classified.length) {
+      const cls = classified[i].cls;
+      if (!cls) { i++; continue; }
+      let j = i;
+      while (j + 1 < classified.length && classified[j + 1].cls === cls) j++;
+      // Pull in one neighbouring sample on each side so the overlay's ends
+      // touch the base route line instead of leaving a visible gap.
+      const startIdx = Math.max(0, i - 1);
+      const endIdx = Math.min(classified.length - 1, j + 1);
+      const points = classified.slice(startIdx, endIdx + 1).map((p) => [p.lat, p.lon]);
+      let segMeters = 0;
+      for (let k = 1; k < points.length; k++) {
+        segMeters += haversineMeters(points[k - 1][0], points[k - 1][1], points[k][0], points[k][1]);
+      }
+      if (cls === 'red') redMeters += segMeters; else amberMeters += segMeters;
+      overlays.push({ color: cls, points });
+      i = j + 1;
+    }
+
+    res.json({ overlays, meta: { redMeters: Math.round(redMeters), amberMeters: Math.round(amberMeters) } });
+  } catch (err) {
+    console.error('route-traffic error:', err.message);
+    // Fail quietly — this is informational, not core routing.
+    res.json({ overlays: [], meta: { redMeters: 0, amberMeters: 0 } });
+  }
+});
+
 // "Stops near me" for the Favourites tab — sorts the full cached stop
 // directory by straight-line distance from the given position instead of
 // requiring the user to know/type a stop name.
