@@ -11,6 +11,14 @@ let toCoords = null;
 let selectedMode = 'driving';
 let hasRoute = false; // whether a route/itinerary is currently displayed (for mode-switch auto-refresh)
 
+// Which OSRM backend + profile name to use per travel mode. See the comment
+// in getDirections() for why driving/cycling/walking don't all hit the same host.
+const OSRM_ENDPOINTS = {
+  driving: { host: 'https://router.project-osrm.org', profile: 'driving' },
+  cycling: { host: 'https://routing.openstreetmap.de/routed-bike', profile: 'bike' },
+  walking: { host: 'https://routing.openstreetmap.de/routed-foot', profile: 'foot' },
+};
+
 const els = {
   searchInput: document.getElementById('searchInput'),
   searchClear: document.getElementById('searchClear'),
@@ -718,7 +726,16 @@ async function getDirections() {
   els.getDirectionsBtn.textContent = 'Loading…';
 
   const coordStr = `${fromCoords.lon},${fromCoords.lat};${toCoords.lon},${toCoords.lat}`;
-  const url = `https://router.project-osrm.org/route/v1/${selectedMode}/${coordStr}?overview=full&geometries=geojson&steps=true`;
+  // The public OSRM demo server (router.project-osrm.org) only ever runs the
+  // car/driving profile — requests with profile "walking" or "cycling" still
+  // get routed over car roads at car speeds instead of erroring, which is why
+  // walking estimates could come back drastically too fast (a route needing
+  // a pedestrian bridge/stairs the car graph doesn't have gets approximated
+  // by a nearby road, timed as if driven). FOSSGIS e.V.'s community OSRM
+  // mirrors run the actual foot/bike profiles against real pedestrian/cycling
+  // network data, so send those two modes there instead.
+  const { host, profile } = OSRM_ENDPOINTS[selectedMode] || OSRM_ENDPOINTS.driving;
+  const url = `${host}/route/v1/${profile}/${coordStr}?overview=full&geometries=geojson&steps=true`;
 
   try {
     const res = await fetch(url);
