@@ -281,9 +281,15 @@ function buildCategoryOverpassQuery({ key, tags }, lat, lon, radius) {
 async function fetchFromOverpass(query) {
   let lastErr = null;
   for (const host of OVERPASS_HOSTS) {
+    // A plain fetch() has no default timeout — without this, one slow/hung
+    // mirror could stall the whole search indefinitely, especially across up
+    // to 3 radius tiers × 2 mirrors = 6 sequential attempts in the worst case.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       const res = await fetch(host, {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `data=${encodeURIComponent(query)}`,
       });
@@ -302,15 +308,18 @@ async function fetchFromOverpass(query) {
     } catch (err) {
       console.error(`category search via ${host} failed:`, err);
       lastErr = err;
+    } finally {
+      clearTimeout(timeout);
     }
   }
   throw lastErr || new Error('All Overpass mirrors failed.');
 }
 
-async function fetchCategoryPlaces(category, lat, lon) {
+async function fetchCategoryPlaces(category, lat, lon, onTierStart) {
   const tagInfo = CATEGORY_OSM_TAGS[category];
   let lastErr = null;
   for (const radius of CATEGORY_SEARCH_RADII_M) {
+    if (onTierStart) onTierStart(radius);
     const query = buildCategoryOverpassQuery(tagInfo, lat, lon, radius);
     try {
       const places = await fetchFromOverpass(query);
@@ -335,7 +344,9 @@ function searchNearbyCategory(category) {
       els.searchResults.innerHTML = `<li class="r-loading">Searching nearby ${CATEGORY_LABELS[category]}…</li>`;
       try {
         const { latitude: lat, longitude: lon } = pos.coords;
-        const { places, radiusUsed } = await fetchCategoryPlaces(category, lat, lon);
+        const { places, radiusUsed } = await fetchCategoryPlaces(category, lat, lon, (radius) => {
+          els.searchResults.innerHTML = `<li class="r-loading">Searching within ${formatDistance(radius)}…</li>`;
+        });
         if (!places.length) {
           els.searchResults.innerHTML = '';
           showToast(`No ${CATEGORY_LABELS[category]} found within ${formatDistance(radiusUsed)}.`, 5000);
