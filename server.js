@@ -246,39 +246,58 @@ app.get('/api/geocode', async (req, res) => {
 // dataset like the EV/petrol features use — "food" alone would be tens of
 // thousands of entries island-wide, and a live radius query stays fresh
 // (restaurants open and close) without needing a manual dataset refresh.
+// Most categories key off OSM's "amenity" tag, but a few (groceries, shopping,
+// hotels, parks) are tagged under "shop"/"tourism"/"leisure" instead — each
+// entry says which key to filter on.
 const PLACE_CATEGORIES = {
-  hospital: { tags: ['hospital'], radius: 10000 },
-  police: { tags: ['police'], radius: 10000 },
-  food: { tags: ['restaurant', 'cafe', 'fast_food', 'food_court'], radius: 3000 },
+  hospital: { key: 'amenity', tags: ['hospital'], radius: 10000 },
+  police: { key: 'amenity', tags: ['police'], radius: 10000 },
+  food: { key: 'amenity', tags: ['restaurant', 'fast_food', 'food_court'], radius: 3000 },
+  coffee: { key: 'amenity', tags: ['cafe'], radius: 2000 },
+  groceries: { key: 'shop', tags: ['supermarket', 'convenience'], radius: 2000 },
+  pharmacy: { key: 'amenity', tags: ['pharmacy'], radius: 3000 },
+  shopping: { key: 'shop', tags: ['mall', 'department_store'], radius: 5000 },
+  hotel: { key: 'tourism', tags: ['hotel'], radius: 5000 },
+  park: { key: 'leisure', tags: ['park'], radius: 3000 },
 };
 
-function buildOverpassNearbyQuery(tags, lat, lon, radius) {
-  const amenityFilter = tags.length === 1
-    ? `["amenity"="${tags[0]}"]`
-    : `["amenity"~"^(${tags.join('|')})$"]`;
-  return `[out:json][timeout:15];(node${amenityFilter}(around:${radius},${lat},${lon});way${amenityFilter}(around:${radius},${lat},${lon}););out center tags 40;`;
+function buildOverpassNearbyQuery({ key, tags }, lat, lon, radius) {
+  const filter = tags.length === 1
+    ? `["${key}"="${tags[0]}"]`
+    : `["${key}"~"^(${tags.join('|')})$"]`;
+  const around = `(around:${radius},${lat},${lon})`;
+  // Include relations too, not just node/way — some larger sites (hospital
+  // campuses, malls, parks) are mapped as multipolygon relations in OSM, and
+  // `out center` gives those a usable centroid the same as a way.
+  return `[out:json][timeout:25];(node${filter}${around};way${filter}${around};relation${filter}${around};);out center tags 40;`;
 }
 
-async function overpassNearby(tags, lat, lon, radius) {
+async function overpassNearby(cat, lat, lon, radius) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 16000);
+  const timeout = setTimeout(() => controller.abort(), 28000);
   try {
-    const query = buildOverpassNearbyQuery(tags, lat, lon, radius);
+    const query = buildOverpassNearbyQuery(cat, lat, lon, radius);
     const opRes = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
       signal: controller.signal,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (compatible; WaypointSG/1.0; +https://waypoint-production-0307.up.railway.app/)',
+      },
       body: `data=${encodeURIComponent(query)}`,
     });
-    if (!opRes.ok) throw new Error(`Overpass responded ${opRes.status}`);
+    if (!opRes.ok) {
+      const bodySnippet = (await opRes.text().catch(() => '')).slice(0, 300);
+      throw new Error(`Overpass responded ${opRes.status}: ${bodySnippet}`);
+    }
     const data = await opRes.json();
     return (data.elements || [])
       .map((el) => {
         const point = el.type === 'node' ? el : el.center;
         const t = el.tags || {};
         const name = t.name || t.brand || null;
-        // Unnamed nodes (a handful of amenity-tagged points with no name/brand
-        // at all) aren't useful in a pick list — skip them.
+        // Unnamed nodes (a handful of tagged points with no name/brand at
+        // all) aren't useful in a pick list — skip them.
         if (!point || !name) return null;
         const address = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
         return { label: name, address, lat: point.lat, lon: point.lon };
@@ -297,19 +316,20 @@ app.get('/api/places-nearby', async (req, res) => {
   if (Number.isNaN(lat) || Number.isNaN(lon)) return res.status(400).json({ error: 'lat and lon are required' });
 
   try {
-    let places = await overpassNearby(cat.tags, lat, lon, cat.radius);
-    // Sparse categories (hospital/police) can come back thin in a quieter
-    // part of the island — widen the search once before giving up.
+    let places = await overpassNearby(cat, lat, lon, cat.radius);
+    // Sparse categories (hospital/police/hotel/mall) can come back thin in a
+    // quieter part of the island — widen the search once before giving up.
     if (places.length < 3 && cat.radius < 15000) {
-      places = await overpassNearby(cat.tags, lat, lon, Math.min(cat.radius * 3, 20000));
+      places = await overpassNearby(cat, lat, lon, Math.min(cat.radius * 3, 20000));
     }
+    console.log(`places-nearby: category=${req.query.category} lat=${lat} lon=${lon} -> ${places.length} raw results`);
     const results = places
       .map((p) => ({ ...p, distanceMeters: Math.round(haversineMeters(lat, lon, p.lat, p.lon)) }))
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
       .slice(0, 8);
     res.json({ results });
   } catch (err) {
-    console.error('places-nearby error:', err.message);
+    console.error(`places-nearby error (category=${req.query.category}):`, err.message);
     res.status(502).json({ error: 'Could not search nearby places right now.' });
   }
 });

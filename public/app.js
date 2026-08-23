@@ -234,7 +234,17 @@ function selectSearchResult(r) {
 // "Directions to here" flow as a normal text search, since the results come
 // back in the same { label, address, lat, lon } shape.
 
-const CATEGORY_LABELS = { hospital: 'hospital', food: 'restaurant/café', police: 'police station' };
+const CATEGORY_LABELS = {
+  hospital: 'hospital',
+  food: 'restaurant',
+  police: 'police station',
+  coffee: 'coffee spot',
+  groceries: 'grocery store',
+  pharmacy: 'pharmacy',
+  shopping: 'mall',
+  hotel: 'hotel',
+  park: 'park',
+};
 
 function searchNearbyCategory(category) {
   if (!navigator.geolocation) {
@@ -251,7 +261,7 @@ function searchNearbyCategory(category) {
         const data = await res.json();
         if (!res.ok || !data.results || !data.results.length) {
           els.searchResults.innerHTML = '';
-          showToast(`No ${CATEGORY_LABELS[category]} found nearby.`);
+          showToast(res.ok ? `No ${CATEGORY_LABELS[category]} found nearby.` : (data.error || 'Could not search nearby places right now.'), 5000);
           return;
         }
         const mapped = data.results.map((r) => ({
@@ -264,12 +274,12 @@ function searchNearbyCategory(category) {
       } catch (err) {
         console.error('category search failed:', err);
         els.searchResults.innerHTML = '';
-        showToast('Could not search nearby places right now.');
+        showToast('Could not search nearby places right now.', 5000);
       }
     },
     (err) => {
       els.searchResults.innerHTML = '';
-      showToast(geoErrorMessage(err));
+      showToast(geoErrorMessage(err), 6000);
     },
     GEO_OPTIONS
   );
