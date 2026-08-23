@@ -248,17 +248,19 @@ app.get('/api/geocode', async (req, res) => {
 // (restaurants open and close) without needing a manual dataset refresh.
 // Most categories key off OSM's "amenity" tag, but a few (groceries, shopping,
 // hotels, parks) are tagged under "shop"/"tourism"/"leisure" instead — each
-// entry says which key to filter on.
+// entry says which key to filter on. radius is a fixed 1km for every category
+// per request — results are only ever "near me right now", not island-wide.
+const PLACES_RADIUS_M = 1000;
 const PLACE_CATEGORIES = {
-  hospital: { key: 'amenity', tags: ['hospital'], radius: 10000 },
-  police: { key: 'amenity', tags: ['police'], radius: 10000 },
-  food: { key: 'amenity', tags: ['restaurant', 'fast_food', 'food_court'], radius: 3000 },
-  coffee: { key: 'amenity', tags: ['cafe'], radius: 2000 },
-  groceries: { key: 'shop', tags: ['supermarket', 'convenience'], radius: 2000 },
-  pharmacy: { key: 'amenity', tags: ['pharmacy'], radius: 3000 },
-  shopping: { key: 'shop', tags: ['mall', 'department_store'], radius: 5000 },
-  hotel: { key: 'tourism', tags: ['hotel'], radius: 5000 },
-  park: { key: 'leisure', tags: ['park'], radius: 3000 },
+  hospital: { key: 'amenity', tags: ['hospital'] },
+  police: { key: 'amenity', tags: ['police'] },
+  food: { key: 'amenity', tags: ['restaurant', 'fast_food', 'food_court'] },
+  coffee: { key: 'amenity', tags: ['cafe'] },
+  groceries: { key: 'shop', tags: ['supermarket', 'convenience'] },
+  pharmacy: { key: 'amenity', tags: ['pharmacy'] },
+  shopping: { key: 'shop', tags: ['mall', 'department_store'] },
+  hotel: { key: 'tourism', tags: ['hotel'] },
+  park: { key: 'leisure', tags: ['park'] },
 };
 
 function buildOverpassNearbyQuery({ key, tags }, lat, lon, radius) {
@@ -272,40 +274,59 @@ function buildOverpassNearbyQuery({ key, tags }, lat, lon, radius) {
   return `[out:json][timeout:25];(node${filter}${around};way${filter}${around};relation${filter}${around};);out center tags 40;`;
 }
 
+// Two independent public Overpass instances — overpass-api.de is the main
+// one, but it turned out unreachable from Railway ("fetch failed" — a
+// network-level failure, not a bad query or a slow response). Kumi Systems
+// runs a separate, independently-hosted mirror as a fallback.
+const OVERPASS_HOSTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
+
 async function overpassNearby(cat, lat, lon, radius) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 28000);
-  try {
-    const query = buildOverpassNearbyQuery(cat, lat, lon, radius);
-    const opRes = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (compatible; WaypointSG/1.0; +https://waypoint-production-0307.up.railway.app/)',
-      },
-      body: `data=${encodeURIComponent(query)}`,
-    });
-    if (!opRes.ok) {
-      const bodySnippet = (await opRes.text().catch(() => '')).slice(0, 300);
-      throw new Error(`Overpass responded ${opRes.status}: ${bodySnippet}`);
+  const query = buildOverpassNearbyQuery(cat, lat, lon, radius);
+  let lastErr = null;
+  for (const host of OVERPASS_HOSTS) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 28000);
+    try {
+      const opRes = await fetch(host, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (compatible; WaypointSG/1.0; +https://waypoint-production-0307.up.railway.app/)',
+        },
+        body: `data=${encodeURIComponent(query)}`,
+      });
+      if (!opRes.ok) {
+        const bodySnippet = (await opRes.text().catch(() => '')).slice(0, 300);
+        throw new Error(`${host} responded ${opRes.status}: ${bodySnippet}`);
+      }
+      const data = await opRes.json();
+      return (data.elements || [])
+        .map((el) => {
+          const point = el.type === 'node' ? el : el.center;
+          const t = el.tags || {};
+          const name = t.name || t.brand || null;
+          // Unnamed nodes (a handful of tagged points with no name/brand at
+          // all) aren't useful in a pick list — skip them.
+          if (!point || !name) return null;
+          const address = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+          return { label: name, address, lat: point.lat, lon: point.lon };
+        })
+        .filter(Boolean);
+    } catch (err) {
+      // err.cause carries the real underlying reason (DNS failure, connection
+      // refused, etc.) for a fetch-level failure — log it, then fall through
+      // to try the next mirror instead of giving up on the first bad host.
+      lastErr = new Error(`${host} failed: ${err.message}${err.cause ? ` (cause: ${err.cause})` : ''}`);
+      console.warn(lastErr.message);
+    } finally {
+      clearTimeout(timeout);
     }
-    const data = await opRes.json();
-    return (data.elements || [])
-      .map((el) => {
-        const point = el.type === 'node' ? el : el.center;
-        const t = el.tags || {};
-        const name = t.name || t.brand || null;
-        // Unnamed nodes (a handful of tagged points with no name/brand at
-        // all) aren't useful in a pick list — skip them.
-        if (!point || !name) return null;
-        const address = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
-        return { label: name, address, lat: point.lat, lon: point.lon };
-      })
-      .filter(Boolean);
-  } finally {
-    clearTimeout(timeout);
   }
+  throw lastErr;
 }
 
 app.get('/api/places-nearby', async (req, res) => {
@@ -316,13 +337,8 @@ app.get('/api/places-nearby', async (req, res) => {
   if (Number.isNaN(lat) || Number.isNaN(lon)) return res.status(400).json({ error: 'lat and lon are required' });
 
   try {
-    let places = await overpassNearby(cat, lat, lon, cat.radius);
-    // Sparse categories (hospital/police/hotel/mall) can come back thin in a
-    // quieter part of the island — widen the search once before giving up.
-    if (places.length < 3 && cat.radius < 15000) {
-      places = await overpassNearby(cat, lat, lon, Math.min(cat.radius * 3, 20000));
-    }
-    console.log(`places-nearby: category=${req.query.category} lat=${lat} lon=${lon} -> ${places.length} raw results`);
+    const places = await overpassNearby(cat, lat, lon, PLACES_RADIUS_M);
+    console.log(`places-nearby: category=${req.query.category} lat=${lat} lon=${lon} -> ${places.length} raw results within ${PLACES_RADIUS_M}m`);
     const results = places
       .map((p) => ({ ...p, distanceMeters: Math.round(haversineMeters(lat, lon, p.lat, p.lon)) }))
       .sort((a, b) => a.distanceMeters - b.distanceMeters)

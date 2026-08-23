@@ -246,6 +246,83 @@ const CATEGORY_LABELS = {
   park: 'park',
 };
 
+// Same OSM tag mapping as the server used to run — moved client-side after
+// Railway's own server-to-server calls to Overpass came back "fetch failed"
+// (a network-level failure to even connect, not a bad query or slow
+// response). Calling Overpass directly from the browser instead sidesteps
+// whatever that was, and matches how OSRM routing already works in this app
+// — fetched straight from the phone, not proxied through our server.
+const CATEGORY_OSM_TAGS = {
+  hospital: { key: 'amenity', tags: ['hospital'] },
+  police: { key: 'amenity', tags: ['police'] },
+  food: { key: 'amenity', tags: ['restaurant', 'fast_food', 'food_court'] },
+  coffee: { key: 'amenity', tags: ['cafe'] },
+  groceries: { key: 'shop', tags: ['supermarket', 'convenience'] },
+  pharmacy: { key: 'amenity', tags: ['pharmacy'] },
+  shopping: { key: 'shop', tags: ['mall', 'department_store'] },
+  hotel: { key: 'tourism', tags: ['hotel'] },
+  park: { key: 'leisure', tags: ['park'] },
+};
+// Tried in order — start close (keeps dense categories like food/coffee
+// genuinely local), then widen automatically for sparse categories that
+// legitimately don't have one within 1km. Confirmed against Waze itself: for
+// a Punggol starting point, Waze's own nearest "Hospitals" result was 1.9km
+// away — a hard 1km cutoff would show "nothing found" even though Waze (and
+// this app, once widened) finds real hospitals just past that line.
+const CATEGORY_SEARCH_RADII_M = [1000, 3000, 6000];
+const OVERPASS_HOSTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+
+function buildCategoryOverpassQuery({ key, tags }, lat, lon, radius) {
+  const filter = tags.length === 1 ? `["${key}"="${tags[0]}"]` : `["${key}"~"^(${tags.join('|')})$"]`;
+  const around = `(around:${radius},${lat},${lon})`;
+  return `[out:json][timeout:20];(node${filter}${around};way${filter}${around};relation${filter}${around};);out center tags 40;`;
+}
+
+async function fetchFromOverpass(query) {
+  let lastErr = null;
+  for (const host of OVERPASS_HOSTS) {
+    try {
+      const res = await fetch(host, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `data=${encodeURIComponent(query)}`,
+      });
+      if (!res.ok) throw new Error(`${host} responded ${res.status}`);
+      const data = await res.json();
+      return (data.elements || [])
+        .map((el) => {
+          const point = el.type === 'node' ? el : el.center;
+          const t = el.tags || {};
+          const name = t.name || t.brand || null;
+          if (!point || !name) return null;
+          const address = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+          return { label: name, address, lat: point.lat, lon: point.lon };
+        })
+        .filter(Boolean);
+    } catch (err) {
+      console.error(`category search via ${host} failed:`, err);
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('All Overpass mirrors failed.');
+}
+
+async function fetchCategoryPlaces(category, lat, lon) {
+  const tagInfo = CATEGORY_OSM_TAGS[category];
+  let lastErr = null;
+  for (const radius of CATEGORY_SEARCH_RADII_M) {
+    const query = buildCategoryOverpassQuery(tagInfo, lat, lon, radius);
+    try {
+      const places = await fetchFromOverpass(query);
+      if (places.length) return { places, radiusUsed: radius };
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) throw lastErr;
+  return { places: [], radiusUsed: CATEGORY_SEARCH_RADII_M[CATEGORY_SEARCH_RADII_M.length - 1] };
+}
+
 function searchNearbyCategory(category) {
   if (!navigator.geolocation) {
     showToast('Geolocation is not supported by your browser.');
@@ -257,24 +334,28 @@ function searchNearbyCategory(category) {
     async (pos) => {
       els.searchResults.innerHTML = `<li class="r-loading">Searching nearby ${CATEGORY_LABELS[category]}…</li>`;
       try {
-        const res = await fetch(`/api/places-nearby?category=${category}&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-        const data = await res.json();
-        if (!res.ok || !data.results || !data.results.length) {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        const { places, radiusUsed } = await fetchCategoryPlaces(category, lat, lon);
+        if (!places.length) {
           els.searchResults.innerHTML = '';
-          showToast(res.ok ? `No ${CATEGORY_LABELS[category]} found nearby.` : (data.error || 'Could not search nearby places right now.'), 5000);
+          showToast(`No ${CATEGORY_LABELS[category]} found within ${formatDistance(radiusUsed)}.`, 5000);
           return;
         }
-        const mapped = data.results.map((r) => ({
-          label: r.label,
-          address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
-          lat: r.lat,
-          lon: r.lon,
-        }));
+        const mapped = places
+          .map((p) => ({ ...p, distanceMeters: Math.round(haversineMeters(lat, lon, p.lat, p.lon)) }))
+          .sort((a, b) => a.distanceMeters - b.distanceMeters)
+          .slice(0, 8)
+          .map((r) => ({
+            label: r.label,
+            address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
+            lat: r.lat,
+            lon: r.lon,
+          }));
         renderResultList(els.searchResults, mapped, (r) => selectSearchResult(r));
       } catch (err) {
         console.error('category search failed:', err);
         els.searchResults.innerHTML = '';
-        showToast('Could not search nearby places right now.', 5000);
+        showToast('Could not search nearby places right now — OpenStreetMap\'s search may be unreachable.', 5000);
       }
     },
     (err) => {
