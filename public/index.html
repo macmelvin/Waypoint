@@ -225,7 +225,19 @@
 
 <div id="navMapOverlay" class="nav-map-overlay hidden">
   <div id="navMap" class="nav-map"></div>
+  <div id="navSpeedBadge" class="nav-speed-badge hidden">
+    <span id="navSpeedValue">–</span>
+    <span class="nav-speed-unit">km/h</span>
+  </div>
   <button id="navRecenterBtn" class="nav-recenter-btn" type="button" aria-label="Recenter map">🎯</button>
+  <div id="navBottomSheet" class="nav-bottom-sheet hidden">
+    <div id="navEta" class="nav-bottom-eta">--:--</div>
+    <div class="nav-bottom-meta">
+      <span id="navRemainingDuration">-- min</span>
+      <span class="nav-bottom-dot">·</span>
+      <span id="navRemainingDistance">-- km</span>
+    </div>
+  </div>
 </div>
 
 <div id="navBanner" class="nav-banner hidden">

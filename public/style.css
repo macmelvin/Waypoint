@@ -1056,17 +1056,59 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
 }
 .nav-map-overlay.hidden { display: none; }
 .nav-map { width: 100%; height: 100%; }
+/* Mutes the default OSM raster palette into something closer to a designed
+   basemap (softer greys, less saturated roads/land-use fills) without
+   swapping tile providers — every alternative with that cleaner look
+   (CARTO, the newer Esri basemap service) now gates raster tiles behind a
+   free-signup API key, which isn't worth the extra setup step just for a
+   nicer palette. Only the tile layer is filtered, not markers/route lines,
+   so the live puck and traffic overlay stay fully saturated. */
+.nav-map .leaflet-tile-pane {
+  filter: grayscale(25%) saturate(1.2) brightness(1.08) contrast(0.92);
+}
 
-/* A live-position dot that doesn't rely on Leaflet's default marker pin —
-   reads more like "you are here" on a driving map. */
-.nav-live-dot {
-  width: 18px;
-  height: 18px;
+/* A live-position "puck" with a heading arrow — reads more like "you are
+   here, facing this way" on a driving map than a plain dot. */
+.nav-live-puck {
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: var(--accent);
   border: 3px solid white;
-  box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 0 0 2px var(--accent), 0 2px 8px rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.nav-live-puck-arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 9px solid white;
+  transition: transform 0.25s ease;
+}
+
+.nav-speed-badge {
+  position: absolute;
+  left: 14px;
+  bottom: 24px;
+  z-index: 2901;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  border: 3px solid #fff;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+}
+.nav-speed-badge.hidden { display: none; }
+.nav-speed-badge #navSpeedValue { font-size: 19px; font-weight: 700; line-height: 1; }
+.nav-speed-badge .nav-speed-unit { font-size: 8px; color: rgba(255,255,255,0.7); margin-top: 1px; }
 
 .nav-recenter-btn {
   position: absolute;
@@ -1083,6 +1125,26 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   cursor: pointer;
 }
 
+.nav-bottom-sheet {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 2901;
+  background: white;
+  border-radius: 999px;
+  padding: 8px 22px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  white-space: nowrap;
+}
+.nav-bottom-sheet.hidden { display: none; }
+.nav-bottom-eta { font-size: 17px; font-weight: 700; color: var(--ink); }
+.nav-bottom-meta { font-size: 13px; color: var(--muted); display: flex; align-items: baseline; gap: 6px; }
+.nav-bottom-dot { opacity: 0.6; }
+
 .nav-banner {
   position: fixed;
   top: 0;
@@ -1091,22 +1153,34 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   z-index: 3000;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 12px;
+  padding: 14px 16px;
   background: #1a1a1a;
   color: white;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.35);
+  border-radius: 0 0 16px 16px;
 }
 .nav-banner.hidden { display: none; }
-.nav-banner-icon { font-size: 26px; flex-shrink: 0; width: 30px; text-align: center; }
+.nav-banner-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .nav-banner-main { flex: 1; min-width: 0; }
-.nav-banner-distance { font-size: 17px; font-weight: 700; }
+.nav-banner-distance { font-size: 19px; font-weight: 700; letter-spacing: -0.2px; }
 .nav-banner-instruction {
   font-size: 12.5px;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255,255,255,0.75);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 1px;
 }
 .nav-banner-btn {
   border: none;

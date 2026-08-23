@@ -63,6 +63,12 @@ const els = {
   navStopBtn: document.getElementById('navStopBtn'),
   navMapOverlay: document.getElementById('navMapOverlay'),
   navRecenterBtn: document.getElementById('navRecenterBtn'),
+  navSpeedBadge: document.getElementById('navSpeedBadge'),
+  navSpeedValue: document.getElementById('navSpeedValue'),
+  navBottomSheet: document.getElementById('navBottomSheet'),
+  navEta: document.getElementById('navEta'),
+  navRemainingDuration: document.getElementById('navRemainingDuration'),
+  navRemainingDistance: document.getElementById('navRemainingDistance'),
   parkedCarCard: document.getElementById('parkedCarCard'),
   parkedCarAgo: document.getElementById('parkedCarAgo'),
   parkedCarDistance: document.getElementById('parkedCarDistance'),
@@ -1022,6 +1028,7 @@ let navWakeLock = null;
 let navTargetIndex = 1; // index into navRouteSteps we're currently heading toward
 let navMuted = false;
 let navLastOffRouteWarnAt = 0;
+let navLastFix = null; // { lat, lon, t } — previous GPS fix, used to derive speed/heading when the browser doesn't report them directly
 
 // Visual map — Leaflet, loaded from a CDN (see index.html). Lazily created on
 // the first "Start Navigation" tap, then reused/repositioned for later trips
@@ -1081,12 +1088,30 @@ function showNavMap(routeCoords) {
   drawTrafficOverlays();
 
   if (!navMapLiveMarker) {
-    const liveIcon = L.divIcon({ className: 'nav-live-dot', iconSize: [18, 18] });
+    const liveIcon = L.divIcon({
+      className: 'nav-live-puck',
+      html: '<div class="nav-live-puck-arrow"></div>',
+      iconSize: [26, 26],
+      iconAnchor: [13, 13],
+    });
     navMapLiveMarker = L.marker(latlngs[0], { icon: liveIcon, zIndexOffset: 1000 }).addTo(navMap);
   } else {
     navMapLiveMarker.setLatLng(latlngs[0]);
   }
   navFollowing = true;
+  els.navSpeedBadge.classList.remove('hidden');
+  els.navBottomSheet.classList.remove('hidden');
+  navLastFix = null;
+}
+
+// Rotates the live puck's arrow to face `heading` (degrees, 0 = north,
+// clockwise) when known — falls back to leaving it as last-set if the GPS
+// fix doesn't include a heading (common when stationary or on some devices).
+function updateNavPuckHeading(heading) {
+  if (!navMapLiveMarker || !Number.isFinite(heading)) return;
+  const el = navMapLiveMarker.getElement();
+  const arrow = el && el.querySelector('.nav-live-puck-arrow');
+  if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
 }
 
 function updateNavMapPosition(lat, lon) {
@@ -1097,6 +1122,9 @@ function updateNavMapPosition(lat, lon) {
 
 function hideNavMap() {
   els.navMapOverlay.classList.add('hidden');
+  els.navSpeedBadge.classList.add('hidden');
+  els.navBottomSheet.classList.add('hidden');
+  navLastFix = null;
 }
 
 if (els.navRecenterBtn) {
@@ -1148,18 +1176,74 @@ function highlightNavStep(index) {
   }
 }
 
+// Speed: prefer the GPS fix's own reading (m/s — only present on
+// devices/browsers that report it), fall back to distance/time between the
+// last two fixes otherwise.
+function resolveSpeedKmh(pos) {
+  const { speed, latitude: lat, longitude: lon } = pos.coords;
+  if (Number.isFinite(speed) && speed >= 0) return speed * 3.6;
+  if (navLastFix) {
+    const dt = (pos.timestamp - navLastFix.t) / 1000;
+    if (dt > 0.5) {
+      const d = haversineMeters(navLastFix.lat, navLastFix.lon, lat, lon);
+      return (d / dt) * 3.6;
+    }
+  }
+  return null;
+}
+
+// Heading: prefer the GPS fix's own reading, fall back to the bearing
+// between the last two fixes (skipped over tiny movements, since bearing
+// across a couple of metres of GPS jitter is mostly noise).
+function resolveHeadingDeg(pos) {
+  const { heading, latitude: lat, longitude: lon } = pos.coords;
+  if (Number.isFinite(heading)) return heading;
+  if (navLastFix) {
+    const d = haversineMeters(navLastFix.lat, navLastFix.lon, lat, lon);
+    if (d > 3) return bearingCompass(navLastFix.lat, navLastFix.lon, lat, lon).degrees;
+  }
+  return null;
+}
+
+function updateSpeedBadge(speedKmh) {
+  els.navSpeedValue.textContent = Number.isFinite(speedKmh) ? String(Math.round(Math.max(0, speedKmh))) : '–';
+}
+
+// Remaining distance/duration from the current fix: the airline distance to
+// the upcoming maneuver (a reasonable stand-in for "remaining on this
+// step"), plus every step still ahead of it in full — same estimate style
+// OSRM's own duration figures already use.
+function updateEtaSheet(distToTarget, target) {
+  let remainingDist = distToTarget;
+  let remainingDuration = target.distance > 0
+    ? target.duration * Math.min(1, distToTarget / target.distance)
+    : 0;
+  for (let i = navTargetIndex + 1; i < navRouteSteps.length; i++) {
+    remainingDist += navRouteSteps[i].distance;
+    remainingDuration += navRouteSteps[i].duration;
+  }
+  els.navRemainingDuration.textContent = formatDuration(remainingDuration);
+  els.navRemainingDistance.textContent = formatDistance(remainingDist);
+  const eta = new Date(Date.now() + remainingDuration * 1000);
+  els.navEta.textContent = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 function handleNavPosition(pos) {
   if (!navRouteSteps.length) return;
   const { latitude: lat, longitude: lon } = pos.coords;
 
   updateNavMapPosition(lat, lon);
+  updateNavPuckHeading(resolveHeadingDeg(pos));
+  updateSpeedBadge(resolveSpeedKmh(pos));
 
   const target = navRouteSteps[navTargetIndex];
   const [tlon, tlat] = target.maneuver.location;
   const distToTarget = haversineMeters(lat, lon, tlat, tlon);
 
   updateNavBanner(distToTarget, target);
+  updateEtaSheet(distToTarget, target);
   highlightNavStep(navTargetIndex);
+  navLastFix = { lat, lon, t: pos.timestamp };
 
   const offRoute = distanceToRouteLine(lat, lon) > NAV_OFFROUTE_THRESHOLD_M;
   if (offRoute && Date.now() - navLastOffRouteWarnAt > NAV_OFFROUTE_COOLDOWN_MS) {
