@@ -128,14 +128,21 @@ function stopCode(stop) {
 // future-line POIs (e.g. "Cross Island Line, Punggol Central") ahead of the
 // actual operating "Punggol MRT Station" for a plain "Punggol MRT" search.
 // No API key needed for this basic search endpoint.
+//
+// OneMap is address/building-oriented though — it has no real business/POI
+// database, so searching a specific café or restaurant by name resolves to
+// whatever official address record matches, which is often just the host
+// building's boundary point rather than the actual shopfront. OSM's Nominatim
+// separately indexes named POIs (amenity/shop/tourism tags contributors have
+// placed at the real storefront), so we query both and put genuine POI hits
+// first — while still demoting transit/administrative/boundary-type Nominatim
+// results behind OneMap, which is what avoided the under-construction-station
+// problem above.
 
-app.get('/api/geocode', async (req, res) => {
-  const q = (req.query.q || '').trim();
-  if (q.length < 2) return res.json({ results: [] });
-
+async function fetchOneMapResults(q) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
     const url = `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${encodeURIComponent(q)}&returnGeom=Y&getAddrDetails=Y&pageNum=1`;
     const omRes = await fetch(url, {
       signal: controller.signal,
@@ -144,12 +151,9 @@ app.get('/api/geocode', async (req, res) => {
         Accept: 'application/json',
       },
     });
-    clearTimeout(timeout);
-
     if (!omRes.ok) throw new Error(`OneMap responded ${omRes.status}`);
     const data = await omRes.json();
-
-    const results = (data.results || [])
+    return (data.results || [])
       .slice(0, 6)
       .map((r) => ({
         label: r.SEARCHVAL || r.BUILDING || r.ADDRESS || '',
@@ -158,12 +162,82 @@ app.get('/api/geocode', async (req, res) => {
         lon: parseFloat(r.LONGITUDE),
       }))
       .filter((r) => r.label && !Number.isNaN(r.lat) && !Number.isNaN(r.lon));
-
-    res.json({ results });
-  } catch (err) {
-    console.error('geocode error:', err.message);
-    res.status(502).json({ error: 'Could not search that location.', detail: err.message });
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+// Nominatim "class" values that mean the hit is an administrative/geographic
+// entity rather than a real, visitable business/POI — these get demoted
+// behind OneMap's results (this is what keeps future-line "Cross Island
+// Line, Punggol Central"-style entries from outranking the real station).
+const NOMINATIM_NON_POI_CLASSES = new Set(['place', 'boundary', 'highway', 'railway', 'natural', 'landuse', 'waterway', 'administrative']);
+
+async function fetchNominatimResults(q) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&countrycodes=sg&limit=6`;
+    const nomRes = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; WaypointSG/1.0; +https://waypoint-production-0307.up.railway.app/)',
+        Accept: 'application/json',
+      },
+    });
+    if (!nomRes.ok) throw new Error(`Nominatim responded ${nomRes.status}`);
+    const data = await nomRes.json();
+    return data
+      .map((r) => {
+        const parts = (r.display_name || '').split(',').map((p) => p.trim());
+        return {
+          label: parts[0] || r.display_name || '',
+          address: parts.slice(1, 3).join(', '),
+          lat: parseFloat(r.lat),
+          lon: parseFloat(r.lon),
+          isPoi: !NOMINATIM_NON_POI_CLASSES.has(r.class),
+        };
+      })
+      .filter((r) => r.label && !Number.isNaN(r.lat) && !Number.isNaN(r.lon));
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+app.get('/api/geocode', async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 2) return res.json({ results: [] });
+
+  const [oneMapOutcome, nominatimOutcome] = await Promise.allSettled([
+    fetchOneMapResults(q),
+    fetchNominatimResults(q),
+  ]);
+  const oneMapResults = oneMapOutcome.status === 'fulfilled' ? oneMapOutcome.value : [];
+  const nominatimResults = nominatimOutcome.status === 'fulfilled' ? nominatimOutcome.value : [];
+  if (oneMapOutcome.status === 'rejected') console.error('OneMap geocode error:', oneMapOutcome.reason?.message);
+  if (nominatimOutcome.status === 'rejected') console.error('Nominatim geocode error:', nominatimOutcome.reason?.message);
+
+  if (!oneMapResults.length && !nominatimResults.length) {
+    return res.status(502).json({ error: 'Could not search that location.' });
+  }
+
+  // Named-POI hits from Nominatim first (that's what a business-name search
+  // is actually looking for), then OneMap's address/building results, then
+  // any leftover non-POI Nominatim results as a last resort.
+  const poiHits = nominatimResults.filter((r) => r.isPoi);
+  const otherHits = nominatimResults.filter((r) => !r.isPoi);
+  const combined = [...poiHits, ...oneMapResults, ...otherHits];
+
+  // Dedupe near-identical pins that both sources returned for the same spot.
+  const kept = [];
+  const deduped = combined.filter((r) => {
+    const isDup = kept.some((k) => k.label.toLowerCase() === r.label.toLowerCase() && haversineMeters(k.lat, k.lon, r.lat, r.lon) < 25);
+    if (isDup) return false;
+    kept.push(r);
+    return true;
+  });
+
+  res.json({ results: deduped.slice(0, 8).map(({ isPoi, ...r }) => r) });
 });
 
 // Approximate adult SimplyGo/EZ-Link card fare. Singapore's transit card
