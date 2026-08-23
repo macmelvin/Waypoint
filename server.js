@@ -802,6 +802,48 @@ app.get('/api/ev-charging-nearby', (req, res) => {
   res.json({ stations: results });
 });
 
+// ---- Petrol stations near a destination -------------------------------------
+// LTA DataMall / data.gov.sg don't publish a retail petrol station location
+// dataset (their closest match is a ~21-entry industrial bulk-fuel-depot
+// list, not petrol kiosks) so this is sourced from OpenStreetMap's
+// community-mapped `amenity=fuel` points via the Overpass API — locations
+// only, no live price or queue data (nobody publishes that for SG).
+// Pre-processed at build time (scripts/build-petrol-data.py) from a raw
+// Overpass JSON export into a compact per-station list.
+let petrolStations = [];
+try {
+  petrolStations = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'petrol-stations.json'), 'utf8'));
+  console.log(`Loaded ${petrolStations.length} petrol station locations.`);
+} catch (err) {
+  console.warn('Could not load petrol station data:', err.message);
+}
+
+app.get('/api/petrol-nearby', (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+  if (!petrolStations.length) {
+    return res.status(503).json({ error: 'Petrol station data isn\'t loaded.' });
+  }
+
+  const results = petrolStations
+    .map((s) => ({
+      name: s.name,
+      brand: s.brand,
+      address: s.address,
+      open24h: s.open24h,
+      lat: s.lat,
+      lon: s.lon,
+      distanceMeters: Math.round(haversineMeters(lat, lon, s.lat, s.lon)),
+    }))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, 5);
+
+  res.json({ stations: results });
+});
+
 // ---- ERP gantry crossings along a driving route -----------------------------
 // LTA doesn't publish an API that maps a route to an exact ERP dollar cost —
 // its ERPRates feed (rates by zone/time/vehicle type) has no published link

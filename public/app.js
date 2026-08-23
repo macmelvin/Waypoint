@@ -41,6 +41,7 @@ const els = {
   trainAlertDismiss: document.getElementById('trainAlertDismiss'),
   parkingInfo: document.getElementById('parkingInfo'),
   evChargingInfo: document.getElementById('evChargingInfo'),
+  petrolInfo: document.getElementById('petrolInfo'),
   erpInfo: document.getElementById('erpInfo'),
   cyclingExtra: document.getElementById('cyclingExtra'),
   startNavBtn: document.getElementById('startNavBtn'),
@@ -531,6 +532,8 @@ function hideDrivingExtras() {
   els.parkingInfo.innerHTML = '';
   els.evChargingInfo.classList.add('hidden');
   els.evChargingInfo.innerHTML = '';
+  els.petrolInfo.classList.add('hidden');
+  els.petrolInfo.innerHTML = '';
   els.erpInfo.classList.add('hidden');
   els.erpInfo.innerHTML = '';
   els.cyclingExtra.classList.add('hidden');
@@ -558,6 +561,33 @@ function showCyclingExtra() {
     + `<a href="${anywheelLink()}" target="_blank" rel="noopener" class="pill-btn primary driving-extra-link">Open Anywheel</a>`;
 }
 
+// Escapes a string for safe use inside an HTML attribute (e.g. data-label="...").
+function escapeAttr(str) {
+  return String(str ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+// Re-routes within Waypoint itself (instead of bouncing out to Google Maps)
+// when the person taps a parking / EV charging / petrol station row — sets
+// that spot as the new destination and re-runs directions.
+async function routeToPoint(lat, lon, label) {
+  setTo({ lat, lon, label });
+  await getDirections();
+}
+
+// Driving-extra rows are rendered as <a href="#" data-lat/data-lon/data-label>
+// rather than real links, so this wires them up to route within the app.
+// Called once right after each panel's innerHTML is set.
+function wireDrivingExtraLinks(container) {
+  container.querySelectorAll('.driving-extra-link-row').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const lat = parseFloat(el.dataset.lat);
+      const lon = parseFloat(el.dataset.lon);
+      routeToPoint(lat, lon, el.dataset.label || '');
+    });
+  });
+}
+
 async function loadParkingInfo(coords) {
   els.parkingInfo.classList.remove('hidden');
   els.parkingInfo.innerHTML = '<div class="driving-extra-title">🅿️ Parking near destination</div><div class="driving-extra-row">Loading…</div>';
@@ -569,14 +599,15 @@ async function loadParkingInfo(coords) {
       return;
     }
     els.parkingInfo.innerHTML = '<div class="driving-extra-title">🅿️ Parking near destination</div>' + data.carparks.map((c) => {
-      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lon}`;
+      const label = escapeAttr(`${c.development} (${c.agency})`);
       return `
-        <a class="driving-extra-row driving-extra-link-row" href="${mapsUrl}" target="_blank" rel="noopener">
+        <a class="driving-extra-row driving-extra-link-row" href="#" data-lat="${c.lat}" data-lon="${c.lon}" data-label="${label}">
           <span>${c.development} (${c.agency}) · ${formatDistance(c.distanceMeters)}</span>
           <span class="driving-extra-lots">${Number.isFinite(c.availableLots) ? c.availableLots + ' lots' : '—'}</span>
         </a>
       `;
     }).join('');
+    wireDrivingExtraLinks(els.parkingInfo);
   } catch (err) {
     console.error('parking info failed:', err);
     els.parkingInfo.classList.add('hidden');
@@ -602,17 +633,44 @@ async function loadEvChargingInfo(coords) {
       return;
     }
     els.evChargingInfo.innerHTML = '<div class="driving-extra-title">🔌 EV charging near destination</div>' + data.stations.map((s) => {
-      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
+      const label = escapeAttr(s.address || 'EV charging station');
       return `
-        <a class="driving-extra-row driving-extra-link-row" href="${mapsUrl}" target="_blank" rel="noopener">
+        <a class="driving-extra-row driving-extra-link-row" href="#" data-lat="${s.lat}" data-lon="${s.lon}" data-label="${label}">
           <span>${s.address} · ${formatDistance(s.distanceMeters)}</span>
           <span class="driving-extra-lots">${formatPlugTypes(s.plugTypes)}</span>
         </a>
       `;
     }).join('') + '<div class="driving-extra-note">Locations from LTA DataMall\'s quarterly dataset — not live availability.</div>';
+    wireDrivingExtraLinks(els.evChargingInfo);
   } catch (err) {
     console.error('EV charging info failed:', err);
     els.evChargingInfo.classList.add('hidden');
+  }
+}
+
+async function loadPetrolInfo(coords) {
+  els.petrolInfo.classList.remove('hidden');
+  els.petrolInfo.innerHTML = '<div class="driving-extra-title">⛽ Petrol stations near destination</div><div class="driving-extra-row">Loading…</div>';
+  try {
+    const res = await fetch(`/api/petrol-nearby?lat=${coords.lat}&lon=${coords.lon}`);
+    const data = await res.json();
+    if (!res.ok || !data.stations || !data.stations.length) {
+      els.petrolInfo.classList.add('hidden');
+      return;
+    }
+    els.petrolInfo.innerHTML = '<div class="driving-extra-title">⛽ Petrol stations near destination</div>' + data.stations.map((s) => {
+      const label = s.address ? `${s.name} · ${s.address}` : s.name;
+      return `
+        <a class="driving-extra-row driving-extra-link-row" href="#" data-lat="${s.lat}" data-lon="${s.lon}" data-label="${escapeAttr(label)}">
+          <span>${label} · ${formatDistance(s.distanceMeters)}</span>
+          <span class="driving-extra-lots">${s.open24h ? '24 hrs' : ''}</span>
+        </a>
+      `;
+    }).join('') + '<div class="driving-extra-note">Locations from OpenStreetMap contributors — not live prices or queues.</div>';
+    wireDrivingExtraLinks(els.petrolInfo);
+  } catch (err) {
+    console.error('Petrol station info failed:', err);
+    els.petrolInfo.classList.add('hidden');
   }
 }
 
@@ -680,6 +738,7 @@ async function getDirections() {
     if (selectedMode === 'driving') {
       loadParkingInfo(toCoords);
       loadEvChargingInfo(toCoords);
+      loadPetrolInfo(toCoords);
       loadErpInfo(route.geometry.coordinates);
     } else if (selectedMode === 'cycling') {
       showCyclingExtra();
