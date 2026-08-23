@@ -797,6 +797,12 @@ html, body {
 }
 .driving-extra-row:not(:last-child) { border-bottom: 1px solid var(--border); }
 .driving-extra-lots { font-weight: 700; color: var(--ink); }
+a.driving-extra-link-row {
+  text-decoration: none;
+  cursor: pointer;
+}
+a.driving-extra-link-row:hover { color: var(--accent); }
+a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
 .driving-extra-note {
   margin-top: 4px;
   font-size: 11px;

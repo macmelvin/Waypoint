@@ -40,6 +40,7 @@ const els = {
   trainAlertText: document.getElementById('trainAlertText'),
   trainAlertDismiss: document.getElementById('trainAlertDismiss'),
   parkingInfo: document.getElementById('parkingInfo'),
+  evChargingInfo: document.getElementById('evChargingInfo'),
   erpInfo: document.getElementById('erpInfo'),
   cyclingExtra: document.getElementById('cyclingExtra'),
   startNavBtn: document.getElementById('startNavBtn'),
@@ -528,6 +529,8 @@ els.getDirectionsBtn.addEventListener('click', getDirections);
 function hideDrivingExtras() {
   els.parkingInfo.classList.add('hidden');
   els.parkingInfo.innerHTML = '';
+  els.evChargingInfo.classList.add('hidden');
+  els.evChargingInfo.innerHTML = '';
   els.erpInfo.classList.add('hidden');
   els.erpInfo.innerHTML = '';
   els.cyclingExtra.classList.add('hidden');
@@ -574,6 +577,39 @@ async function loadParkingInfo(coords) {
   } catch (err) {
     console.error('parking info failed:', err);
     els.parkingInfo.classList.add('hidden');
+  }
+}
+
+// Summarizes a station's plugTypes map (e.g. {"Type 2": 3, "CCS 2": 5}) into
+// "3× Type 2, 5× CCS 2" — compact enough for the driving-extra row.
+function formatPlugTypes(plugTypes) {
+  return Object.entries(plugTypes || {})
+    .map(([type, count]) => `${count}× ${type}`)
+    .join(', ');
+}
+
+async function loadEvChargingInfo(coords) {
+  els.evChargingInfo.classList.remove('hidden');
+  els.evChargingInfo.innerHTML = '<div class="driving-extra-title">🔌 EV charging near destination</div><div class="driving-extra-row">Loading…</div>';
+  try {
+    const res = await fetch(`/api/ev-charging-nearby?lat=${coords.lat}&lon=${coords.lon}`);
+    const data = await res.json();
+    if (!res.ok || !data.stations || !data.stations.length) {
+      els.evChargingInfo.classList.add('hidden');
+      return;
+    }
+    els.evChargingInfo.innerHTML = '<div class="driving-extra-title">🔌 EV charging near destination</div>' + data.stations.map((s) => {
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
+      return `
+        <a class="driving-extra-row driving-extra-link-row" href="${mapsUrl}" target="_blank" rel="noopener">
+          <span>${s.address} · ${formatDistance(s.distanceMeters)}</span>
+          <span class="driving-extra-lots">${formatPlugTypes(s.plugTypes)}</span>
+        </a>
+      `;
+    }).join('') + '<div class="driving-extra-note">Locations from LTA DataMall\'s quarterly dataset — not live availability.</div>';
+  } catch (err) {
+    console.error('EV charging info failed:', err);
+    els.evChargingInfo.classList.add('hidden');
   }
 }
 
@@ -640,6 +676,7 @@ async function getDirections() {
     else hideRainAlert();
     if (selectedMode === 'driving') {
       loadParkingInfo(toCoords);
+      loadEvChargingInfo(toCoords);
       loadErpInfo(route.geometry.coordinates);
     } else if (selectedMode === 'cycling') {
       showCyclingExtra();

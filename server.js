@@ -757,6 +757,49 @@ app.get('/api/carparks-nearby', async (req, res) => {
   }
 });
 
+// ---- EV charging points near a destination -----------------------------------
+// Sourced from LTA DataMall's quarterly "Electric Vehicle Charging Points"
+// static dataset (https://datamall.lta.gov.sg) — locations only, no live
+// occupied/free status (LTA doesn't publish that). Pre-grouped at build time
+// (scripts/build-ev-data.py) from ~11k individual outlet rows down to ~2.8k
+// physical station locations, combining outlet counts and plug types per site.
+// Loaded once into memory since the whole file is under 1MB and only changes
+// when the quarterly CSV is refreshed and re-run through the build script.
+let evChargingPoints = [];
+try {
+  evChargingPoints = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'ev-charging-points.json'), 'utf8'));
+  console.log(`Loaded ${evChargingPoints.length} EV charging station locations.`);
+} catch (err) {
+  console.warn('Could not load EV charging points data:', err.message);
+}
+
+app.get('/api/ev-charging-nearby', (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+  if (!evChargingPoints.length) {
+    return res.status(503).json({ error: 'EV charging point data isn\'t loaded.' });
+  }
+
+  const results = evChargingPoints
+    .map((s) => ({
+      address: s.address,
+      postalCode: s.postalCode,
+      operators: s.operators,
+      plugTypes: s.plugTypes,
+      outlets: s.outlets,
+      lat: s.lat,
+      lon: s.lon,
+      distanceMeters: Math.round(haversineMeters(lat, lon, s.lat, s.lon)),
+    }))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, 5);
+
+  res.json({ stations: results });
+});
+
 // ---- ERP gantry crossings along a driving route -----------------------------
 // LTA doesn't publish an API that maps a route to an exact ERP dollar cost —
 // its ERPRates feed (rates by zone/time/vehicle type) has no published link
