@@ -568,12 +568,15 @@ async function loadParkingInfo(coords) {
       els.parkingInfo.classList.add('hidden');
       return;
     }
-    els.parkingInfo.innerHTML = '<div class="driving-extra-title">🅿️ Parking near destination</div>' + data.carparks.map((c) => `
-      <div class="driving-extra-row">
-        <span>${c.development} (${c.agency}) · ${formatDistance(c.distanceMeters)}</span>
-        <span class="driving-extra-lots">${Number.isFinite(c.availableLots) ? c.availableLots + ' lots' : '—'}</span>
-      </div>
-    `).join('');
+    els.parkingInfo.innerHTML = '<div class="driving-extra-title">🅿️ Parking near destination</div>' + data.carparks.map((c) => {
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lon}`;
+      return `
+        <a class="driving-extra-row driving-extra-link-row" href="${mapsUrl}" target="_blank" rel="noopener">
+          <span>${c.development} (${c.agency}) · ${formatDistance(c.distanceMeters)}</span>
+          <span class="driving-extra-lots">${Number.isFinite(c.availableLots) ? c.availableLots + ' lots' : '—'}</span>
+        </a>
+      `;
+    }).join('');
   } catch (err) {
     console.error('parking info failed:', err);
     els.parkingInfo.classList.add('hidden');

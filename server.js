@@ -733,6 +733,8 @@ app.get('/api/carparks-nearby', async (req, res) => {
           development: p.Development,
           agency: p.Agency,
           availableLots: Number(p.AvailableLots),
+          lat: plat,
+          lon: plon,
           distanceMeters: Math.round(haversineMeters(lat, lon, plat, plon)),
         };
       })
