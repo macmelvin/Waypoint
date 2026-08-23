@@ -240,6 +240,80 @@ app.get('/api/geocode', async (req, res) => {
   res.json({ results: deduped.slice(0, 8).map(({ isPoi, ...r }) => r) });
 });
 
+// ---- Nearby places by category (Waze-style "Categories" quick search) ------
+// Sourced live from OpenStreetMap's Overpass API, scoped to a radius around
+// wherever the person is standing, rather than a preloaded whole-of-Singapore
+// dataset like the EV/petrol features use — "food" alone would be tens of
+// thousands of entries island-wide, and a live radius query stays fresh
+// (restaurants open and close) without needing a manual dataset refresh.
+const PLACE_CATEGORIES = {
+  hospital: { tags: ['hospital'], radius: 10000 },
+  police: { tags: ['police'], radius: 10000 },
+  food: { tags: ['restaurant', 'cafe', 'fast_food', 'food_court'], radius: 3000 },
+};
+
+function buildOverpassNearbyQuery(tags, lat, lon, radius) {
+  const amenityFilter = tags.length === 1
+    ? `["amenity"="${tags[0]}"]`
+    : `["amenity"~"^(${tags.join('|')})$"]`;
+  return `[out:json][timeout:15];(node${amenityFilter}(around:${radius},${lat},${lon});way${amenityFilter}(around:${radius},${lat},${lon}););out center tags 40;`;
+}
+
+async function overpassNearby(tags, lat, lon, radius) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 16000);
+  try {
+    const query = buildOverpassNearbyQuery(tags, lat, lon, radius);
+    const opRes = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(query)}`,
+    });
+    if (!opRes.ok) throw new Error(`Overpass responded ${opRes.status}`);
+    const data = await opRes.json();
+    return (data.elements || [])
+      .map((el) => {
+        const point = el.type === 'node' ? el : el.center;
+        const t = el.tags || {};
+        const name = t.name || t.brand || null;
+        // Unnamed nodes (a handful of amenity-tagged points with no name/brand
+        // at all) aren't useful in a pick list — skip them.
+        if (!point || !name) return null;
+        const address = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+        return { label: name, address, lat: point.lat, lon: point.lon };
+      })
+      .filter(Boolean);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+app.get('/api/places-nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  const cat = PLACE_CATEGORIES[req.query.category];
+  if (!cat) return res.status(400).json({ error: 'Unknown category.' });
+  if (Number.isNaN(lat) || Number.isNaN(lon)) return res.status(400).json({ error: 'lat and lon are required' });
+
+  try {
+    let places = await overpassNearby(cat.tags, lat, lon, cat.radius);
+    // Sparse categories (hospital/police) can come back thin in a quieter
+    // part of the island — widen the search once before giving up.
+    if (places.length < 3 && cat.radius < 15000) {
+      places = await overpassNearby(cat.tags, lat, lon, Math.min(cat.radius * 3, 20000));
+    }
+    const results = places
+      .map((p) => ({ ...p, distanceMeters: Math.round(haversineMeters(lat, lon, p.lat, p.lon)) }))
+      .sort((a, b) => a.distanceMeters - b.distanceMeters)
+      .slice(0, 8);
+    res.json({ results });
+  } catch (err) {
+    console.error('places-nearby error:', err.message);
+    res.status(502).json({ error: 'Could not search nearby places right now.' });
+  }
+});
+
 // Approximate adult SimplyGo/EZ-Link card fare. Singapore's transit card
 // charges ONE combined fare per journey based on total distance actually
 // travelled by bus/train (not per leg, and excluding walking), as long as

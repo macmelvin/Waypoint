@@ -228,6 +228,57 @@ function selectSearchResult(r) {
   els.placeCard.classList.remove('hidden');
 }
 
+// ---------- Category quick search (Waze-style "Categories" row) ----------
+// Tap 🏥/🍽️/👮 on the Search tab to find the nearest of that kind from your
+// current GPS position — reuses the exact same result list + place card +
+// "Directions to here" flow as a normal text search, since the results come
+// back in the same { label, address, lat, lon } shape.
+
+const CATEGORY_LABELS = { hospital: 'hospital', food: 'restaurant/café', police: 'police station' };
+
+function searchNearbyCategory(category) {
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  els.placeCard.classList.add('hidden');
+  els.searchResults.innerHTML = '<li class="r-loading">Finding your location…</li>';
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      els.searchResults.innerHTML = `<li class="r-loading">Searching nearby ${CATEGORY_LABELS[category]}…</li>`;
+      try {
+        const res = await fetch(`/api/places-nearby?category=${category}&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+        const data = await res.json();
+        if (!res.ok || !data.results || !data.results.length) {
+          els.searchResults.innerHTML = '';
+          showToast(`No ${CATEGORY_LABELS[category]} found nearby.`);
+          return;
+        }
+        const mapped = data.results.map((r) => ({
+          label: r.label,
+          address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
+          lat: r.lat,
+          lon: r.lon,
+        }));
+        renderResultList(els.searchResults, mapped, (r) => selectSearchResult(r));
+      } catch (err) {
+        console.error('category search failed:', err);
+        els.searchResults.innerHTML = '';
+        showToast('Could not search nearby places right now.');
+      }
+    },
+    (err) => {
+      els.searchResults.innerHTML = '';
+      showToast(geoErrorMessage(err));
+    },
+    GEO_OPTIONS
+  );
+}
+
+document.querySelectorAll('.category-chip').forEach((btn) => {
+  btn.addEventListener('click', () => searchNearbyCategory(btn.dataset.category));
+});
+
 els.dirFromHere.addEventListener('click', () => {
   if (!currentPlace) return;
   setFrom({ lat: parseFloat(currentPlace.lat), lon: parseFloat(currentPlace.lon), label: shortLabel(currentPlace) });

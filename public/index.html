@@ -89,6 +89,11 @@
           <input id="searchInput" type="text" placeholder="Enter postal code, address, or place…" autocomplete="off" />
           <button id="searchClear" class="clear-btn" title="Clear" aria-label="Clear search">✕</button>
         </div>
+        <div id="categoryRow" class="category-row">
+          <button class="category-chip" type="button" data-category="hospital"><span class="category-chip-icon">🏥</span>Hospital</button>
+          <button class="category-chip" type="button" data-category="food"><span class="category-chip-icon">🍽️</span>Food</button>
+          <button class="category-chip" type="button" data-category="police"><span class="category-chip-icon">👮</span>Police</button>
+        </div>
         <ul id="searchResults" class="result-list"></ul>
 
         <div id="placeCard" class="place-card hidden">
