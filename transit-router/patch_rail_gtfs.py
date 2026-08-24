@@ -310,6 +310,7 @@ def main():
         other_files = {n: zf.read(n) for n in other_names}
 
     existing_stop_ids = {s["stop_id"] for s in stops}
+    stops_by_id = {s["stop_id"]: s for s in stops}
     trips_by_route = defaultdict(list)
     for t in trips:
         trips_by_route[t["route_id"]].append(t["trip_id"])
@@ -320,21 +321,60 @@ def main():
     for rows in stop_times_by_trip.values():
         rows.sort(key=lambda r: int(r["stop_sequence"]))
 
+    # A `key` is a real interchange when it's shared by 2+ lines. These MUST
+    # always resolve to one shared stop_id across every line that touches
+    # them, even when the raw feed already defines a native stop_id for one
+    # line's version of the station (e.g. Serangoon already existed natively
+    # as NE12 on the North East Line's own trips, while Circle Line's CC13
+    # was missing and would otherwise get its own separate synthetic stop —
+    # two different stop_ids at the "same" station meant OTP had no free
+    # transfer there, so itineraries could never continue via Circle Line
+    # through Serangoon). Non-interchange keys keep the old behaviour: reuse
+    # the line's own native stop_id when present, only mint a synthetic one
+    # when genuinely missing from stops.txt.
+    key_lines = defaultdict(set)
+    for line, stations in LINES.items():
+        for code, key, name in stations:
+            key_lines[key].add(line)
+    interchange_keys = {k for k, lines_for_key in key_lines.items() if len(lines_for_key) > 1}
+
+    def native_coords_for_key(key):
+        """Prefer a real coordinate already in the feed (from whichever
+        line's native stop_id happens to exist) over the fuzzy bus-stop-name
+        match, so interchanges that were already working aren't nudged onto
+        a less precise location."""
+        for ln, sts in LINES.items():
+            for c, k, n in sts:
+                if k != key or c not in stops_by_id:
+                    continue
+                s = stops_by_id[c]
+                try:
+                    return float(s["stop_lat"]), float(s["stop_lon"])
+                except (ValueError, KeyError):
+                    continue
+        return None
+
     # Figure out which canonical stations are missing, and mint one shared
-    # stop_id per missing interchange key (reused across every line that
-    # needs it) so transfers are free (same physical stop).
+    # stop_id per interchange key (always) or per genuinely-missing
+    # non-interchange station (reused across every line that needs it) so
+    # transfers are free (same physical stop).
     minted_stop_id = {}   # key -> stop_id
     minted_rows = []      # new stops.txt rows to append
     missing_report = defaultdict(list)
 
     for line, stations in LINES.items():
         for code, key, name in stations:
-            if code in existing_stop_ids:
-                continue
-            missing_report[line].append(f"{code} {name}")
+            is_missing = code not in existing_stop_ids
+            is_interchange = key in interchange_keys
+            if is_missing:
+                missing_report[line].append(f"{code} {name}")
+            if not is_missing and not is_interchange:
+                continue  # native stop already covers this non-interchange station
             if key in minted_stop_id:
                 continue
-            coords = find_station_coords(stops, name)
+            coords = native_coords_for_key(key) if is_interchange else None
+            if coords is None:
+                coords = find_station_coords(stops, name)
             stop_id = f"SGX_{key.upper()}"
             minted_stop_id[key] = stop_id
             if coords is None:
@@ -356,6 +396,8 @@ def main():
     # Only keep entries we actually minted a stop record for (i.e. found coordinates).
     minted_keys_with_coords = {r["stop_id"] for r in minted_rows}
     resolved_stop_id = {k: v for k, v in minted_stop_id.items() if v in minted_keys_with_coords}
+    print(f"Unified {len(resolved_stop_id.keys() & interchange_keys)} of {len(interchange_keys)} interchange "
+          f"stations onto shared stop_ids.")
 
     new_stop_times = []
     patched_trip_count = 0
@@ -404,7 +446,7 @@ def main():
             positions_list = list(ordered_positions)
 
             rebuilt = build_trip_stops(
-                positions_list, canon_codes, served, resolved_stop_id, canon_key_by_code
+                positions_list, canon_codes, served, resolved_stop_id, canon_key_by_code, interchange_keys
             )
             if rebuilt is None or len(rebuilt) < 2:
                 for row in existing_rows:
@@ -452,10 +494,13 @@ def main():
     print(f"Wrote {out_path}")
 
 
-def build_trip_stops(positions_list, canon_codes, served, resolved_stop_id, canon_key_by_code):
+def build_trip_stops(positions_list, canon_codes, served, resolved_stop_id, canon_key_by_code, interchange_keys):
     """Walk positions_list (already in this trip's direction order) and
     return a list of (stop_id, arrival_s, departure_s, is_newly_inserted)."""
-    # First pass: collect served entries with their walk-order index.
+    # First pass: collect served entries with their walk-order index. (Kept
+    # keyed by the line's own native code -- interchange stop_id unification
+    # below only swaps the *output* stop_id, not the real schedule times used
+    # for interpolation here.)
     served_walk = []
     for i, pos in enumerate(positions_list):
         code = canon_codes[pos]
@@ -467,12 +512,20 @@ def build_trip_stops(positions_list, canon_codes, served, resolved_stop_id, cano
     result = []
     for i, pos in enumerate(positions_list):
         code = canon_codes[pos]
+        key = canon_key_by_code[code]
+        # Real interchanges always route through the shared stop_id, even if
+        # this line's own native code for the station already exists --
+        # otherwise two lines can each faithfully serve "the same" station
+        # under two different stop_ids that OTP never links with a transfer.
+        shared_stop_id = resolved_stop_id.get(key) if key in interchange_keys else None
+
         if code in served:
             arr, dep = served[code]
-            result.append((code, arr, dep, False))
+            out_id = shared_stop_id or code
+            result.append((out_id, arr, dep, out_id != code))
             continue
-        key = canon_key_by_code[code]
-        stop_id = resolved_stop_id.get(key)
+
+        stop_id = shared_stop_id or resolved_stop_id.get(key)
         if stop_id is None:
             continue
         # find bracketing served entries by walk-order index i
