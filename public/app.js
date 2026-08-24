@@ -1033,6 +1033,57 @@ let navLastOffRouteWarnAt = 0;
 let navLastFix = null; // { lat, lon, t } — previous GPS fix, used to derive speed/heading when the browser doesn't report them directly
 let navMapRotationDeg = 0; // current course-up rotation applied to the map container (0 = north-up)
 let navLastHeadingDeg = null; // most recent known heading, so "recenter" can re-apply rotation immediately instead of waiting for the next GPS fix
+let navCompassHeadingDeg = null; // live reading from the phone's own compass/magnetometer, when available
+let navCompassActive = false;
+
+// GPS "course over ground" (used above in resolveHeadingDeg) only exists
+// once you're actually moving, and can be noisy at walking pace — it can't
+// tell you're now facing a different way if you've simply stopped and
+// turned around. The device's own compass answers that instantly, which
+// matters most for walking (see getCurrentHeadingDeg below, which prefers
+// GPS while moving at a normal clip and falls back to the compass
+// otherwise). iOS requires an explicit permission prompt, which has to be
+// triggered directly from a user gesture — this is called synchronously
+// from the "Start Navigation" tap handler for exactly that reason.
+function handleDeviceOrientation(event) {
+  let heading = null;
+  if (typeof event.webkitCompassHeading === 'number') {
+    // iOS Safari reports a true compass heading directly, no conversion needed.
+    heading = event.webkitCompassHeading;
+  } else if (event.absolute && typeof event.alpha === 'number') {
+    // deviceorientationabsolute's alpha increases counter-clockwise from
+    // north; compass headings increase clockwise, hence the flip.
+    heading = (360 - event.alpha) % 360;
+  }
+  if (Number.isFinite(heading)) navCompassHeadingDeg = heading;
+}
+
+function startCompassListener() {
+  if (navCompassActive || typeof DeviceOrientationEvent === 'undefined') return;
+  const attach = () => {
+    if ('ondeviceorientationabsolute' in window) {
+      window.addEventListener('deviceorientationabsolute', handleDeviceOrientation);
+    } else {
+      window.addEventListener('deviceorientation', handleDeviceOrientation);
+    }
+    navCompassActive = true;
+  };
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then((state) => { if (state === 'granted') attach(); })
+      .catch((err) => console.error('compass permission request failed:', err));
+  } else {
+    attach();
+  }
+}
+
+function stopCompassListener() {
+  if (!navCompassActive) return;
+  window.removeEventListener('deviceorientationabsolute', handleDeviceOrientation);
+  window.removeEventListener('deviceorientation', handleDeviceOrientation);
+  navCompassActive = false;
+  navCompassHeadingDeg = null;
+}
 
 // Visual map — Leaflet, loaded from a CDN (see index.html). Lazily created on
 // the first "Start Navigation" tap, then reused/repositioned for later trips
@@ -1276,6 +1327,19 @@ function updateSpeedBadge(speedKmh) {
   els.navSpeedValue.textContent = Number.isFinite(speedKmh) ? String(Math.round(Math.max(0, speedKmh))) : '–';
 }
 
+// GPS course-over-ground (resolveHeadingDeg) is the more stable reading
+// once you're actually moving at a normal pace — a phone's compass can be
+// thrown off by nearby metal/electronics, which matters most in a car. But
+// GPS course is unavailable or noisy below walking speed, including
+// standing still and just turning to face a different way — exactly when
+// the compass is most useful, since it doesn't need any movement at all.
+function getCurrentHeadingDeg(pos, speedKmh) {
+  const gpsHeading = resolveHeadingDeg(pos);
+  if (Number.isFinite(gpsHeading) && Number.isFinite(speedKmh) && speedKmh > 3) return gpsHeading;
+  if (Number.isFinite(navCompassHeadingDeg)) return navCompassHeadingDeg;
+  return gpsHeading;
+}
+
 // Remaining distance/duration from the current fix: the airline distance to
 // the upcoming maneuver (a reasonable stand-in for "remaining on this
 // step"), plus every step still ahead of it in full — same estimate style
@@ -1299,12 +1363,13 @@ function handleNavPosition(pos) {
   if (!navRouteSteps.length) return;
   const { latitude: lat, longitude: lon } = pos.coords;
 
-  const headingDeg = resolveHeadingDeg(pos);
+  const speedKmh = resolveSpeedKmh(pos);
+  const headingDeg = getCurrentHeadingDeg(pos, speedKmh);
   updateNavMapPosition(lat, lon);
   updateNavPuckHeading(headingDeg);
   applyCourseUpRotation(headingDeg);
   if (Number.isFinite(headingDeg)) navLastHeadingDeg = headingDeg;
-  updateSpeedBadge(resolveSpeedKmh(pos));
+  updateSpeedBadge(speedKmh);
 
   const target = navRouteSteps[navTargetIndex];
   const [tlon, tlat] = target.maneuver.location;
@@ -1352,6 +1417,11 @@ async function startNavigation() {
   navTargetIndex = navRouteSteps.length > 1 ? 1 : 0;
   navLastOffRouteWarnAt = 0;
 
+  // Must be called synchronously, directly from this click handler — iOS
+  // only shows the compass permission prompt when requested straight from
+  // a user gesture, not after an await.
+  startCompassListener();
+
   showNavMap(navRouteCoords);
   els.navBanner.classList.remove('hidden');
   els.navMuteBtn.textContent = navMuted ? '🔇' : '🔊';
@@ -1390,6 +1460,7 @@ function stopNavigation(showMsg) {
     navWakeLock = null;
   }
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  stopCompassListener();
   els.navBanner.classList.add('hidden');
   hideNavMap();
   els.routeSteps.querySelectorAll('.nav-current-step').forEach((li) => li.classList.remove('nav-current-step'));
