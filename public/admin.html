@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waypoint — Invites</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, sans-serif;
+    background: #0f172a; color: #e2e8f0; padding: 24px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #94a3b8; font-size: 14px; margin: 0 0 24px; }
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  input[type=text], input[type=password] {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #334155;
+    background: #0f172a; color: #e2e8f0; font-size: 15px; margin-bottom: 10px;
+  }
+  button {
+    background: #2563eb; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #334155; }
+  button.secondary:hover { background: #475569; }
+  button.danger { background: #7f1d1d; }
+  button.danger:hover { background: #991b1b; }
+  .row { display: flex; gap: 8px; }
+  .invite {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid #334155;
+  }
+  .invite:last-child { border-bottom: none; }
+  .invite-name { font-weight: 600; font-size: 15px; }
+  .invite-meta { color: #94a3b8; font-size: 12px; margin-top: 2px; }
+  .invite-meta.revoked { color: #f87171; }
+  .invite-actions { display: flex; gap: 6px; align-items: center; }
+  .link-box {
+    font-family: ui-monospace, monospace; font-size: 12px; color: #93c5fd;
+    background: #0f172a; padding: 6px 8px; border-radius: 6px; word-break: break-all;
+    margin-top: 6px; cursor: pointer;
+  }
+  .empty { color: #64748b; font-size: 14px; text-align: center; padding: 20px 0; }
+  #status { color: #f87171; font-size: 13px; margin-top: 8px; min-height: 18px; }
+  #gate { }
+  #panel { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Waypoint invites</h1>
+  <p class="sub">Add or revoke who's allowed to use the app.</p>
+
+  <div id="gate" class="card">
+    <input type="password" id="secretInput" placeholder="Admin secret" autocomplete="off">
+    <button onclick="unlock()">Unlock</button>
+    <div id="status"></div>
+  </div>
+
+  <div id="panel">
+    <div class="card">
+      <div class="row">
+        <input type="text" id="nameInput" placeholder="Name of the person to invite" style="margin-bottom:0">
+        <button onclick="createInvite()">Add</button>
+      </div>
+      <div id="createStatus" style="color:#f87171;font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <div id="list"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let secret = '';
+
+function unlock() {
+  secret = document.getElementById('secretInput').value.trim();
+  if (!secret) return;
+  loadInvites();
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { ...(opts.headers || {}), 'x-admin-secret': secret },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function loadInvites() {
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = '';
+  try {
+    const { invites } = await api('/api/admin/invites');
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('panel').style.display = 'block';
+    render(invites);
+  } catch (err) {
+    statusEl.textContent = err.message;
+  }
+}
+
+function render(invites) {
+  const list = document.getElementById('list');
+  if (!invites.length) {
+    list.innerHTML = '<div class="empty">No invites yet — add someone above.</div>';
+    return;
+  }
+  const sorted = [...invites].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  list.innerHTML = sorted.map((inv) => {
+    const link = `${location.origin}/?invite=${inv.token}`;
+    const seen = inv.lastSeenAt ? `last used ${new Date(inv.lastSeenAt).toLocaleString()}` : 'never used';
+    return `
+      <div class="invite">
+        <div style="flex:1;min-width:0">
+          <div class="invite-name">${escapeHtml(inv.name)}</div>
+          <div class="invite-meta ${inv.active ? '' : 'revoked'}">${inv.active ? seen : 'revoked'}</div>
+          <div class="link-box" title="Click to copy" onclick="copyLink(this, '${link}')">${link}</div>
+        </div>
+        <div class="invite-actions">
+          <button class="secondary" onclick="toggleInvite('${inv.id}')">${inv.active ? 'Revoke' : 'Reactivate'}</button>
+          <button class="danger" onclick="deleteInvite('${inv.id}')">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function copyLink(el, link) {
+  navigator.clipboard?.writeText(link);
+  const original = el.textContent;
+  el.textContent = 'Copied!';
+  setTimeout(() => { el.textContent = original; }, 900);
+}
+
+async function createInvite() {
+  const nameInput = document.getElementById('nameInput');
+  const name = nameInput.value.trim();
+  const statusEl = document.getElementById('createStatus');
+  statusEl.textContent = '';
+  if (!name) return;
+  try {
+    await api('/api/admin/invites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    nameInput.value = '';
+    loadInvites();
+  } catch (err) {
+    statusEl.textContent = err.message;
+  }
+}
+
+async function toggleInvite(id) {
+  try {
+    await api(`/api/admin/invites/${id}/toggle`, { method: 'POST' });
+    loadInvites();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function deleteInvite(id) {
+  if (!confirm('Delete this invite permanently? This cannot be undone.')) return;
+  try {
+    await api(`/api/admin/invites/${id}`, { method: 'DELETE' });
+    loadInvites();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+document.getElementById('secretInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') unlock();
+});
+</script>
+</body>
+</html>

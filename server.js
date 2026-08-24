@@ -77,6 +77,181 @@ async function broadcastPush(payload) {
 // Internal Railway private-network address of the transit-router (OpenTripPlanner) service.
 const TRANSIT_API_URL = process.env.TRANSIT_API_URL || 'http://transit-router.railway.internal:8080';
 
+app.use(express.json());
+
+// ---- Invite-only access gate -------------------------------------------------
+// Two independent switches, both off by default so nothing changes until you
+// opt in:
+//   ADMIN_SECRET        — set this to turn on the /admin panel, where you add
+//                          or revoke people. The site itself stays fully open
+//                          until the second switch is flipped, so you can set
+//                          up and test invites without locking yourself out.
+//   INVITE_GATE_ENABLED — set this to "true" once you've confirmed your own
+//                          invite link works. From then on, anyone without a
+//                          valid, active invite is shown a "request access"
+//                          page instead of the app (and API calls are
+//                          rejected), until they visit a link you gave them.
+//
+// Invite "tokens" are long random strings — knowing one IS the credential
+// (like a bearer link), so there's no separate password to manage. A token
+// only works while its invite is marked active in the store below; revoking
+// someone takes effect on their very next request, since every request is
+// checked against the live list rather than trusting a signed cookie alone.
+const crypto = require('crypto');
+const ADMIN_SECRET = (process.env.ADMIN_SECRET || '').trim();
+const INVITE_GATE_ENABLED = /^(1|true)$/i.test((process.env.INVITE_GATE_ENABLED || '').trim());
+const ADMIN_ENABLED = Boolean(ADMIN_SECRET);
+const INVITES_FILE = process.env.INVITES_FILE || '/data/invites.json';
+const INVITE_COOKIE = 'wp_invite';
+
+function loadInvites() {
+  try {
+    return JSON.parse(fs.readFileSync(INVITES_FILE, 'utf8'));
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveInvites() {
+  try {
+    fs.mkdirSync(path.dirname(INVITES_FILE), { recursive: true });
+    fs.writeFileSync(INVITES_FILE, JSON.stringify(invites, null, 2));
+  } catch (err) {
+    console.error('failed to persist invites:', err.message);
+  }
+}
+
+let invites = loadInvites();
+
+function findInviteByToken(token) {
+  return invites.find((inv) => inv.token === token);
+}
+
+function timingSafeEqual(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function requireAdmin(req, res, next) {
+  if (!ADMIN_ENABLED) return res.status(404).json({ error: 'Admin panel not configured' });
+  const provided = req.get('x-admin-secret') || '';
+  if (!provided || !timingSafeEqual(provided, ADMIN_SECRET)) {
+    return res.status(401).json({ error: 'Invalid admin secret' });
+  }
+  next();
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie;
+  const out = {};
+  if (!header) return out;
+  for (const part of header.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    out[part.slice(0, idx).trim()] = decodeURIComponent(part.slice(idx + 1).trim());
+  }
+  return out;
+}
+
+const GATE_EXEMPT_PREFIXES = ['/admin', '/api/admin', '/privacy.html', '/.well-known'];
+
+function inviteGate(req, res, next) {
+  if (GATE_EXEMPT_PREFIXES.some((p) => req.path === p || req.path.startsWith(p + '/') || req.path.startsWith(p))) {
+    return next();
+  }
+
+  // A link with ?invite=<token> claims access: if valid, remember it in a
+  // cookie and continue (stripping the token from the visible URL on normal
+  // page loads so it doesn't linger in browser history / get shared by
+  // accident when someone copies the address bar).
+  const queryToken = typeof req.query.invite === 'string' ? req.query.invite : null;
+  if (queryToken) {
+    const inv = findInviteByToken(queryToken);
+    if (inv && inv.active) {
+      inv.lastSeenAt = new Date().toISOString();
+      saveInvites();
+      res.cookie(INVITE_COOKIE, queryToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+      });
+      if (req.method === 'GET' && req.accepts('html')) {
+        const cleanUrl = req.path + (Object.keys(req.query).length > 1
+          ? '?' + Object.entries(req.query).filter(([k]) => k !== 'invite').map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
+          : '');
+        return res.redirect(cleanUrl || '/');
+      }
+      return next();
+    }
+  }
+
+  if (!INVITE_GATE_ENABLED) return next();
+
+  const cookieToken = parseCookies(req)[INVITE_COOKIE];
+  const inv = cookieToken ? findInviteByToken(cookieToken) : null;
+  if (inv && inv.active) {
+    inv.lastSeenAt = new Date().toISOString();
+    return next();
+  }
+
+  if (req.path.startsWith('/api/')) {
+    return res.status(403).json({ error: 'This app is invite-only. Ask for an access link.' });
+  }
+  if (req.accepts('html')) {
+    res.status(403).set('Content-Type', 'text/html; charset=utf-8').send(`<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waypoint — invite only</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;
+align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center}
+.card{max-width:360px}h1{font-size:20px;margin:0 0 8px}p{color:#94a3b8;font-size:15px;line-height:1.5}</style>
+</head><body><div class="card"><h1>Waypoint is invite-only</h1>
+<p>You'll need an access link to use this. If someone shared one with you, open it directly in this browser.</p>
+</div></body></html>`);
+    return;
+  }
+  return res.status(403).end();
+}
+
+app.use(inviteGate);
+
+app.get('/api/admin/invites', requireAdmin, (req, res) => {
+  res.json({ invites });
+});
+
+app.post('/api/admin/invites', requireAdmin, (req, res) => {
+  const name = (req.body?.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  const invite = {
+    id: crypto.randomUUID(),
+    name,
+    token: crypto.randomBytes(12).toString('base64url'),
+    active: true,
+    createdAt: new Date().toISOString(),
+    lastSeenAt: null,
+  };
+  invites.push(invite);
+  saveInvites();
+  res.json({ invite });
+});
+
+app.post('/api/admin/invites/:id/toggle', requireAdmin, (req, res) => {
+  const inv = invites.find((i) => i.id === req.params.id);
+  if (!inv) return res.status(404).json({ error: 'not found' });
+  inv.active = !inv.active;
+  saveInvites();
+  res.json({ invite: inv });
+});
+
+app.delete('/api/admin/invites/:id', requireAdmin, (req, res) => {
+  const before = invites.length;
+  invites = invites.filter((i) => i.id !== req.params.id);
+  if (invites.length !== before) saveInvites();
+  res.json({ ok: true });
+});
+
 // Express's static middleware ignores dotfiles (like .well-known) by
 // default, which would 404 the Android app's Digital Asset Links file —
 // serve that one path explicitly before the catch-all static handler.
@@ -85,7 +260,6 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
-app.use(express.json());
 
 // ---- Transit planning proxy -------------------------------------------------
 // The frontend calls this same-origin endpoint instead of talking to the
