@@ -65,6 +65,8 @@ const els = {
   navRecenterBtn: document.getElementById('navRecenterBtn'),
   navSpeedBadge: document.getElementById('navSpeedBadge'),
   navSpeedValue: document.getElementById('navSpeedValue'),
+  navCompass: document.getElementById('navCompass'),
+  navCompassNeedle: document.getElementById('navCompassNeedle'),
   navBottomSheet: document.getElementById('navBottomSheet'),
   navEta: document.getElementById('navEta'),
   navRemainingDuration: document.getElementById('navRemainingDuration'),
@@ -1029,6 +1031,8 @@ let navTargetIndex = 1; // index into navRouteSteps we're currently heading towa
 let navMuted = false;
 let navLastOffRouteWarnAt = 0;
 let navLastFix = null; // { lat, lon, t } — previous GPS fix, used to derive speed/heading when the browser doesn't report them directly
+let navMapRotationDeg = 0; // current course-up rotation applied to the map container (0 = north-up)
+let navLastHeadingDeg = null; // most recent known heading, so "recenter" can re-apply rotation immediately instead of waiting for the next GPS fix
 
 // Visual map — Leaflet, loaded from a CDN (see index.html). Lazily created on
 // the first "Start Navigation" tap, then reused/repositioned for later trips
@@ -1067,7 +1071,10 @@ function initNavMap() {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
   }).addTo(navMap);
-  navMap.on('dragstart', () => { navFollowing = false; });
+  // Manually panning away breaks course-up tracking — freeze back to a
+  // plain north-up map rather than leaving it stuck at a rotated angle
+  // while the person's looking somewhere else on it.
+  navMap.on('dragstart', () => { navFollowing = false; resetMapRotation(); });
 }
 
 function showNavMap(routeCoords) {
@@ -1101,17 +1108,50 @@ function showNavMap(routeCoords) {
   navFollowing = true;
   els.navSpeedBadge.classList.remove('hidden');
   els.navBottomSheet.classList.remove('hidden');
+  els.navCompass.classList.remove('hidden');
   navLastFix = null;
+  navLastHeadingDeg = null;
+  resetMapRotation();
 }
 
 // Rotates the live puck's arrow to face `heading` (degrees, 0 = north,
 // clockwise) when known — falls back to leaving it as last-set if the GPS
 // fix doesn't include a heading (common when stationary or on some devices).
+// This stays correct whether or not the map itself is currently rotated
+// (course-up below): the arrow's rotation is relative to its own parent
+// pane, and that pane's rotation is what handles reorienting "north" —
+// composing the two always lands the arrow pointing the right way.
 function updateNavPuckHeading(heading) {
   if (!navMapLiveMarker || !Number.isFinite(heading)) return;
   const el = navMapLiveMarker.getElement();
   const arrow = el && el.querySelector('.nav-live-puck-arrow');
   if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
+}
+
+// "Course-up" rotation — spins the whole map so the direction you're
+// currently heading always points to the top of the screen, the way
+// Waze/Google Maps do by default, instead of a fixed north-up map that
+// needs mentally re-orienting (or physically turning the phone) to match
+// which way you're actually walking/driving.
+//
+// This is a plain CSS rotation of Leaflet's own container, not a "real"
+// map-projection rotation (that needs a rotation-aware Leaflet build) — the
+// tradeoff is that road/place labels rotate along with everything else and
+// can end up sideways or upside-down. Only applied while actively
+// following your position; panning away freezes back to north-up (see
+// dragstart above) so you're not fighting a spinning map while looking
+// around it.
+function applyCourseUpRotation(headingDeg) {
+  if (!navMap || !navFollowing || !Number.isFinite(headingDeg)) return;
+  navMapRotationDeg = -headingDeg;
+  navMap.getContainer().style.transform = `rotate(${navMapRotationDeg}deg)`;
+  els.navCompassNeedle.style.transform = `rotate(${navMapRotationDeg}deg)`;
+}
+
+function resetMapRotation() {
+  navMapRotationDeg = 0;
+  if (navMap) navMap.getContainer().style.transform = '';
+  if (els.navCompassNeedle) els.navCompassNeedle.style.transform = '';
 }
 
 function updateNavMapPosition(lat, lon) {
@@ -1124,6 +1164,7 @@ function hideNavMap() {
   els.navMapOverlay.classList.add('hidden');
   els.navSpeedBadge.classList.add('hidden');
   els.navBottomSheet.classList.add('hidden');
+  els.navCompass.classList.add('hidden');
   navLastFix = null;
 }
 
@@ -1131,6 +1172,9 @@ if (els.navRecenterBtn) {
   els.navRecenterBtn.addEventListener('click', () => {
     navFollowing = true;
     if (navMap && navMapLiveMarker) navMap.setView(navMapLiveMarker.getLatLng(), 16, { animate: true });
+    // Re-apply course-up immediately from the last known heading rather than
+    // sitting north-up until the next GPS fix happens to arrive.
+    if (Number.isFinite(navLastHeadingDeg)) applyCourseUpRotation(navLastHeadingDeg);
   });
 }
 
@@ -1232,8 +1276,11 @@ function handleNavPosition(pos) {
   if (!navRouteSteps.length) return;
   const { latitude: lat, longitude: lon } = pos.coords;
 
+  const headingDeg = resolveHeadingDeg(pos);
   updateNavMapPosition(lat, lon);
-  updateNavPuckHeading(resolveHeadingDeg(pos));
+  updateNavPuckHeading(headingDeg);
+  applyCourseUpRotation(headingDeg);
+  if (Number.isFinite(headingDeg)) navLastHeadingDeg = headingDeg;
   updateSpeedBadge(resolveSpeedKmh(pos));
 
   const target = navRouteSteps[navTargetIndex];
