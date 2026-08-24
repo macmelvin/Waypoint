@@ -1094,6 +1094,26 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   transition: transform 0.25s ease;
 }
 
+/* Start (A) and destination (B) markers — plain, not counter-rotated
+   against the map's course-up spin like the puck arrow is. A pin's anchor
+   point has to stay exactly on its coordinate, and counter-rotating it
+   around its own center would visibly drag the tip off that spot; leaving
+   it be means the glyph can end up tilted mid-turn, which is an acceptable
+   tradeoff next to a pin that drifts off its actual location. */
+.nav-start-marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px #16a34a, 0 2px 6px rgba(0,0,0,0.4);
+}
+.nav-dest-marker {
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
+}
+
 .nav-speed-badge {
   position: absolute;
   left: 14px;

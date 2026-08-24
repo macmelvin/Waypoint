@@ -1038,8 +1038,11 @@ let navLastHeadingDeg = null; // most recent known heading, so "recenter" can re
 // the first "Start Navigation" tap, then reused/repositioned for later trips
 // rather than rebuilt each time.
 let navMap = null;
+let navMapRouteHalo = null; // a wider white line drawn under navMapRouteLine so the route reads clearly against busy OSM tiles
 let navMapRouteLine = null;
 let navMapLiveMarker = null;
+let navMapStartMarker = null;
+let navMapDestMarker = null;
 let navFollowing = true; // false once the user manually drags the map, until they tap recenter
 
 // Live-traffic overlay segments matched against the current route by
@@ -1085,14 +1088,34 @@ function showNavMap(routeCoords) {
   // The container was just un-hidden, so Leaflet needs a nudge to notice its real size.
   setTimeout(() => navMap.invalidateSize(), 0);
 
-  if (navMapRouteLine) {
-    navMap.removeLayer(navMapRouteLine);
-    navMapRouteLine = null;
-  }
+  if (navMapRouteHalo) { navMap.removeLayer(navMapRouteHalo); navMapRouteHalo = null; }
+  if (navMapRouteLine) { navMap.removeLayer(navMapRouteLine); navMapRouteLine = null; }
   const latlngs = routeCoords.map(([lon, lat]) => [lat, lon]);
-  navMapRouteLine = L.polyline(latlngs, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(navMap);
+  // A wider white "halo" drawn underneath the blue line so the route still
+  // reads clearly against busy/light OSM tiles (car parks, building fills,
+  // etc.) instead of a thin line getting lost in the background.
+  navMapRouteHalo = L.polyline(latlngs, { color: '#ffffff', weight: 9, opacity: 0.9 }).addTo(navMap);
+  navMapRouteLine = L.polyline(latlngs, { color: '#2563eb', weight: 5, opacity: 0.95 }).addTo(navMap);
   navMap.fitBounds(navMapRouteLine.getBounds(), { padding: [40, 40] });
   drawTrafficOverlays();
+
+  // Start (A) and destination (B) markers — separate from the live puck,
+  // which tracks current position and moves away from the start point as
+  // soon as you set off. Without a destination pin there's nothing on the
+  // map anchoring "this is where you're headed."
+  if (!navMapStartMarker) {
+    const startIcon = L.divIcon({ className: 'nav-start-marker', iconSize: [14, 14], iconAnchor: [7, 7] });
+    navMapStartMarker = L.marker(latlngs[0], { icon: startIcon, zIndexOffset: 900 }).addTo(navMap);
+  } else {
+    navMapStartMarker.setLatLng(latlngs[0]);
+  }
+  const destLatLng = latlngs[latlngs.length - 1];
+  if (!navMapDestMarker) {
+    const destIcon = L.divIcon({ className: 'nav-dest-marker', html: '📍', iconSize: [28, 28], iconAnchor: [14, 28] });
+    navMapDestMarker = L.marker(destLatLng, { icon: destIcon, zIndexOffset: 950 }).addTo(navMap);
+  } else {
+    navMapDestMarker.setLatLng(destLatLng);
+  }
 
   if (!navMapLiveMarker) {
     const liveIcon = L.divIcon({
