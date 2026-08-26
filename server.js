@@ -107,6 +107,13 @@ const INVITE_COOKIE = 'wp_invite';
 // leave WHATSAPP_NUMBER unset to hide the button entirely.
 const WHATSAPP_NUMBER = (process.env.GATE_WHATSAPP_NUMBER || '6588877041').replace(/[^0-9]/g, '');
 const WHATSAPP_MESSAGE = "Hi, I'd like access to Waypoint";
+// The app icon, inlined as a data URI so it's available as a faint watermark
+// on the invite-only page even though that page is served before the static
+// file middleware (and thus before the gate itself would otherwise let a
+// blocked visitor fetch /icons/*.png).
+const GATE_ICON_DATA_URI = 'data:image/png;base64,' + fs.readFileSync(
+  path.join(__dirname, 'public', 'icons', 'icon-512.png')
+).toString('base64');
 
 function loadInvites() {
   try {
@@ -214,8 +221,13 @@ function inviteGate(req, res, next) {
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Waypoint — invite only</title>
 <style>body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;
-align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center}
-.card{max-width:360px}h1{font-size:20px;margin:0 0 8px}p{color:#94a3b8;font-size:15px;line-height:1.5}
+align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center;
+position:relative;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;background-image:url(${GATE_ICON_DATA_URI});
+background-repeat:no-repeat;background-position:center;background-size:min(70vmin,480px);
+opacity:0.08;pointer-events:none}
+.card{max-width:360px;position:relative;z-index:1}h1{font-size:20px;margin:0 0 8px}
+p{color:#94a3b8;font-size:15px;line-height:1.5}
 .wa-btn{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:11px 20px;border-radius:999px;
 background:#25D366;color:#04240f;font-weight:600;font-size:14px;text-decoration:none}
 .wa-btn:hover{filter:brightness(1.05)}</style>
