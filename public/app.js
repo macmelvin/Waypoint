@@ -2764,3 +2764,29 @@ els.trainAlertDismiss.addEventListener('click', () => {
 
 checkTrainAlerts();
 setInterval(checkTrainAlerts, TRAIN_ALERTS_POLL_MS);
+
+// ---------- Incoming destination via URL (deep link from other apps) ----------
+// Lets an external tool send you straight into a ready route:
+//   ?dest_lat=1.311&dest_lon=103.845&dest_label=Mount%20Elizabeth%20Hospital
+(function handleIncomingDestination() {
+  const params = new URLSearchParams(window.location.search);
+  const destLat = parseFloat(params.get('dest_lat'));
+  const destLon = parseFloat(params.get('dest_lon'));
+  const destLabel = params.get('dest_label');
+  if (!destLabel || Number.isNaN(destLat) || Number.isNaN(destLon)) return;
+
+  setTo({ lat: destLat, lon: destLon, label: destLabel, address: destLabel });
+
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      setFrom({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'Your location' });
+      if (fromCoords && toCoords) getDirections();
+    },
+    (err) => {
+      console.error('incoming-destination geolocation error:', err);
+      showToast(geoErrorMessage(err) + ' — pick a starting point to get directions.');
+    },
+    GEO_OPTIONS
+  );
+})();
