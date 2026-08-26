@@ -2776,6 +2776,7 @@ setInterval(checkTrainAlerts, TRAIN_ALERTS_POLL_MS);
   if (!destLabel || Number.isNaN(destLat) || Number.isNaN(destLon)) return;
 
   setTo({ lat: destLat, lon: destLon, label: destLabel, address: destLabel });
+  switchToDirectionsTab();
 
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(
