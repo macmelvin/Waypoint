@@ -2535,7 +2535,8 @@ async function enablePushAlerts() {
     showToast("🔔 Alerts enabled — you'll get a notification for MRT/LRT disruptions and major traffic incidents.", 4000);
   } catch (err) {
     console.error(err);
-    showToast('Could not enable notifications.');
+    const detail = err && (err.message || err.name) ? `: ${err.name || ''} ${err.message || ''}`.trim() : '';
+    showToast(`Could not enable notifications${detail}.`, 6000);
   }
 }
 
