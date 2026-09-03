@@ -266,6 +266,7 @@ const CATEGORY_LABELS = {
   church: 'church',
   temple: 'temple',
   dogpark: 'dog park',
+  carpark: 'carpark',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -381,6 +382,24 @@ async function fetchCategoryPlaces(category, lat, lon, onTierStart) {
   return { places: [], radiusUsed: CATEGORY_SEARCH_RADII_M[CATEGORY_SEARCH_RADII_M.length - 1] };
 }
 
+// Carpark uses the same live LTA DataMall feed as the "near destination"
+// panel on the Directions tab (see fetchParkingInfo) instead of OpenStreetMap
+// — real available-lot counts refreshed roughly every minute, not just a
+// pin. Shaped to match fetchCategoryPlaces' { places, radiusUsed } return so
+// it can drop straight into the same rendering pipeline below.
+async function fetchNearbyCarparks(lat, lon) {
+  const res = await fetch(`/api/carparks-nearby?lat=${lat}&lon=${lon}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Carpark availability responded ${res.status}`);
+  const places = (data.carparks || []).map((c) => ({
+    label: c.development || 'Carpark',
+    address: `${c.availableLots} lot${c.availableLots === 1 ? '' : 's'} available`,
+    lat: c.lat,
+    lon: c.lon,
+  }));
+  return { places, radiusUsed: null };
+}
+
 function searchNearbyCategory(category) {
   if (!navigator.geolocation) {
     showToast('Geolocation is not supported by your browser.');
@@ -393,12 +412,16 @@ function searchNearbyCategory(category) {
       els.searchResults.innerHTML = `<li class="r-loading">Searching nearby ${CATEGORY_LABELS[category]}…</li>`;
       try {
         const { latitude: lat, longitude: lon } = pos.coords;
-        const { places, radiusUsed } = await fetchCategoryPlaces(category, lat, lon, (radius) => {
-          els.searchResults.innerHTML = `<li class="r-loading">Searching within ${formatDistance(radius)}…</li>`;
-        });
+        const { places, radiusUsed } = category === 'carpark'
+          ? await fetchNearbyCarparks(lat, lon)
+          : await fetchCategoryPlaces(category, lat, lon, (radius) => {
+              els.searchResults.innerHTML = `<li class="r-loading">Searching within ${formatDistance(radius)}…</li>`;
+            });
         if (!places.length) {
           els.searchResults.innerHTML = '';
-          showToast(`No ${CATEGORY_LABELS[category]} found within ${formatDistance(radiusUsed)}.`, 5000);
+          showToast(radiusUsed
+            ? `No ${CATEGORY_LABELS[category]} found within ${formatDistance(radiusUsed)}.`
+            : `No ${CATEGORY_LABELS[category]} found nearby.`, 5000);
           return;
         }
         const mapped = places
@@ -415,7 +438,9 @@ function searchNearbyCategory(category) {
       } catch (err) {
         console.error('category search failed:', err);
         els.searchResults.innerHTML = '';
-        showToast('Could not search nearby places right now — OpenStreetMap\'s search may be unreachable.', 5000);
+        showToast(category === 'carpark' && err.message
+          ? err.message
+          : 'Could not search nearby places right now — OpenStreetMap\'s search may be unreachable.', 5000);
       }
     },
     (err) => {
