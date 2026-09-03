@@ -20,6 +20,7 @@ const OSRM_ENDPOINTS = {
 };
 
 const els = {
+  langBtn: document.getElementById('langBtn'),
   searchInput: document.getElementById('searchInput'),
   searchClear: document.getElementById('searchClear'),
   searchResults: document.getElementById('searchResults'),
@@ -503,6 +504,197 @@ document.querySelectorAll('.category-chip').forEach((btn) => {
     }
   });
 });
+
+// ---------- Language (UI chrome only) ----------
+// Covers the app's own buttons/labels/menus and all category+landmark chip
+// names — Singapore's four official languages. Search results themselves
+// (restaurant names, street addresses from OneMap/OSM/LTA, turn-by-turn
+// voice instructions, live weather/traffic text) come from those upstream
+// sources as-is and aren't translated here.
+const LANG_STORAGE_KEY = 'wp_lang';
+const LANG_CYCLE = ['en', 'zh', 'ms', 'ta'];
+const LANG_SHORT = { en: 'EN', zh: '中文', ms: 'BM', ta: 'TA' };
+const LANG_HTML_TAG = { en: 'en', zh: 'zh-Hans', ms: 'ms', ta: 'ta' };
+
+let currentLang = 'en';
+try {
+  const saved = localStorage.getItem(LANG_STORAGE_KEY);
+  if (saved && LANG_CYCLE.includes(saved)) currentLang = saved;
+} catch (err) { /* private-mode/blocked storage — default to English */ }
+
+const I18N = {
+  en: {
+    tab_search: 'Search', tab_directions: 'Directions', tab_bus: '🚌 Bus Arrival Time',
+    notify_title: 'Turn on train/traffic alerts', where_am_i: 'Where am I',
+    offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
+    search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
+    category_nearby: 'Nearby', category_attractions: 'Attractions',
+    directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
+    set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
+    hint_search: 'Try searching for a landmark, street, or postal code.',
+    quick_home: '🏠 Home', quick_work: '💼 Work',
+    dir_from_placeholder: 'From — postal code, address, or place', dir_to_placeholder: 'To — postal code, address, or place',
+    swap: 'Swap', mode_drive: 'Drive', mode_transit: 'Bus / MRT', mode_cycle: 'Cycle', mode_walk: 'Walk',
+    get_directions: 'Get Directions', start_navigation: '▶️ Start Navigation',
+    car_parked: 'Car parked', tap_to_walk_back: 'Tap below to walk back to it', walk_to_car: 'Walk to my car',
+    save_parking: '🅿️ Save my parking spot', nearby_stops: '📍 Stops near me',
+    fav_search_placeholder: 'Add a bus stop — code or name…',
+    fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
+    share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
+    install_banner_text: '📲 Add Waypoint to your home screen for quick access', install: 'Install', not_now: 'Not now',
+    dismiss: 'Dismiss',
+  },
+  zh: {
+    tab_search: '搜索', tab_directions: '路线', tab_bus: '🚌 巴士到站时间',
+    notify_title: '开启地铁/交通提醒', where_am_i: '我的位置',
+    offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
+    search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
+    category_nearby: '附近', category_attractions: '景点',
+    directions_from_here: '从这里出发', directions_to_here: '前往这里',
+    set_home: '🏠 设为住家', set_work: '💼 设为公司',
+    hint_search: '试试搜索地标、街道或邮区编号。',
+    quick_home: '🏠 住家', quick_work: '💼 公司',
+    dir_from_placeholder: '起点 — 邮区编号、地址或地点', dir_to_placeholder: '终点 — 邮区编号、地址或地点',
+    swap: '互换', mode_drive: '驾车', mode_transit: '巴士 / 地铁', mode_cycle: '骑行', mode_walk: '步行',
+    get_directions: '获取路线', start_navigation: '▶️ 开始导航',
+    car_parked: '停车时间', tap_to_walk_back: '点击下方步行返回车辆位置', walk_to_car: '步行回到我的车',
+    save_parking: '🅿️ 保存停车位置', nearby_stops: '📍 附近车站',
+    fav_search_placeholder: '添加巴士车站 — 输入编号或名称…',
+    fav_empty_hint: '在上方搜索巴士车站并添加，即可随时查看实时到站时间 — 无需先规划行程。',
+    share_footer: '💙 如果觉得好用，欢迎分享给朋友', support_footer: '☕ 请我喝杯咖啡 — 支持 Waypoint 持续运作',
+    install_banner_text: '📲 将 Waypoint 添加到主屏幕，方便快速使用', install: '安装', not_now: '暂不安装',
+    dismiss: '关闭',
+  },
+  ms: {
+    tab_search: 'Carian', tab_directions: 'Arah', tab_bus: '🚌 Waktu Ketibaan Bas',
+    notify_title: 'Hidupkan makluman keretapi/trafik', where_am_i: 'Di Mana Saya',
+    offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
+    search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
+    category_nearby: 'Berdekatan', category_attractions: 'Tempat Menarik',
+    directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
+    set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
+    hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
+    quick_home: '🏠 Rumah', quick_work: '💼 Tempat Kerja',
+    dir_from_placeholder: 'Dari — poskod, alamat, atau tempat', dir_to_placeholder: 'Ke — poskod, alamat, atau tempat',
+    swap: 'Tukar', mode_drive: 'Memandu', mode_transit: 'Bas / MRT', mode_cycle: 'Berbasikal', mode_walk: 'Berjalan kaki',
+    get_directions: 'Dapatkan Arah', start_navigation: '▶️ Mula Navigasi',
+    car_parked: 'Kereta diletak', tap_to_walk_back: 'Ketik di bawah untuk berjalan kembali ke sana', walk_to_car: 'Berjalan ke kereta saya',
+    save_parking: '🅿️ Simpan lokasi tempat letak kereta saya', nearby_stops: '📍 Perhentian berdekatan',
+    fav_search_placeholder: 'Tambah perhentian bas — kod atau nama…',
+    fav_empty_hint: 'Cari perhentian bas di atas dan tambahkannya untuk semak ketibaan langsung di sini bila-bila masa — tidak perlu rancang perjalanan dahulu.',
+    share_footer: '💙 Kongsikan aplikasi ini jika berguna', support_footer: '☕ Belanja saya kopi — bantu kekalkan Waypoint berjalan',
+    install_banner_text: '📲 Tambah Waypoint ke skrin utama untuk akses pantas', install: 'Pasang', not_now: 'Bukan sekarang',
+    dismiss: 'Tutup',
+  },
+  ta: {
+    tab_search: 'தேடல்', tab_directions: 'வழிகள்', tab_bus: '🚌 பேருந்து வருகை நேரம்',
+    notify_title: 'ரயில்/போக்குவரத்து எச்சரிக்கைகளை இயக்கு', where_am_i: 'நான் எங்கே',
+    offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
+    search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
+    category_nearby: 'அருகில்', category_attractions: 'சுற்றுலா தளங்கள்',
+    directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
+    set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
+    hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
+    quick_home: '🏠 வீடு', quick_work: '💼 பணியிடம்',
+    dir_from_placeholder: 'இருந்து — அஞ்சல் குறியீடு, முகவரி அல்லது இடம்', dir_to_placeholder: 'வரை — அஞ்சல் குறியீடு, முகவரி அல்லது இடம்',
+    swap: 'மாற்று', mode_drive: 'ஓட்டுதல்', mode_transit: 'பேருந்து / எம்ஆர்டி', mode_cycle: 'சைக்கிள்', mode_walk: 'நடை',
+    get_directions: 'வழிகளைப் பெறுக', start_navigation: '▶️ வழிகாட்டலைத் தொடங்கு',
+    car_parked: 'கார் நிறுத்தப்பட்டது', tap_to_walk_back: 'அங்கு நடந்து செல்ல கீழே தட்டவும்', walk_to_car: 'எனது காருக்கு நடந்து செல்',
+    save_parking: '🅿️ எனது பார்க்கிங் இடத்தைச் சேமி', nearby_stops: '📍 அருகிலுள்ள நிறுத்தங்கள்',
+    fav_search_placeholder: 'பேருந்து நிறுத்தத்தைச் சேர் — குறியீடு அல்லது பெயர்…',
+    fav_empty_hint: 'மேலே ஒரு பேருந்து நிறுத்தத்தைத் தேடி சேர்த்து, எப்போது வேண்டுமானாலும் நேரலை வருகையைச் சரிபார்க்கலாம் — முதலில் பயணத்தைத் திட்டமிட வேண்டியதில்லை.',
+    share_footer: '💙 இது பயனுள்ளதாக இருந்தால் இந்த ஆப்பைப் பகிரவும்', support_footer: '☕ எனக்கு ஒரு காபி வாங்கிக் கொடுங்கள் — Waypoint செயல்பட உதவுங்கள்',
+    install_banner_text: '📲 விரைவு அணுகலுக்காக Waypoint-ஐ உங்கள் முகப்புத் திரையில் சேர்க்கவும்', install: 'நிறுவு', not_now: 'இப்போது வேண்டாம்',
+    dismiss: 'மூடு',
+  },
+};
+
+// Chip label translations, keyed by data-category. English values here match
+// what's already hardcoded in index.html (used as the fallback / source of
+// truth when a key is somehow missing from a language).
+const CHIP_I18N = {
+  food: { en: 'Food', zh: '美食', ms: 'Makanan', ta: 'உணவு' },
+  carpark: { en: 'Carpark', zh: '停车场', ms: 'Tempat Letak Kereta', ta: 'கார் பார்க்கிங்' },
+  coffee: { en: 'Coffee', zh: '咖啡', ms: 'Kopi', ta: 'காபி' },
+  groceries: { en: 'Groceries', zh: '杂货店', ms: 'Barangan Runcit', ta: 'மளிகை' },
+  shopping: { en: 'Shopping', zh: '购物中心', ms: 'Membeli-belah', ta: 'ஷாப்பிங்' },
+  pharmacy: { en: 'Pharmacy', zh: '药店', ms: 'Farmasi', ta: 'மருந்தகம்' },
+  hospital: { en: 'Hospital', zh: '医院', ms: 'Hospital', ta: 'மருத்துவமனை' },
+  police: { en: 'Police', zh: '警察局', ms: 'Balai Polis', ta: 'காவல் நிலையம்' },
+  hotel: { en: 'Hotel', zh: '酒店', ms: 'Hotel', ta: 'ஹோட்டல்' },
+  park: { en: 'Park', zh: '公园', ms: 'Taman', ta: 'பூங்கா' },
+  vets: { en: 'Vets', zh: '兽医', ms: 'Doktor Haiwan', ta: 'கால்நடை மருத்துவர்' },
+  toilets: { en: 'Toilets', zh: '洗手间', ms: 'Tandas', ta: 'கழிப்பறை' },
+  vegetarian: { en: 'Vegetarian', zh: '素食', ms: 'Vegetarian', ta: 'சைவம்' },
+  halal: { en: 'Halal', zh: '清真', ms: 'Halal', ta: 'ஹலால்' },
+  mosque: { en: 'Mosque', zh: '清真寺', ms: 'Masjid', ta: 'மசூதி' },
+  church: { en: 'Church', zh: '教堂', ms: 'Gereja', ta: 'தேவாலயம்' },
+  temple: { en: 'Temple', zh: '庙宇', ms: 'Kuil', ta: 'கோவில்' },
+  moneychanger: { en: 'Money Changer', zh: '找换店', ms: 'Penukar Wang', ta: 'பண மாற்று நிலையம்' },
+  postoffice: { en: 'Post Office', zh: '邮局', ms: 'Pejabat Pos', ta: 'அஞ்சல் அலுவலகம்' },
+  library: { en: 'Library', zh: '图书馆', ms: 'Perpustakaan', ta: 'நூலகம்' },
+  laundromat: { en: 'Laundromat', zh: '自助洗衣店', ms: 'Dobi Layan Diri', ta: 'சலவை நிலையம்' },
+  dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா' },
+  mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்' },
+  gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே' },
+  sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு' },
+  uss: { en: 'Universal Studios', zh: '环球影城', ms: 'Universal Studios', ta: 'யுனிவர்சல் ஸ்டுடியோஸ்' },
+  seaaquarium: { en: 'S.E.A. Aquarium', zh: '星耀水族馆', ms: 'Akuarium S.E.A.', ta: 'எஸ்.இ.ஏ. மீன்காட்சியகம்' },
+  jewelchangi: { en: 'Jewel Changi', zh: '星耀樟宜', ms: 'Jewel Changi', ta: 'ஜூவல் சாங்கி' },
+  merlionpark: { en: 'Merlion Park', zh: '鱼尾狮公园', ms: 'Taman Merlion', ta: 'மெர்லயன் பூங்கா' },
+  sgflyer: { en: 'Singapore Flyer', zh: '新加坡摩天观景轮', ms: 'Singapore Flyer', ta: 'சிங்கப்பூர் ஃபிளையர்' },
+  sgzoo: { en: 'Singapore Zoo', zh: '新加坡动物园', ms: 'Zoo Singapura', ta: 'சிங்கப்பூர் உயிரியல் பூங்கா' },
+  nightsafari: { en: 'Night Safari', zh: '夜间野生动物园', ms: 'Night Safari', ta: 'நைட் சஃபாரி' },
+  riverwonders: { en: 'River Wonders', zh: '河川生态园', ms: 'River Wonders', ta: 'ரிவர் வண்டர்ஸ்' },
+  chinatown: { en: 'Chinatown', zh: '牛车水', ms: 'Chinatown', ta: 'சைனாடவுன்' },
+  littleindia: { en: 'Little India', zh: '小印度', ms: 'Little India', ta: 'லிட்டில் இந்தியா' },
+  kampongglam: { en: 'Kampong Glam', zh: '甘榜格南', ms: 'Kampung Glam', ta: 'கம்போங் கிளாம்' },
+  clarkequay: { en: 'Clarke Quay', zh: '克拉码头', ms: 'Clarke Quay', ta: 'கிளார்க் கீ' },
+  botanicgardens: { en: 'Botanic Gardens', zh: '植物园', ms: 'Kebun Botani', ta: 'தாவரவியல் பூங்கா' },
+  nationalgallery: { en: 'National Gallery', zh: '国家美术馆', ms: 'Galeri Negara', ta: 'தேசிய கேலரி' },
+  artsciencemuseum: { en: 'ArtScience Museum', zh: '艺术科学博物馆', ms: 'Muzium ArtScience', ta: 'ஆர்ட்சயின்ஸ் அருங்காட்சியகம்' },
+  esplanade: { en: 'Esplanade', zh: '滨海艺术中心', ms: 'Esplanade', ta: 'எஸ்பிளனேட்' },
+  hawparvilla: { en: 'Haw Par Villa', zh: '虎豹别墅', ms: 'Haw Par Villa', ta: 'ஹா பார் வில்லா' },
+  eastcoastpark: { en: 'East Coast Park', zh: '东海岸公园', ms: 'Taman Pantai Timur', ta: 'கிழக்குக் கடற்கரைப் பூங்கா' },
+  woodlandscheckpoint: { en: 'To JB (Causeway)', zh: '前往新山（长堤）', ms: 'Ke JB (Tambak)', ta: 'ஜேபிக்கு (காஸ்வே)' },
+  tuascheckpoint: { en: 'To JB (2nd Link)', zh: '前往新山（第二通道）', ms: 'Ke JB (Laluan Kedua)', ta: 'ஜேபிக்கு (2வது இணைப்பு)' },
+  icabuilding: { en: 'ICA Building', zh: '移民与关卡局大厦', ms: 'Bangunan ICA', ta: 'ஐசிஏ கட்டிடம்' },
+  momservices: { en: 'MOM Services', zh: '人力部服务中心', ms: 'Perkhidmatan KSM', ta: 'MOM சேவைகள்' },
+};
+
+function t(key) {
+  return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.getAttribute('data-i18n-title')); });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria'))); });
+  document.querySelectorAll('.category-chip').forEach((btn) => {
+    const cat = btn.dataset.category;
+    const entry = CHIP_I18N[cat];
+    const label = entry && (entry[currentLang] || entry.en);
+    if (!label) return;
+    const iconEl = btn.querySelector('.category-chip-icon');
+    btn.textContent = '';
+    if (iconEl) btn.appendChild(iconEl);
+    btn.appendChild(document.createTextNode(label));
+  });
+  if (els.langBtn) els.langBtn.textContent = `🌐 ${LANG_SHORT[currentLang]}`;
+  document.documentElement.lang = LANG_HTML_TAG[currentLang] || 'en';
+}
+
+if (els.langBtn) {
+  els.langBtn.addEventListener('click', () => {
+    const idx = LANG_CYCLE.indexOf(currentLang);
+    currentLang = LANG_CYCLE[(idx + 1) % LANG_CYCLE.length];
+    try { localStorage.setItem(LANG_STORAGE_KEY, currentLang); } catch (err) { /* ignore */ }
+    applyTranslations();
+  });
+}
+
+applyTranslations();
 
 els.dirFromHere.addEventListener('click', () => {
   if (!currentPlace) return;

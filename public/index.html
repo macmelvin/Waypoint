@@ -55,10 +55,11 @@
       </span>
     </div>
     <div class="topbar-actions">
+      <button id="langBtn" class="icon-btn lang-btn" type="button" title="Language">🌐 EN</button>
       <button id="weatherWidget" class="weather-widget hidden" type="button" title="Current weather"></button>
-      <button id="notifyBtn" class="icon-btn" type="button" title="Turn on train/traffic alerts" aria-label="Turn on train/traffic alerts">🔔</button>
-      <button id="locateBtn" class="icon-btn locate-btn" type="button" title="Where am I" aria-label="Where am I">
-        <span id="locateBtnIcon">🎯</span> Where am I
+      <button id="notifyBtn" class="icon-btn" type="button" data-i18n-title="notify_title" data-i18n-aria="notify_title" title="Turn on train/traffic alerts" aria-label="Turn on train/traffic alerts">🔔</button>
+      <button id="locateBtn" class="icon-btn locate-btn" type="button" data-i18n-title="where_am_i" data-i18n-aria="where_am_i" title="Where am I" aria-label="Where am I">
+        <span id="locateBtnIcon">🎯</span> <span data-i18n="where_am_i">Where am I</span>
       </button>
     </div>
   </header>
@@ -71,7 +72,7 @@
 
   <div id="offlineBanner" class="offline-banner hidden">
     <span class="offline-banner-icon">📡</span>
-    <span class="offline-banner-text">You're offline — showing saved places &amp; last-known data. Search, routing and live arrivals need a connection.</span>
+    <span class="offline-banner-text" data-i18n="offline_banner">You're offline — showing saved places &amp; last-known data. Search, routing and live arrivals need a connection.</span>
   </div>
 
   <div id="body">
@@ -79,18 +80,18 @@
     <aside id="sidebar">
 
       <div class="tabs" role="tablist">
-        <button class="tab-btn active" data-tab="search" role="tab" aria-selected="true">Search</button>
-        <button class="tab-btn" data-tab="directions" role="tab" aria-selected="false">Directions</button>
-        <button class="tab-btn" data-tab="favourites" role="tab" aria-selected="false">🚌 Bus Arrival Time</button>
+        <button class="tab-btn active" data-tab="search" role="tab" aria-selected="true" data-i18n="tab_search">Search</button>
+        <button class="tab-btn" data-tab="directions" role="tab" aria-selected="false" data-i18n="tab_directions">Directions</button>
+        <button class="tab-btn" data-tab="favourites" role="tab" aria-selected="false" data-i18n="tab_bus">🚌 Bus Arrival Time</button>
       </div>
 
       <section id="panel-search" class="panel active">
         <div class="search-box">
-          <input id="searchInput" type="text" placeholder="Enter postal code, address, or place…" autocomplete="off" />
-          <button id="searchClear" class="clear-btn" title="Clear" aria-label="Clear search">✕</button>
+          <input id="searchInput" type="text" placeholder="Enter postal code, address, or place…" data-i18n-placeholder="search_placeholder" autocomplete="off" />
+          <button id="searchClear" class="clear-btn" title="Clear" aria-label="Clear search" data-i18n-title="clear" data-i18n-aria="clear">✕</button>
         </div>
         <div id="categoryRow">
-          <div class="category-row-label">Nearby</div>
+          <div class="category-row-label" data-i18n="category_nearby">Nearby</div>
           <div class="category-row">
             <button class="category-chip" type="button" data-category="food"><span class="category-chip-icon">🍽️</span>Food</button>
             <button class="category-chip" type="button" data-category="carpark"><span class="category-chip-icon">🅿️</span>Carpark</button>
@@ -115,7 +116,7 @@
             <button class="category-chip" type="button" data-category="laundromat"><span class="category-chip-icon">🧺</span>Laundromat</button>
             <button class="category-chip" type="button" data-category="dogpark"><span class="category-chip-icon">🐕</span>Dog Park</button>
           </div>
-          <div class="category-row-label">Attractions</div>
+          <div class="category-row-label" data-i18n="category_attractions">Attractions</div>
           <div class="category-row">
             <button class="category-chip" type="button" data-category="mbs"><span class="category-chip-icon">🎰</span>Marina Bay Sands</button>
             <button class="category-chip" type="button" data-category="gardensbythebay"><span class="category-chip-icon">🌺</span>Gardens by the Bay</button>
@@ -150,51 +151,51 @@
           <h3 id="placeName"></h3>
           <p id="placeAddress"></p>
           <div class="place-card-actions">
-            <button id="dirFromHere" class="pill-btn">Directions from here</button>
-            <button id="dirToHere" class="pill-btn primary">Directions to here</button>
+            <button id="dirFromHere" class="pill-btn" data-i18n="directions_from_here">Directions from here</button>
+            <button id="dirToHere" class="pill-btn primary" data-i18n="directions_to_here">Directions to here</button>
           </div>
           <div class="place-card-actions place-card-actions-secondary">
-            <button id="setHomeBtn" class="pill-btn ghost">🏠 Set as Home</button>
-            <button id="setWorkBtn" class="pill-btn ghost">💼 Set as Work</button>
+            <button id="setHomeBtn" class="pill-btn ghost" data-i18n="set_home">🏠 Set as Home</button>
+            <button id="setWorkBtn" class="pill-btn ghost" data-i18n="set_work">💼 Set as Work</button>
           </div>
         </div>
 
-        <p class="hint">Try searching for a landmark, street, or postal code.</p>
+        <p class="hint" data-i18n="hint_search">Try searching for a landmark, street, or postal code.</p>
       </section>
 
       <section id="panel-directions" class="panel">
         <div class="quick-access-row">
-          <button id="quickHomeBtn" class="quick-chip unset" type="button">🏠 Home</button>
-          <button id="quickWorkBtn" class="quick-chip unset" type="button">💼 Work</button>
+          <button id="quickHomeBtn" class="quick-chip unset" type="button" data-i18n="quick_home">🏠 Home</button>
+          <button id="quickWorkBtn" class="quick-chip unset" type="button" data-i18n="quick_work">💼 Work</button>
         </div>
 
         <div class="dir-inputs">
           <div class="dir-field">
             <span class="dir-dot from-dot"></span>
-            <input id="fromInput" type="text" placeholder="From — postal code, address, or place" autocomplete="off" />
+            <input id="fromInput" type="text" placeholder="From — postal code, address, or place" data-i18n-placeholder="dir_from_placeholder" autocomplete="off" />
             <ul id="fromResults" class="result-list nested"></ul>
           </div>
-          <button id="swapBtn" class="icon-btn small" title="Swap" aria-label="Swap from and to">⇅</button>
+          <button id="swapBtn" class="icon-btn small" title="Swap" aria-label="Swap from and to" data-i18n-title="swap" data-i18n-aria="swap">⇅</button>
           <div class="dir-field">
             <span class="dir-dot to-dot"></span>
-            <input id="toInput" type="text" placeholder="To — postal code, address, or place" autocomplete="off" />
+            <input id="toInput" type="text" placeholder="To — postal code, address, or place" data-i18n-placeholder="dir_to_placeholder" autocomplete="off" />
             <ul id="toResults" class="result-list nested"></ul>
           </div>
         </div>
 
         <div class="mode-select" role="tablist">
-          <button class="mode-btn active" data-mode="driving" title="Drive">🚗</button>
-          <button class="mode-btn" data-mode="transit" title="Bus / MRT">🚇</button>
-          <button class="mode-btn" data-mode="cycling" title="Cycle">🚲</button>
-          <button class="mode-btn" data-mode="walking" title="Walk">🚶</button>
+          <button class="mode-btn active" data-mode="driving" title="Drive" data-i18n-title="mode_drive">🚗</button>
+          <button class="mode-btn" data-mode="transit" title="Bus / MRT" data-i18n-title="mode_transit">🚇</button>
+          <button class="mode-btn" data-mode="cycling" title="Cycle" data-i18n-title="mode_cycle">🚲</button>
+          <button class="mode-btn" data-mode="walking" title="Walk" data-i18n-title="mode_walk">🚶</button>
         </div>
 
-        <button id="getDirectionsBtn" class="primary-btn" disabled>Get Directions</button>
+        <button id="getDirectionsBtn" class="primary-btn" disabled data-i18n="get_directions">Get Directions</button>
 
         <div id="itineraryOptionsLabel" class="itinerary-options-label hidden"></div>
         <div id="itineraryOptions" class="itinerary-options hidden"></div>
         <div id="routeSummary" class="route-summary hidden"></div>
-        <button id="startNavBtn" class="primary-btn nav-start-btn hidden" type="button">▶️ Start Navigation</button>
+        <button id="startNavBtn" class="primary-btn nav-start-btn hidden" type="button" data-i18n="start_navigation">▶️ Start Navigation</button>
         <div id="parkingInfo" class="driving-extra hidden"></div>
         <div id="evChargingInfo" class="driving-extra hidden"></div>
         <div id="petrolInfo" class="driving-extra hidden"></div>
@@ -210,29 +211,29 @@
           <div class="parked-car-info">
             <span class="parked-car-icon">🅿️</span>
             <div class="parked-car-text">
-              <div class="parked-car-title">Car parked <span id="parkedCarAgo"></span></div>
-              <div class="parked-car-sub" id="parkedCarDistance">Tap below to walk back to it</div>
+              <div class="parked-car-title"><span data-i18n="car_parked">Car parked</span> <span id="parkedCarAgo"></span></div>
+              <div class="parked-car-sub" id="parkedCarDistance" data-i18n="tap_to_walk_back">Tap below to walk back to it</div>
             </div>
           </div>
           <div class="parked-car-actions">
-            <button id="parkedCarDirectionsBtn" class="pill-btn primary" type="button">Walk to my car</button>
-            <button id="parkedCarClearBtn" class="pill-btn ghost" type="button">Clear</button>
+            <button id="parkedCarDirectionsBtn" class="pill-btn primary" type="button" data-i18n="walk_to_car">Walk to my car</button>
+            <button id="parkedCarClearBtn" class="pill-btn ghost" type="button" data-i18n="clear">Clear</button>
           </div>
         </div>
-        <button id="saveParkingBtn" class="pill-btn nearby-btn" type="button">🅿️ Save my parking spot</button>
-        <button id="nearbyStopsBtn" class="pill-btn nearby-btn" type="button">📍 Stops near me</button>
+        <button id="saveParkingBtn" class="pill-btn nearby-btn" type="button" data-i18n="save_parking">🅿️ Save my parking spot</button>
+        <button id="nearbyStopsBtn" class="pill-btn nearby-btn" type="button" data-i18n="nearby_stops">📍 Stops near me</button>
         <div class="search-box">
-          <input id="favSearchInput" type="text" placeholder="Add a bus stop — code or name…" autocomplete="off" />
+          <input id="favSearchInput" type="text" placeholder="Add a bus stop — code or name…" data-i18n-placeholder="fav_search_placeholder" autocomplete="off" />
         </div>
         <ul id="favSearchResults" class="result-list"></ul>
 
         <ul id="favList" class="fav-list"></ul>
-        <p id="favEmptyHint" class="hint">Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.</p>
+        <p id="favEmptyHint" class="hint" data-i18n="fav_empty_hint">Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.</p>
       </section>
 
-      <button id="shareBtn" class="share-footer">💙 Share this app if you find it useful</button>
+      <button id="shareBtn" class="share-footer" data-i18n="share_footer">💙 Share this app if you find it useful</button>
 
-      <a href="https://buymeacoffee.com/waypointsg" target="_blank" rel="noopener" class="support-footer">☕ Buy me a coffee — help keep Waypoint running</a>
+      <a href="https://buymeacoffee.com/waypointsg" target="_blank" rel="noopener" class="support-footer" data-i18n="support_footer">☕ Buy me a coffee — help keep Waypoint running</a>
 
       <div class="credits-footer">
         <p class="credits-author">Build by Yours Truly - 小猫好介绍 - <a href="https://www.facebook.com/share/1EsHK8JzEM/" target="_blank" rel="noopener">Good Lobang must share</a></p>
@@ -255,14 +256,14 @@
 
 <div id="wakeAlert" class="wake-alert hidden">
   <span class="wake-alert-text">🔔 <span id="wakeAlertText">Approaching your stop!</span></span>
-  <button id="wakeAlertDismiss" class="pill-btn primary">Dismiss</button>
+  <button id="wakeAlertDismiss" class="pill-btn primary" data-i18n="dismiss">Dismiss</button>
 </div>
 
 <div id="installBanner" class="install-banner hidden">
-  <span class="install-banner-text">📲 Add Waypoint to your home screen for quick access</span>
+  <span class="install-banner-text" data-i18n="install_banner_text">📲 Add Waypoint to your home screen for quick access</span>
   <div class="install-banner-actions">
-    <button id="installBtn" class="pill-btn primary">Install</button>
-    <button id="installDismissBtn" class="pill-btn ghost">Not now</button>
+    <button id="installBtn" class="pill-btn primary" data-i18n="install">Install</button>
+    <button id="installDismissBtn" class="pill-btn ghost" data-i18n="not_now">Not now</button>
   </div>
 </div>
 
