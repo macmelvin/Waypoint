@@ -259,6 +259,13 @@ const CATEGORY_LABELS = {
   vegetarian: 'vegetarian-friendly restaurant',
   halal: 'halal restaurant',
   mosque: 'mosque',
+  moneychanger: 'money changer',
+  postoffice: 'post office',
+  library: 'library',
+  laundromat: 'laundromat',
+  church: 'church',
+  temple: 'temple',
+  dogpark: 'dog park',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -291,6 +298,15 @@ const CATEGORY_OSM_TAGS = {
   halal: { key: 'amenity', tags: ['restaurant', 'cafe', 'fast_food'], extraKey: 'diet:halal', extraValue: 'only' },
   // Mosques are place_of_worship + religion=muslim.
   mosque: { key: 'amenity', tags: ['place_of_worship'], extraKey: 'religion', extraValue: 'muslim' },
+  // Church/Temple are the same place_of_worship base, split by religion —
+  // "Temple" covers Singapore's Buddhist, Taoist, and Hindu temples together.
+  church: { key: 'amenity', tags: ['place_of_worship'], extraKey: 'religion', extraValue: 'christian' },
+  temple: { key: 'amenity', tags: ['place_of_worship'], extraKey: 'religion', extraValue: 'buddhist|hindu|taoist' },
+  moneychanger: { key: 'shop', tags: ['money_exchange'] },
+  postoffice: { key: 'amenity', tags: ['post_office'] },
+  library: { key: 'amenity', tags: ['library'] },
+  laundromat: { key: 'shop', tags: ['laundry'] },
+  dogpark: { key: 'leisure', tags: ['dog_park'] },
 };
 // Tried in order — start close (keeps dense categories like food/coffee
 // genuinely local), then widen automatically for sparse categories that
