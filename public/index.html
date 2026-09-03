@@ -89,50 +89,56 @@
           <input id="searchInput" type="text" placeholder="Enter postal code, address, or place…" autocomplete="off" />
           <button id="searchClear" class="clear-btn" title="Clear" aria-label="Clear search">✕</button>
         </div>
-        <div id="categoryRow" class="category-row">
-          <button class="category-chip" type="button" data-category="food"><span class="category-chip-icon">🍽️</span>Food</button>
-          <button class="category-chip" type="button" data-category="carpark"><span class="category-chip-icon">🅿️</span>Carpark</button>
-          <button class="category-chip" type="button" data-category="coffee"><span class="category-chip-icon">☕</span>Coffee</button>
-          <button class="category-chip" type="button" data-category="groceries"><span class="category-chip-icon">🛒</span>Groceries</button>
-          <button class="category-chip" type="button" data-category="shopping"><span class="category-chip-icon">🏬</span>Shopping</button>
-          <button class="category-chip" type="button" data-category="pharmacy"><span class="category-chip-icon">💊</span>Pharmacy</button>
-          <button class="category-chip" type="button" data-category="hospital"><span class="category-chip-icon">🏥</span>Hospital</button>
-          <button class="category-chip" type="button" data-category="police"><span class="category-chip-icon">👮</span>Police</button>
-          <button class="category-chip" type="button" data-category="hotel"><span class="category-chip-icon">🏨</span>Hotel</button>
-          <button class="category-chip" type="button" data-category="park"><span class="category-chip-icon">🌳</span>Park</button>
-          <button class="category-chip" type="button" data-category="vets"><span class="category-chip-icon">🐾</span>Vets</button>
-          <button class="category-chip" type="button" data-category="toilets"><span class="category-chip-icon">🚻</span>Toilets</button>
-          <button class="category-chip" type="button" data-category="vegetarian"><span class="category-chip-icon">🥦</span>Vegetarian</button>
-          <button class="category-chip" type="button" data-category="halal"><span class="category-chip-icon">🍖</span>Halal</button>
-          <button class="category-chip" type="button" data-category="mosque"><span class="category-chip-icon">🕌</span>Mosque</button>
-          <button class="category-chip" type="button" data-category="church"><span class="category-chip-icon">⛪</span>Church</button>
-          <button class="category-chip" type="button" data-category="temple"><span class="category-chip-icon">🛕</span>Temple</button>
-          <button class="category-chip" type="button" data-category="moneychanger"><span class="category-chip-icon">💱</span>Money Changer</button>
-          <button class="category-chip" type="button" data-category="postoffice"><span class="category-chip-icon">📮</span>Post Office</button>
-          <button class="category-chip" type="button" data-category="library"><span class="category-chip-icon">📚</span>Library</button>
-          <button class="category-chip" type="button" data-category="laundromat"><span class="category-chip-icon">🧺</span>Laundromat</button>
-          <button class="category-chip" type="button" data-category="dogpark"><span class="category-chip-icon">🐕</span>Dog Park</button>
-          <button class="category-chip" type="button" data-category="mbs"><span class="category-chip-icon">🎰</span>Marina Bay Sands</button>
-          <button class="category-chip" type="button" data-category="gardensbythebay"><span class="category-chip-icon">🌺</span>Gardens by the Bay</button>
-          <button class="category-chip" type="button" data-category="sentosa"><span class="category-chip-icon">🏝️</span>Sentosa Island</button>
-          <button class="category-chip" type="button" data-category="uss"><span class="category-chip-icon">🎢</span>Universal Studios</button>
-          <button class="category-chip" type="button" data-category="seaaquarium"><span class="category-chip-icon">🐠</span>S.E.A. Aquarium</button>
-          <button class="category-chip" type="button" data-category="jewelchangi"><span class="category-chip-icon">💧</span>Jewel Changi</button>
-          <button class="category-chip" type="button" data-category="merlionpark"><span class="category-chip-icon">🦁</span>Merlion Park</button>
-          <button class="category-chip" type="button" data-category="sgflyer"><span class="category-chip-icon">🎡</span>Singapore Flyer</button>
-          <button class="category-chip" type="button" data-category="sgzoo"><span class="category-chip-icon">🦓</span>Singapore Zoo</button>
-          <button class="category-chip" type="button" data-category="nightsafari"><span class="category-chip-icon">🌙</span>Night Safari</button>
-          <button class="category-chip" type="button" data-category="riverwonders"><span class="category-chip-icon">🐼</span>River Wonders</button>
-          <button class="category-chip" type="button" data-category="chinatown"><span class="category-chip-icon">🏮</span>Chinatown</button>
-          <button class="category-chip" type="button" data-category="littleindia"><span class="category-chip-icon">🪔</span>Little India</button>
-          <button class="category-chip" type="button" data-category="kampongglam"><span class="category-chip-icon">🎨</span>Kampong Glam</button>
-          <button class="category-chip" type="button" data-category="clarkequay"><span class="category-chip-icon">🌉</span>Clarke Quay</button>
-          <button class="category-chip" type="button" data-category="botanicgardens"><span class="category-chip-icon">🌿</span>Botanic Gardens</button>
-          <button class="category-chip" type="button" data-category="nationalgallery"><span class="category-chip-icon">🖼️</span>National Gallery</button>
-          <button class="category-chip" type="button" data-category="artsciencemuseum"><span class="category-chip-icon">🪷</span>ArtScience Museum</button>
-          <button class="category-chip" type="button" data-category="esplanade"><span class="category-chip-icon">🎭</span>Esplanade</button>
-          <button class="category-chip" type="button" data-category="hawparvilla"><span class="category-chip-icon">👹</span>Haw Par Villa</button>
-          <button class="category-chip" type="button" data-category="eastcoastpark"><span class="category-chip-icon">🏖️</span>East Coast Park</button>
+        <div id="categoryRow">
+          <div class="category-row-label">Nearby</div>
+          <div class="category-row">
+            <button class="category-chip" type="button" data-category="food"><span class="category-chip-icon">🍽️</span>Food</button>
+            <button class="category-chip" type="button" data-category="carpark"><span class="category-chip-icon">🅿️</span>Carpark</button>
+            <button class="category-chip" type="button" data-category="coffee"><span class="category-chip-icon">☕</span>Coffee</button>
+            <button class="category-chip" type="button" data-category="groceries"><span class="category-chip-icon">🛒</span>Groceries</button>
+            <button class="category-chip" type="button" data-category="shopping"><span class="category-chip-icon">🏬</span>Shopping</button>
+            <button class="category-chip" type="button" data-category="pharmacy"><span class="category-chip-icon">💊</span>Pharmacy</button>
+            <button class="category-chip" type="button" data-category="hospital"><span class="category-chip-icon">🏥</span>Hospital</button>
+            <button class="category-chip" type="button" data-category="police"><span class="category-chip-icon">👮</span>Police</button>
+            <button class="category-chip" type="button" data-category="hotel"><span class="category-chip-icon">🏨</span>Hotel</button>
+            <button class="category-chip" type="button" data-category="park"><span class="category-chip-icon">🌳</span>Park</button>
+            <button class="category-chip" type="button" data-category="vets"><span class="category-chip-icon">🐾</span>Vets</button>
+            <button class="category-chip" type="button" data-category="toilets"><span class="category-chip-icon">🚻</span>Toilets</button>
+            <button class="category-chip" type="button" data-category="vegetarian"><span class="category-chip-icon">🥦</span>Vegetarian</button>
+            <button class="category-chip" type="button" data-category="halal"><span class="category-chip-icon">🍖</span>Halal</button>
+            <button class="category-chip" type="button" data-category="mosque"><span class="category-chip-icon">🕌</span>Mosque</button>
+            <button class="category-chip" type="button" data-category="church"><span class="category-chip-icon">⛪</span>Church</button>
+            <button class="category-chip" type="button" data-category="temple"><span class="category-chip-icon">🛕</span>Temple</button>
+            <button class="category-chip" type="button" data-category="moneychanger"><span class="category-chip-icon">💱</span>Money Changer</button>
+            <button class="category-chip" type="button" data-category="postoffice"><span class="category-chip-icon">📮</span>Post Office</button>
+            <button class="category-chip" type="button" data-category="library"><span class="category-chip-icon">📚</span>Library</button>
+            <button class="category-chip" type="button" data-category="laundromat"><span class="category-chip-icon">🧺</span>Laundromat</button>
+            <button class="category-chip" type="button" data-category="dogpark"><span class="category-chip-icon">🐕</span>Dog Park</button>
+          </div>
+          <div class="category-row-label">Attractions</div>
+          <div class="category-row">
+            <button class="category-chip" type="button" data-category="mbs"><span class="category-chip-icon">🎰</span>Marina Bay Sands</button>
+            <button class="category-chip" type="button" data-category="gardensbythebay"><span class="category-chip-icon">🌺</span>Gardens by the Bay</button>
+            <button class="category-chip" type="button" data-category="sentosa"><span class="category-chip-icon">🏝️</span>Sentosa Island</button>
+            <button class="category-chip" type="button" data-category="uss"><span class="category-chip-icon">🎢</span>Universal Studios</button>
+            <button class="category-chip" type="button" data-category="seaaquarium"><span class="category-chip-icon">🐠</span>S.E.A. Aquarium</button>
+            <button class="category-chip" type="button" data-category="jewelchangi"><span class="category-chip-icon">💧</span>Jewel Changi</button>
+            <button class="category-chip" type="button" data-category="merlionpark"><span class="category-chip-icon">🦁</span>Merlion Park</button>
+            <button class="category-chip" type="button" data-category="sgflyer"><span class="category-chip-icon">🎡</span>Singapore Flyer</button>
+            <button class="category-chip" type="button" data-category="sgzoo"><span class="category-chip-icon">🦓</span>Singapore Zoo</button>
+            <button class="category-chip" type="button" data-category="nightsafari"><span class="category-chip-icon">🌙</span>Night Safari</button>
+            <button class="category-chip" type="button" data-category="riverwonders"><span class="category-chip-icon">🐼</span>River Wonders</button>
+            <button class="category-chip" type="button" data-category="chinatown"><span class="category-chip-icon">🏮</span>Chinatown</button>
+            <button class="category-chip" type="button" data-category="littleindia"><span class="category-chip-icon">🪔</span>Little India</button>
+            <button class="category-chip" type="button" data-category="kampongglam"><span class="category-chip-icon">🎨</span>Kampong Glam</button>
+            <button class="category-chip" type="button" data-category="clarkequay"><span class="category-chip-icon">🌉</span>Clarke Quay</button>
+            <button class="category-chip" type="button" data-category="botanicgardens"><span class="category-chip-icon">🌿</span>Botanic Gardens</button>
+            <button class="category-chip" type="button" data-category="nationalgallery"><span class="category-chip-icon">🖼️</span>National Gallery</button>
+            <button class="category-chip" type="button" data-category="artsciencemuseum"><span class="category-chip-icon">🪷</span>ArtScience Museum</button>
+            <button class="category-chip" type="button" data-category="esplanade"><span class="category-chip-icon">🎭</span>Esplanade</button>
+            <button class="category-chip" type="button" data-category="hawparvilla"><span class="category-chip-icon">👹</span>Haw Par Villa</button>
+            <button class="category-chip" type="button" data-category="eastcoastpark"><span class="category-chip-icon">🏖️</span>East Coast Park</button>
+          </div>
         </div>
         <ul id="searchResults" class="result-list"></ul>
 

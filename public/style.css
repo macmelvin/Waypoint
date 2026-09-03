@@ -350,10 +350,19 @@ html, body {
 .result-list li.r-loading { cursor: default; color: var(--muted); }
 .result-list li.r-loading:hover { background: none; }
 
+.category-row-label {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin: 10px 0 4px;
+}
+.category-row-label:first-child { margin-top: 4px; }
 .category-row {
   display: flex;
   gap: 8px;
-  margin: 10px 0;
+  margin: 0 0 4px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 2px;
