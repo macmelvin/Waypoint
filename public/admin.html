@@ -72,6 +72,16 @@
       <div id="createStatus" style="color:#f87171;font-size:13px;margin-top:8px;"></div>
     </div>
     <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-weight:600;font-size:14px">Revoke everyone</div>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">Kicks out everyone currently using the app, including old sessions already in — not just new visitors. Each person needs a fresh link afterward.</div>
+        </div>
+        <button class="danger" onclick="revokeAll()" style="white-space:nowrap">Revoke All</button>
+      </div>
+      <div id="revokeAllStatus" style="color:#f87171;font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div class="card">
       <div id="list"><div class="empty">Loading…</div></div>
     </div>
   </div>
@@ -182,6 +192,21 @@ async function deleteInvite(id) {
     loadInvites();
   } catch (err) {
     alert(err.message);
+  }
+}
+
+async function revokeAll() {
+  if (!confirm('Revoke every invite? Everyone currently using the app — including people already past the gate — will be locked out immediately. You\'ll need to send everyone a fresh link.')) return;
+  const statusEl = document.getElementById('revokeAllStatus');
+  statusEl.textContent = '';
+  try {
+    const { revoked } = await api('/api/admin/invites/revoke-all', { method: 'POST' });
+    statusEl.style.color = '#4ade80';
+    statusEl.textContent = `Revoked ${revoked} invite(s).`;
+    loadInvites();
+  } catch (err) {
+    statusEl.style.color = '#f87171';
+    statusEl.textContent = err.message;
   }
 }
 

@@ -277,6 +277,22 @@ app.delete('/api/admin/invites/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// Kicks everyone out at once — revokes every invite in one shot. Since the
+// gate re-checks the live invite list on every request (not just at login),
+// this takes effect immediately for anyone already using the app, not just
+// new visitors. Each person needs a fresh invite link afterward.
+app.post('/api/admin/invites/revoke-all', requireAdmin, (req, res) => {
+  let count = 0;
+  for (const inv of invites) {
+    if (inv.active) {
+      inv.active = false;
+      count += 1;
+    }
+  }
+  if (count) saveInvites();
+  res.json({ ok: true, revoked: count });
+});
+
 // Express's static middleware ignores dotfiles (like .well-known) by
 // default, which would 404 the Android app's Digital Asset Links file —
 // serve that one path explicitly before the catch-all static handler.
