@@ -485,6 +485,12 @@ const LANDMARKS = {
   // The Second Link crossing into Johor — better for Legoland/Puteri
   // Harbour or avoiding Causeway jams.
   tuascheckpoint: { label: 'Tuas Checkpoint (2nd Link)', address: '1 Jalan Tukang, Singapore 638357', lat: 1.34740, lon: 103.63670 },
+  // ICA's main HQ building (Kallang) — passport/IC renewal, PR/EP/S Pass
+  // applications, etc. Distinct from the two border checkpoints above.
+  icabuilding: { label: 'ICA Building', address: '10 Kallang Rd, Singapore 208718', lat: 1.30570, lon: 103.86310 },
+  // MOM Services Centre (Bendemeer) — work pass applications/renewals,
+  // employment disputes/claims, foreign worker matters, etc.
+  momservices: { label: 'MOM Services Centre', address: '1500 Bendemeer Rd, Singapore 339946', lat: 1.326422, lon: 103.869041 },
 };
 
 document.querySelectorAll('.category-chip').forEach((btn) => {
