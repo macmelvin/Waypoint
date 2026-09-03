@@ -254,6 +254,11 @@ const CATEGORY_LABELS = {
   shopping: 'mall',
   hotel: 'hotel',
   park: 'park',
+  vets: 'vet',
+  toilets: 'toilet',
+  vegetarian: 'vegetarian-friendly restaurant',
+  halal: 'halal restaurant',
+  mosque: 'mosque',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -272,6 +277,16 @@ const CATEGORY_OSM_TAGS = {
   shopping: { key: 'shop', tags: ['mall', 'department_store'] },
   hotel: { key: 'tourism', tags: ['hotel'] },
   park: { key: 'leisure', tags: ['park'] },
+  vets: { key: 'amenity', tags: ['veterinary'] },
+  toilets: { key: 'amenity', tags: ['toilets'] },
+  // Vegetarian/halal aren't their own OSM place types — they're food places
+  // (restaurant/cafe/fast_food) additionally tagged diet:vegetarian or
+  // diet:halal = yes|only. extraKey/extraValue adds that second required tag
+  // on top of the normal amenity filter (see buildCategoryOverpassQuery).
+  vegetarian: { key: 'amenity', tags: ['restaurant', 'cafe', 'fast_food'], extraKey: 'diet:vegetarian', extraValue: 'yes|only' },
+  halal: { key: 'amenity', tags: ['restaurant', 'cafe', 'fast_food'], extraKey: 'diet:halal', extraValue: 'yes|only' },
+  // Mosques are place_of_worship + religion=muslim.
+  mosque: { key: 'amenity', tags: ['place_of_worship'], extraKey: 'religion', extraValue: 'muslim' },
 };
 // Tried in order — start close (keeps dense categories like food/coffee
 // genuinely local), then widen automatically for sparse categories that
@@ -282,10 +297,14 @@ const CATEGORY_OSM_TAGS = {
 const CATEGORY_SEARCH_RADII_M = [1000, 3000, 6000];
 const OVERPASS_HOSTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 
-function buildCategoryOverpassQuery({ key, tags }, lat, lon, radius) {
+function buildCategoryOverpassQuery({ key, tags, extraKey, extraValue }, lat, lon, radius) {
   const filter = tags.length === 1 ? `["${key}"="${tags[0]}"]` : `["${key}"~"^(${tags.join('|')})$"]`;
+  // A second bracket filter chains as AND in Overpass QL, so this narrows
+  // e.g. "restaurant" down to "restaurant AND diet:vegetarian is yes/only",
+  // or "place_of_worship" down to "place_of_worship AND religion=muslim".
+  const extraFilter = extraKey ? `["${extraKey}"~"^(${extraValue})$"]` : '';
   const around = `(around:${radius},${lat},${lon})`;
-  return `[out:json][timeout:20];(node${filter}${around};way${filter}${around};relation${filter}${around};);out center tags 40;`;
+  return `[out:json][timeout:20];(node${filter}${extraFilter}${around};way${filter}${extraFilter}${around};relation${filter}${extraFilter}${around};);out center tags 40;`;
 }
 
 async function fetchFromOverpass(query) {
