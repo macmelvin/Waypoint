@@ -457,6 +457,26 @@ function searchNearbyCategory(category) {
 // as picking a normal search result.
 const LANDMARKS = {
   mbs: { label: 'Marina Bay Sands', address: '10 Bayfront Ave, Singapore 018956', lat: 1.283927, lon: 103.860535 },
+  gardensbythebay: { label: 'Gardens by the Bay', address: '18 Marina Gardens Dr, Singapore 018953', lat: 1.28160, lon: 103.86360 },
+  sentosa: { label: 'Sentosa Island', address: 'Sentosa Gateway, Singapore', lat: 1.24940, lon: 103.83030 },
+  uss: { label: 'Universal Studios Singapore', address: '8 Sentosa Gateway, Singapore 098269', lat: 1.25400, lon: 103.82380 },
+  seaaquarium: { label: 'S.E.A. Aquarium', address: '8 Sentosa Gateway, Singapore 098269', lat: 1.25780, lon: 103.82030 },
+  jewelchangi: { label: 'Jewel Changi Airport', address: '78 Airport Blvd, Singapore 819666', lat: 1.36030, lon: 103.98950 },
+  merlionpark: { label: 'Merlion Park', address: '1 Fullerton Rd, Singapore 049213', lat: 1.28680, lon: 103.85450 },
+  sgflyer: { label: 'Singapore Flyer', address: '30 Raffles Ave, Singapore 039803', lat: 1.28930, lon: 103.86320 },
+  sgzoo: { label: 'Singapore Zoo', address: '80 Mandai Lake Rd, Singapore 729826', lat: 1.40430, lon: 103.79300 },
+  nightsafari: { label: 'Night Safari', address: '80 Mandai Lake Rd, Singapore 729826', lat: 1.40226, lon: 103.78789 },
+  riverwonders: { label: 'River Wonders', address: '80 Mandai Lake Rd, Singapore 729826', lat: 1.40378, lon: 103.79414 },
+  chinatown: { label: 'Chinatown', address: 'Chinatown, Singapore', lat: 1.28120, lon: 103.84430 },
+  littleindia: { label: 'Little India', address: 'Little India, Singapore', lat: 1.30670, lon: 103.85180 },
+  kampongglam: { label: 'Kampong Glam', address: 'Kampong Glam, Singapore', lat: 1.30210, lon: 103.85900 },
+  clarkequay: { label: 'Clarke Quay', address: '3 River Valley Rd, Singapore 179024', lat: 1.28840, lon: 103.84650 },
+  botanicgardens: { label: 'Singapore Botanic Gardens', address: '1 Cluny Rd, Singapore 259569', lat: 1.31380, lon: 103.81590 },
+  nationalgallery: { label: 'National Gallery Singapore', address: "1 St Andrew's Rd, Singapore 178957", lat: 1.29030, lon: 103.85170 },
+  artsciencemuseum: { label: 'ArtScience Museum', address: '6 Bayfront Ave, Singapore 018974', lat: 1.28620, lon: 103.85930 },
+  esplanade: { label: 'Esplanade', address: '1 Esplanade Dr, Singapore 038981', lat: 1.28970, lon: 103.85580 },
+  hawparvilla: { label: 'Haw Par Villa', address: '262 Pasir Panjang Rd, Singapore 118628', lat: 1.28220, lon: 103.78150 },
+  eastcoastpark: { label: 'East Coast Park', address: 'East Coast Park, Singapore', lat: 1.30160, lon: 103.91240 },
 };
 
 document.querySelectorAll('.category-chip').forEach((btn) => {
