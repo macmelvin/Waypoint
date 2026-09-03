@@ -507,14 +507,15 @@ document.querySelectorAll('.category-chip').forEach((btn) => {
 
 // ---------- Language (UI chrome only) ----------
 // Covers the app's own buttons/labels/menus and all category+landmark chip
-// names — Singapore's four official languages. Search results themselves
-// (restaurant names, street addresses from OneMap/OSM/LTA, turn-by-turn
-// voice instructions, live weather/traffic text) come from those upstream
-// sources as-is and aren't translated here.
+// names — Singapore's four official languages, plus Japanese and Korean for
+// two of Singapore's fastest-growing visitor markets. Search results
+// themselves (restaurant names, street addresses from OneMap/OSM/LTA,
+// turn-by-turn voice instructions, live weather/traffic text) come from
+// those upstream sources as-is and aren't translated here.
 const LANG_STORAGE_KEY = 'wp_lang';
-const LANG_CYCLE = ['en', 'zh', 'ms', 'ta'];
-const LANG_SHORT = { en: 'EN', zh: '中文', ms: 'BM', ta: 'TA' };
-const LANG_HTML_TAG = { en: 'en', zh: 'zh-Hans', ms: 'ms', ta: 'ta' };
+const LANG_CYCLE = ['en', 'zh', 'ms', 'ta', 'ja', 'ko'];
+const LANG_SHORT = { en: 'EN', zh: '中文', ms: 'BM', ta: 'TA', ja: '日本語', ko: '한국어' };
+const LANG_HTML_TAG = { en: 'en', zh: 'zh-Hans', ms: 'ms', ta: 'ta', ja: 'ja', ko: 'ko' };
 
 let currentLang = 'en';
 try {
@@ -607,59 +608,101 @@ const I18N = {
     install_banner_text: '📲 விரைவு அணுகலுக்காக Waypoint-ஐ உங்கள் முகப்புத் திரையில் சேர்க்கவும்', install: 'நிறுவு', not_now: 'இப்போது வேண்டாம்',
     dismiss: 'மூடு',
   },
+  ja: {
+    tab_search: '検索', tab_directions: 'ルート', tab_bus: '🚌 バス到着時刻',
+    notify_title: '電車・交通情報の通知をオンにする', where_am_i: '現在地',
+    offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
+    search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
+    category_nearby: '近く', category_attractions: '観光スポット',
+    directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
+    set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
+    hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
+    quick_home: '🏠 自宅', quick_work: '💼 職場',
+    dir_from_placeholder: '出発地 — 郵便番号、住所、または場所', dir_to_placeholder: '目的地 — 郵便番号、住所、または場所',
+    swap: '入れ替え', mode_drive: '車', mode_transit: 'バス / MRT', mode_cycle: '自転車', mode_walk: '徒歩',
+    get_directions: 'ルートを取得', start_navigation: '▶️ ナビ開始',
+    car_parked: '駐車済み', tap_to_walk_back: '下をタップして車まで歩いて戻る', walk_to_car: '車まで歩く',
+    save_parking: '🅿️ 駐車位置を保存', nearby_stops: '📍 近くのバス停',
+    fav_search_placeholder: 'バス停を追加 — 番号または名前…',
+    fav_empty_hint: '上でバス停を検索して追加すると、いつでもリアルタイムの到着時刻を確認できます — 先にルートを計画する必要はありません。',
+    share_footer: '💙 便利だと思ったらこのアプリをシェアしてください', support_footer: '☕ コーヒーをおごる — Waypointの運営を支援',
+    install_banner_text: '📲 Waypointをホーム画面に追加してすぐにアクセス', install: 'インストール', not_now: '今はしない',
+    dismiss: '閉じる',
+  },
+  ko: {
+    tab_search: '검색', tab_directions: '길찾기', tab_bus: '🚌 버스 도착 시간',
+    notify_title: '열차/교통 알림 켜기', where_am_i: '내 위치',
+    offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
+    search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
+    category_nearby: '주변', category_attractions: '관광명소',
+    directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
+    set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
+    hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
+    quick_home: '🏠 집', quick_work: '💼 직장',
+    dir_from_placeholder: '출발지 — 우편번호, 주소 또는 장소', dir_to_placeholder: '도착지 — 우편번호, 주소 또는 장소',
+    swap: '전환', mode_drive: '운전', mode_transit: '버스 / MRT', mode_cycle: '자전거', mode_walk: '도보',
+    get_directions: '경로 가져오기', start_navigation: '▶️ 내비게이션 시작',
+    car_parked: '주차됨', tap_to_walk_back: '아래를 탭하여 차로 걸어서 돌아가기', walk_to_car: '내 차로 걸어가기',
+    save_parking: '🅿️ 주차 위치 저장', nearby_stops: '📍 근처 정류장',
+    fav_search_placeholder: '버스 정류장 추가 — 번호 또는 이름…',
+    fav_empty_hint: '위에서 버스 정류장을 검색해 추가하면 언제든지 실시간 도착 정보를 확인할 수 있습니다 — 먼저 경로를 계획할 필요가 없습니다.',
+    share_footer: '💙 유용하다면 이 앱을 공유해 주세요', support_footer: '☕ 커피 한 잔 사주세요 — Waypoint 운영에 도움이 됩니다',
+    install_banner_text: '📲 빠른 접근을 위해 Waypoint를 홈 화면에 추가하세요', install: '설치', not_now: '나중에',
+    dismiss: '닫기',
+  },
 };
 
 // Chip label translations, keyed by data-category. English values here match
 // what's already hardcoded in index.html (used as the fallback / source of
 // truth when a key is somehow missing from a language).
 const CHIP_I18N = {
-  food: { en: 'Food', zh: '美食', ms: 'Makanan', ta: 'உணவு' },
-  carpark: { en: 'Carpark', zh: '停车场', ms: 'Tempat Letak Kereta', ta: 'கார் பார்க்கிங்' },
-  coffee: { en: 'Coffee', zh: '咖啡', ms: 'Kopi', ta: 'காபி' },
-  groceries: { en: 'Groceries', zh: '杂货店', ms: 'Barangan Runcit', ta: 'மளிகை' },
-  shopping: { en: 'Shopping', zh: '购物中心', ms: 'Membeli-belah', ta: 'ஷாப்பிங்' },
-  pharmacy: { en: 'Pharmacy', zh: '药店', ms: 'Farmasi', ta: 'மருந்தகம்' },
-  hospital: { en: 'Hospital', zh: '医院', ms: 'Hospital', ta: 'மருத்துவமனை' },
-  police: { en: 'Police', zh: '警察局', ms: 'Balai Polis', ta: 'காவல் நிலையம்' },
-  hotel: { en: 'Hotel', zh: '酒店', ms: 'Hotel', ta: 'ஹோட்டல்' },
-  park: { en: 'Park', zh: '公园', ms: 'Taman', ta: 'பூங்கா' },
-  vets: { en: 'Vets', zh: '兽医', ms: 'Doktor Haiwan', ta: 'கால்நடை மருத்துவர்' },
-  toilets: { en: 'Toilets', zh: '洗手间', ms: 'Tandas', ta: 'கழிப்பறை' },
-  vegetarian: { en: 'Vegetarian', zh: '素食', ms: 'Vegetarian', ta: 'சைவம்' },
-  halal: { en: 'Halal', zh: '清真', ms: 'Halal', ta: 'ஹலால்' },
-  mosque: { en: 'Mosque', zh: '清真寺', ms: 'Masjid', ta: 'மசூதி' },
-  church: { en: 'Church', zh: '教堂', ms: 'Gereja', ta: 'தேவாலயம்' },
-  temple: { en: 'Temple', zh: '庙宇', ms: 'Kuil', ta: 'கோவில்' },
-  moneychanger: { en: 'Money Changer', zh: '找换店', ms: 'Penukar Wang', ta: 'பண மாற்று நிலையம்' },
-  postoffice: { en: 'Post Office', zh: '邮局', ms: 'Pejabat Pos', ta: 'அஞ்சல் அலுவலகம்' },
-  library: { en: 'Library', zh: '图书馆', ms: 'Perpustakaan', ta: 'நூலகம்' },
-  laundromat: { en: 'Laundromat', zh: '自助洗衣店', ms: 'Dobi Layan Diri', ta: 'சலவை நிலையம்' },
-  dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா' },
-  mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்' },
-  gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே' },
-  sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு' },
-  uss: { en: 'Universal Studios', zh: '环球影城', ms: 'Universal Studios', ta: 'யுனிவர்சல் ஸ்டுடியோஸ்' },
-  seaaquarium: { en: 'S.E.A. Aquarium', zh: '星耀水族馆', ms: 'Akuarium S.E.A.', ta: 'எஸ்.இ.ஏ. மீன்காட்சியகம்' },
-  jewelchangi: { en: 'Jewel Changi', zh: '星耀樟宜', ms: 'Jewel Changi', ta: 'ஜூவல் சாங்கி' },
-  merlionpark: { en: 'Merlion Park', zh: '鱼尾狮公园', ms: 'Taman Merlion', ta: 'மெர்லயன் பூங்கா' },
-  sgflyer: { en: 'Singapore Flyer', zh: '新加坡摩天观景轮', ms: 'Singapore Flyer', ta: 'சிங்கப்பூர் ஃபிளையர்' },
-  sgzoo: { en: 'Singapore Zoo', zh: '新加坡动物园', ms: 'Zoo Singapura', ta: 'சிங்கப்பூர் உயிரியல் பூங்கா' },
-  nightsafari: { en: 'Night Safari', zh: '夜间野生动物园', ms: 'Night Safari', ta: 'நைட் சஃபாரி' },
-  riverwonders: { en: 'River Wonders', zh: '河川生态园', ms: 'River Wonders', ta: 'ரிவர் வண்டர்ஸ்' },
-  chinatown: { en: 'Chinatown', zh: '牛车水', ms: 'Chinatown', ta: 'சைனாடவுன்' },
-  littleindia: { en: 'Little India', zh: '小印度', ms: 'Little India', ta: 'லிட்டில் இந்தியா' },
-  kampongglam: { en: 'Kampong Glam', zh: '甘榜格南', ms: 'Kampung Glam', ta: 'கம்போங் கிளாம்' },
-  clarkequay: { en: 'Clarke Quay', zh: '克拉码头', ms: 'Clarke Quay', ta: 'கிளார்க் கீ' },
-  botanicgardens: { en: 'Botanic Gardens', zh: '植物园', ms: 'Kebun Botani', ta: 'தாவரவியல் பூங்கா' },
-  nationalgallery: { en: 'National Gallery', zh: '国家美术馆', ms: 'Galeri Negara', ta: 'தேசிய கேலரி' },
-  artsciencemuseum: { en: 'ArtScience Museum', zh: '艺术科学博物馆', ms: 'Muzium ArtScience', ta: 'ஆர்ட்சயின்ஸ் அருங்காட்சியகம்' },
-  esplanade: { en: 'Esplanade', zh: '滨海艺术中心', ms: 'Esplanade', ta: 'எஸ்பிளனேட்' },
-  hawparvilla: { en: 'Haw Par Villa', zh: '虎豹别墅', ms: 'Haw Par Villa', ta: 'ஹா பார் வில்லா' },
-  eastcoastpark: { en: 'East Coast Park', zh: '东海岸公园', ms: 'Taman Pantai Timur', ta: 'கிழக்குக் கடற்கரைப் பூங்கா' },
-  woodlandscheckpoint: { en: 'To JB (Causeway)', zh: '前往新山（长堤）', ms: 'Ke JB (Tambak)', ta: 'ஜேபிக்கு (காஸ்வே)' },
-  tuascheckpoint: { en: 'To JB (2nd Link)', zh: '前往新山（第二通道）', ms: 'Ke JB (Laluan Kedua)', ta: 'ஜேபிக்கு (2வது இணைப்பு)' },
-  icabuilding: { en: 'ICA Building', zh: '移民与关卡局大厦', ms: 'Bangunan ICA', ta: 'ஐசிஏ கட்டிடம்' },
-  momservices: { en: 'MOM Services', zh: '人力部服务中心', ms: 'Perkhidmatan KSM', ta: 'MOM சேவைகள்' },
+  food: { en: 'Food', zh: '美食', ms: 'Makanan', ta: 'உணவு', ja: '食事', ko: '음식점' },
+  carpark: { en: 'Carpark', zh: '停车场', ms: 'Tempat Letak Kereta', ta: 'கார் பார்க்கிங்', ja: '駐車場', ko: '주차장' },
+  coffee: { en: 'Coffee', zh: '咖啡', ms: 'Kopi', ta: 'காபி', ja: 'カフェ', ko: '카페' },
+  groceries: { en: 'Groceries', zh: '杂货店', ms: 'Barangan Runcit', ta: 'மளிகை', ja: 'スーパー', ko: '마트' },
+  shopping: { en: 'Shopping', zh: '购物中心', ms: 'Membeli-belah', ta: 'ஷாப்பிங்', ja: 'ショッピング', ko: '쇼핑' },
+  pharmacy: { en: 'Pharmacy', zh: '药店', ms: 'Farmasi', ta: 'மருந்தகம்', ja: '薬局', ko: '약국' },
+  hospital: { en: 'Hospital', zh: '医院', ms: 'Hospital', ta: 'மருத்துவமனை', ja: '病院', ko: '병원' },
+  police: { en: 'Police', zh: '警察局', ms: 'Balai Polis', ta: 'காவல் நிலையம்', ja: '警察署', ko: '경찰서' },
+  hotel: { en: 'Hotel', zh: '酒店', ms: 'Hotel', ta: 'ஹோட்டல்', ja: 'ホテル', ko: '호텔' },
+  park: { en: 'Park', zh: '公园', ms: 'Taman', ta: 'பூங்கா', ja: '公園', ko: '공원' },
+  vets: { en: 'Vets', zh: '兽医', ms: 'Doktor Haiwan', ta: 'கால்நடை மருத்துவர்', ja: '動物病院', ko: '동물병원' },
+  toilets: { en: 'Toilets', zh: '洗手间', ms: 'Tandas', ta: 'கழிப்பறை', ja: 'トイレ', ko: '화장실' },
+  vegetarian: { en: 'Vegetarian', zh: '素食', ms: 'Vegetarian', ta: 'சைவம்', ja: 'ベジタリアン', ko: '채식' },
+  halal: { en: 'Halal', zh: '清真', ms: 'Halal', ta: 'ஹலால்', ja: 'ハラール', ko: '할랄' },
+  mosque: { en: 'Mosque', zh: '清真寺', ms: 'Masjid', ta: 'மசூதி', ja: 'モスク', ko: '모스크' },
+  church: { en: 'Church', zh: '教堂', ms: 'Gereja', ta: 'தேவாலயம்', ja: '教会', ko: '교회' },
+  temple: { en: 'Temple', zh: '庙宇', ms: 'Kuil', ta: 'கோவில்', ja: '寺院', ko: '사원' },
+  moneychanger: { en: 'Money Changer', zh: '找换店', ms: 'Penukar Wang', ta: 'பண மாற்று நிலையம்', ja: '両替所', ko: '환전소' },
+  postoffice: { en: 'Post Office', zh: '邮局', ms: 'Pejabat Pos', ta: 'அஞ்சல் அலுவலகம்', ja: '郵便局', ko: '우체국' },
+  library: { en: 'Library', zh: '图书馆', ms: 'Perpustakaan', ta: 'நூலகம்', ja: '図書館', ko: '도서관' },
+  laundromat: { en: 'Laundromat', zh: '自助洗衣店', ms: 'Dobi Layan Diri', ta: 'சலவை நிலையம்', ja: 'コインランドリー', ko: '빨래방' },
+  dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா', ja: 'ドッグパーク', ko: '반려견 공원' },
+  mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
+  gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
+  sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு', ja: 'セントーサ島', ko: '센토사 섬' },
+  uss: { en: 'Universal Studios', zh: '环球影城', ms: 'Universal Studios', ta: 'யுனிவர்சல் ஸ்டுடியோஸ்', ja: 'ユニバーサル・スタジオ', ko: '유니버설 스튜디오' },
+  seaaquarium: { en: 'S.E.A. Aquarium', zh: '星耀水族馆', ms: 'Akuarium S.E.A.', ta: 'எஸ்.இ.ஏ. மீன்காட்சியகம்', ja: 'S.E.A.アクアリウム', ko: 'S.E.A. 아쿠아리움' },
+  jewelchangi: { en: 'Jewel Changi', zh: '星耀樟宜', ms: 'Jewel Changi', ta: 'ஜூவல் சாங்கி', ja: 'ジュエル・チャンギ', ko: '주얼 창이' },
+  merlionpark: { en: 'Merlion Park', zh: '鱼尾狮公园', ms: 'Taman Merlion', ta: 'மெர்லயன் பூங்கா', ja: 'マーライオン公園', ko: '멀라이언 파크' },
+  sgflyer: { en: 'Singapore Flyer', zh: '新加坡摩天观景轮', ms: 'Singapore Flyer', ta: 'சிங்கப்பூர் ஃபிளையர்', ja: 'シンガポール・フライヤー', ko: '싱가포르 플라이어' },
+  sgzoo: { en: 'Singapore Zoo', zh: '新加坡动物园', ms: 'Zoo Singapura', ta: 'சிங்கப்பூர் உயிரியல் பூங்கா', ja: 'シンガポール動物園', ko: '싱가포르 동물원' },
+  nightsafari: { en: 'Night Safari', zh: '夜间野生动物园', ms: 'Night Safari', ta: 'நைட் சஃபாரி', ja: 'ナイトサファリ', ko: '나이트 사파리' },
+  riverwonders: { en: 'River Wonders', zh: '河川生态园', ms: 'River Wonders', ta: 'ரிவர் வண்டர்ஸ்', ja: 'リバー・ワンダーズ', ko: '리버 원더스' },
+  chinatown: { en: 'Chinatown', zh: '牛车水', ms: 'Chinatown', ta: 'சைனாடவுன்', ja: 'チャイナタウン', ko: '차이나타운' },
+  littleindia: { en: 'Little India', zh: '小印度', ms: 'Little India', ta: 'லிட்டில் இந்தியா', ja: 'リトルインディア', ko: '리틀 인디아' },
+  kampongglam: { en: 'Kampong Glam', zh: '甘榜格南', ms: 'Kampung Glam', ta: 'கம்போங் கிளாம்', ja: 'カンポングラム', ko: '캄퐁글램' },
+  clarkequay: { en: 'Clarke Quay', zh: '克拉码头', ms: 'Clarke Quay', ta: 'கிளார்க் கீ', ja: 'クラークキー', ko: '클락키' },
+  botanicgardens: { en: 'Botanic Gardens', zh: '植物园', ms: 'Kebun Botani', ta: 'தாவரவியல் பூங்கா', ja: 'シンガポール植物園', ko: '보타닉 가든' },
+  nationalgallery: { en: 'National Gallery', zh: '国家美术馆', ms: 'Galeri Negara', ta: 'தேசிய கேலரி', ja: 'ナショナルギャラリー', ko: '내셔널 갤러리' },
+  artsciencemuseum: { en: 'ArtScience Museum', zh: '艺术科学博物馆', ms: 'Muzium ArtScience', ta: 'ஆர்ட்சயின்ஸ் அருங்காட்சியகம்', ja: 'アートサイエンス・ミュージアム', ko: '아트사이언스 뮤지엄' },
+  esplanade: { en: 'Esplanade', zh: '滨海艺术中心', ms: 'Esplanade', ta: 'எஸ்பிளனேட்', ja: 'エスプラネード', ko: '에스플러네이드' },
+  hawparvilla: { en: 'Haw Par Villa', zh: '虎豹别墅', ms: 'Haw Par Villa', ta: 'ஹா பார் வில்லா', ja: 'ホーパー・ヴィラ', ko: '호파빌라' },
+  eastcoastpark: { en: 'East Coast Park', zh: '东海岸公园', ms: 'Taman Pantai Timur', ta: 'கிழக்குக் கடற்கரைப் பூங்கா', ja: 'イーストコーストパーク', ko: '이스트코스트 공원' },
+  woodlandscheckpoint: { en: 'To JB (Causeway)', zh: '前往新山（长堤）', ms: 'Ke JB (Tambak)', ta: 'ஜேபிக்கு (காஸ்வே)', ja: 'JBへ（コーズウェイ）', ko: 'JB로 (코즈웨이)' },
+  tuascheckpoint: { en: 'To JB (2nd Link)', zh: '前往新山（第二通道）', ms: 'Ke JB (Laluan Kedua)', ta: 'ஜேபிக்கு (2வது இணைப்பு)', ja: 'JBへ（第2リンク）', ko: 'JB로 (2번째 링크)' },
+  icabuilding: { en: 'ICA Building', zh: '移民与关卡局大厦', ms: 'Bangunan ICA', ta: 'ஐசிஏ கட்டிடம்', ja: 'ICAビル', ko: 'ICA 빌딩' },
+  momservices: { en: 'MOM Services', zh: '人力部服务中心', ms: 'Perkhidmatan KSM', ta: 'MOM சேவைகள்', ja: 'MOMサービスセンター', ko: 'MOM 서비스센터' },
 };
 
 function t(key) {
