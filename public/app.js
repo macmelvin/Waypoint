@@ -451,8 +451,23 @@ function searchNearbyCategory(category) {
   );
 }
 
+// A handful of chips are a single fixed landmark rather than "find the
+// nearest X near me" — tapping one jumps straight to that place (no GPS
+// fix needed first) using the same place-card + "Directions to here" flow
+// as picking a normal search result.
+const LANDMARKS = {
+  mbs: { label: 'Marina Bay Sands', address: '10 Bayfront Ave, Singapore 018956', lat: 1.283927, lon: 103.860535 },
+};
+
 document.querySelectorAll('.category-chip').forEach((btn) => {
-  btn.addEventListener('click', () => searchNearbyCategory(btn.dataset.category));
+  btn.addEventListener('click', () => {
+    const category = btn.dataset.category;
+    if (LANDMARKS[category]) {
+      selectSearchResult(LANDMARKS[category]);
+    } else {
+      searchNearbyCategory(category);
+    }
+  });
 });
 
 els.dirFromHere.addEventListener('click', () => {
