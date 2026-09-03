@@ -281,10 +281,14 @@ const CATEGORY_OSM_TAGS = {
   toilets: { key: 'amenity', tags: ['toilets'] },
   // Vegetarian/halal aren't their own OSM place types — they're food places
   // (restaurant/cafe/fast_food) additionally tagged diet:vegetarian or
-  // diet:halal = yes|only. extraKey/extraValue adds that second required tag
-  // on top of the normal amenity filter (see buildCategoryOverpassQuery).
-  vegetarian: { key: 'amenity', tags: ['restaurant', 'cafe', 'fast_food'], extraKey: 'diet:vegetarian', extraValue: 'yes|only' },
-  halal: { key: 'amenity', tags: ['restaurant', 'cafe', 'fast_food'], extraKey: 'diet:halal', extraValue: 'yes|only' },
+  // diet:halal. In OSM's diet:* scheme, "yes" only means "accommodates this
+  // diet" (e.g. a McDonald's with a veggie burger, a Western grill with one
+  // halal option) — it does NOT mean the place is actually a vegetarian/halal
+  // restaurant. Only "only" means every item served meets the diet, so that's
+  // what these chips need to avoid surfacing places that are mostly not
+  // vegetarian/halal at all.
+  vegetarian: { key: 'amenity', tags: ['restaurant', 'cafe', 'fast_food'], extraKey: 'diet:vegetarian', extraValue: 'only' },
+  halal: { key: 'amenity', tags: ['restaurant', 'cafe', 'fast_food'], extraKey: 'diet:halal', extraValue: 'only' },
   // Mosques are place_of_worship + religion=muslim.
   mosque: { key: 'amenity', tags: ['place_of_worship'], extraKey: 'religion', extraValue: 'muslim' },
 };
