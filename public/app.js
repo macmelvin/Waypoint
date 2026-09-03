@@ -477,6 +477,11 @@ const LANDMARKS = {
   esplanade: { label: 'Esplanade', address: '1 Esplanade Dr, Singapore 038981', lat: 1.28970, lon: 103.85580 },
   hawparvilla: { label: 'Haw Par Villa', address: '262 Pasir Panjang Rd, Singapore 118628', lat: 1.28220, lon: 103.78150 },
   eastcoastpark: { label: 'East Coast Park', address: 'East Coast Park, Singapore', lat: 1.30160, lon: 103.91240 },
+  // The Causeway crossing into Johor Bahru — routes here the same as any
+  // other landmark, then the app's own turn-by-turn takes over right up to
+  // the checkpoint gantries (actual immigration/customs clearance is of
+  // course outside anything a maps app can do).
+  woodlandscheckpoint: { label: 'Woodlands Checkpoint (JB Causeway)', address: 'Woodlands Checkpoint, Singapore 738099', lat: 1.44780, lon: 103.76910 },
 };
 
 document.querySelectorAll('.category-chip').forEach((btn) => {
