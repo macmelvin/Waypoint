@@ -482,6 +482,9 @@ const LANDMARKS = {
   // the checkpoint gantries (actual immigration/customs clearance is of
   // course outside anything a maps app can do).
   woodlandscheckpoint: { label: 'Woodlands Checkpoint (JB Causeway)', address: 'Woodlands Checkpoint, Singapore 738099', lat: 1.44780, lon: 103.76910 },
+  // The Second Link crossing into Johor — better for Legoland/Puteri
+  // Harbour or avoiding Causeway jams.
+  tuascheckpoint: { label: 'Tuas Checkpoint (2nd Link)', address: '1 Jalan Tukang, Singapore 638357', lat: 1.34740, lon: 103.63670 },
 };
 
 document.querySelectorAll('.category-chip').forEach((btn) => {
