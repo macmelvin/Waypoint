@@ -784,23 +784,6 @@ app.get('/api/transit-plan', async (req, res) => {
       return res.status(502).json({ error: 'Malformed response from transit router' });
     }
 
-    // TEMPORARY diagnostic: log OTP's raw, pre-dedup/pre-rank itinerary
-    // shapes so a reported "it's not routing me the way I expect" case can
-    // be checked against what OTP itself actually returned, rather than
-    // guessing whether the gap is in OTP's search or in this endpoint's own
-    // dedup/ranking below. Safe to remove once the Punggol LRT loop-transfer
-    // question is settled — this only logs a compact one-line summary per
-    // request, not full itinerary payloads.
-    console.log('transit-plan raw itineraries:', JSON.stringify((plan.itineraries || []).map((it) => ({
-      duration: it.duration,
-      legs: it.legs.map((l) => ({
-        summary: `${l.mode}${l.route ? ':' + (l.route.shortName || l.route.longName) : ''} ${l.from?.name || '?'}->${l.to?.name || '?'}`,
-        distance: l.distance,
-        fromLat: l.from?.lat, fromLon: l.from?.lon, fromStop: l.from?.stop?.code || l.from?.stop?.gtfsId || null,
-        toLat: l.to?.lat, toLon: l.to?.lon, toStop: l.to?.stop?.code || l.to?.stop?.gtfsId || null,
-      })),
-    }))));
-
     // Turn OTP's raw itinerary shape into this app's leg/itinerary format.
     // Shared by the primary (WALK+TRANSIT) query and the rail-only follow-up
     // query below, so both feed the same dedup/ranking pipeline.
