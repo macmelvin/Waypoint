@@ -793,7 +793,12 @@ app.get('/api/transit-plan', async (req, res) => {
     // request, not full itinerary payloads.
     console.log('transit-plan raw itineraries:', JSON.stringify((plan.itineraries || []).map((it) => ({
       duration: it.duration,
-      legs: it.legs.map((l) => `${l.mode}${l.route ? ':' + (l.route.shortName || l.route.longName) : ''} ${l.from?.name || '?'}->${l.to?.name || '?'}`),
+      legs: it.legs.map((l) => ({
+        summary: `${l.mode}${l.route ? ':' + (l.route.shortName || l.route.longName) : ''} ${l.from?.name || '?'}->${l.to?.name || '?'}`,
+        distance: l.distance,
+        fromLat: l.from?.lat, fromLon: l.from?.lon, fromStop: l.from?.stop?.code || l.from?.stop?.gtfsId || null,
+        toLat: l.to?.lat, toLon: l.to?.lon, toStop: l.to?.stop?.code || l.to?.stop?.gtfsId || null,
+      })),
     }))));
 
     const itineraries = (plan.itineraries || []).map((it) => {
