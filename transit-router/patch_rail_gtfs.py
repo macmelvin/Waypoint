@@ -355,6 +355,30 @@ def main():
                     continue
         return None
 
+    # Hardcoded, OneMap-verified coordinates for stations where the fuzzy
+    # bus-stop-name match below has been confirmed to land in the wrong
+    # place. Confirmed the hard way for Punggol: "NE17" doesn't exist
+    # natively in this feed, isn't a multi-line interchange by
+    # patch_rail_gtfs.py's own reckoning (LRT isn't in LINES — that's
+    # add_lrt_gtfs.py's job, run afterward), so find_station_coords()
+    # centroided over whatever bus stops happen to match "punggol" + a
+    # marker word — and that centroid landed ~700m from the real MRT
+    # interchange, near Sentul Crescent instead. Since add_lrt_gtfs.py then
+    # reuses this same minted stop as the shared hub for BOTH the East and
+    # West LRT loops (SGX_PUNGGOL), the mislocation silently broke every
+    # Punggol LRT loop-transfer itinerary: OTP had no reason to route someone
+    # through a second train when its own (wrong) data already put "Punggol"
+    # right next to wherever they were going. Sengkang shares the identical
+    # structural risk (same non-interchange-by-this-script, LRT-hub-reused
+    # pattern) so it gets the same treatment pre-emptively rather than
+    # waiting for its own live bug report. Coordinates match
+    # FALLBACK_INTERCHANGE_COORDS in add_lrt_gtfs.py — keep both in sync if
+    # either ever needs correcting.
+    STATION_COORD_OVERRIDES = {
+        "punggol": (1.40454672779, 103.902072638),
+        "sengkang": (1.3916946261, 103.895484694),
+    }
+
     # Figure out which canonical stations are missing, and mint one shared
     # stop_id per interchange key (always) or per genuinely-missing
     # non-interchange station (reused across every line that needs it) so
@@ -374,6 +398,8 @@ def main():
             if key in minted_stop_id:
                 continue
             coords = native_coords_for_key(key) if is_interchange else None
+            if coords is None:
+                coords = STATION_COORD_OVERRIDES.get(key)
             if coords is None:
                 coords = find_station_coords(stops, name)
             stop_id = f"SGX_{key.upper()}"
