@@ -156,6 +156,7 @@ LINES = {
         ("DT1", "bukit_panjang", "Bukit Panjang"),
         ("DT2", "cashew", "Cashew"),
         ("DT3", "hillview", "Hillview"),
+        ("DT4", "hume", "Hume"),
         ("DT5", "beauty_world", "Beauty World"),
         ("DT6", "king_albert_park", "King Albert Park"),
         ("DT7", "sixth_avenue", "Sixth Avenue"),
