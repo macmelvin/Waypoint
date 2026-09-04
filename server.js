@@ -784,6 +784,18 @@ app.get('/api/transit-plan', async (req, res) => {
       return res.status(502).json({ error: 'Malformed response from transit router' });
     }
 
+    // TEMPORARY diagnostic: log OTP's raw, pre-dedup/pre-rank itinerary
+    // shapes so a reported "it's not routing me the way I expect" case can
+    // be checked against what OTP itself actually returned, rather than
+    // guessing whether the gap is in OTP's search or in this endpoint's own
+    // dedup/ranking below. Safe to remove once the Punggol LRT loop-transfer
+    // question is settled — this only logs a compact one-line summary per
+    // request, not full itinerary payloads.
+    console.log('transit-plan raw itineraries:', JSON.stringify((plan.itineraries || []).map((it) => ({
+      duration: it.duration,
+      legs: it.legs.map((l) => `${l.mode}${l.route ? ':' + (l.route.shortName || l.route.longName) : ''} ${l.from?.name || '?'}->${l.to?.name || '?'}`),
+    }))));
+
     const itineraries = (plan.itineraries || []).map((it) => {
       const legs = it.legs.map((leg) => ({
         mode: otpModeToLabel(leg.mode),
