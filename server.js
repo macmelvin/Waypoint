@@ -801,99 +801,109 @@ app.get('/api/transit-plan', async (req, res) => {
       })),
     }))));
 
-    // TEMPORARY diagnostic (2nd query): re-ask OTP for the SAME origin/dest,
-    // but restricted to WALK+TRAM only (no bus/subway/rail-other), fired
-    // fire-and-forget so it never slows down or breaks the real response.
-    // This directly answers whether OTP's graph/search can produce an
-    // all-LRT itinerary (e.g. Meridian PE loop -> Punggol -> Sam Kee PW
-    // loop) AT ALL for this OD, independent of whether normal ranking
-    // against bus alternatives ever surfaces it. If this comes back empty
-    // or with a routingError, that's a graph/boarding problem, not a
-    // ranking/cost one. Safe to remove once the Punggol LRT loop-transfer
-    // question is settled.
-    (async () => {
-      try {
-        const railOnlyQuery = query.replace(
-          'transportModes: [{ mode: WALK }, { mode: TRANSIT }]',
-          'transportModes: [{ mode: WALK }, { mode: TRAM }]'
-        );
-        const railRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: railOnlyQuery,
-            variables: {
-              fromLat: parseFloat(fromLat),
-              fromLon: parseFloat(fromLon),
-              toLat: parseFloat(toLat),
-              toLon: parseFloat(toLon),
-            },
-          }),
-        });
-        const railBody = await railRes.json();
-        console.log('transit-plan RAIL-ONLY (WALK+TRAM) result:', JSON.stringify({
-          routingErrors: railBody?.data?.plan?.routingErrors || null,
-          itineraries: (railBody?.data?.plan?.itineraries || []).map((it) => ({
-            duration: it.duration,
-            legs: it.legs.map((l) => `${l.mode}${l.route ? ':' + (l.route.shortName || l.route.longName) : ''} ${l.from?.name || '?'}->${l.to?.name || '?'}`),
-          })),
-          errors: railBody?.errors || null,
+    // Turn OTP's raw itinerary shape into this app's leg/itinerary format.
+    // Shared by the primary (WALK+TRANSIT) query and the rail-only follow-up
+    // query below, so both feed the same dedup/ranking pipeline.
+    function shapeOtpItineraries(otpItineraries) {
+      return (otpItineraries || []).map((it) => {
+        const legs = it.legs.map((leg) => ({
+          mode: otpModeToLabel(leg.mode),
+          duration: leg.duration,
+          distance: leg.distance,
+          startTime: leg.startTime,
+          endTime: leg.endTime,
+          from: leg.from?.name,
+          fromLat: leg.from?.lat ?? null,
+          fromLon: leg.from?.lon ?? null,
+          fromStopCode: stopCode(leg.from?.stop),
+          to: leg.to?.name,
+          toLat: leg.to?.lat ?? null,
+          toLon: leg.to?.lon ?? null,
+          toStopCode: stopCode(leg.to?.stop),
+          routeName: leg.route ? (leg.route.shortName || leg.route.longName) : null,
+          routeColor: leg.route?.color || null,
+          routeTextColor: leg.route?.textColor || null,
+          headsign: leg.headsign || null,
+          geometry: leg.legGeometry?.points || null,
+          // Full boarding-to-alighting stop sequence (for the "Wake me up"
+          // live stop countdown) — only meaningful for bus/train legs; walk
+          // legs have no intermediateStops so this is just [from, to].
+          stops:
+            leg.mode === 'WALK'
+              ? null
+              : [
+                  { name: leg.from?.name, lat: leg.from?.lat ?? null, lon: leg.from?.lon ?? null },
+                  ...(leg.intermediateStops || []).map((s) => ({
+                    name: s.name,
+                    lat: s.lat,
+                    lon: s.lon,
+                  })),
+                  { name: leg.to?.name, lat: leg.to?.lat ?? null, lon: leg.to?.lon ?? null },
+                ],
         }));
-      } catch (railErr) {
-        console.warn('transit-plan RAIL-ONLY diagnostic query failed:', railErr.message);
-      }
-    })();
 
-    const itineraries = (plan.itineraries || []).map((it) => {
-      const legs = it.legs.map((leg) => ({
-        mode: otpModeToLabel(leg.mode),
-        duration: leg.duration,
-        distance: leg.distance,
-        startTime: leg.startTime,
-        endTime: leg.endTime,
-        from: leg.from?.name,
-        fromLat: leg.from?.lat ?? null,
-        fromLon: leg.from?.lon ?? null,
-        fromStopCode: stopCode(leg.from?.stop),
-        to: leg.to?.name,
-        toLat: leg.to?.lat ?? null,
-        toLon: leg.to?.lon ?? null,
-        toStopCode: stopCode(leg.to?.stop),
-        routeName: leg.route ? (leg.route.shortName || leg.route.longName) : null,
-        routeColor: leg.route?.color || null,
-        routeTextColor: leg.route?.textColor || null,
-        headsign: leg.headsign || null,
-        geometry: leg.legGeometry?.points || null,
-        // Full boarding-to-alighting stop sequence (for the "Wake me up"
-        // live stop countdown) — only meaningful for bus/train legs; walk
-        // legs have no intermediateStops so this is just [from, to].
-        stops:
-          leg.mode === 'WALK'
-            ? null
-            : [
-                { name: leg.from?.name, lat: leg.from?.lat ?? null, lon: leg.from?.lon ?? null },
-                ...(leg.intermediateStops || []).map((s) => ({
-                  name: s.name,
-                  lat: s.lat,
-                  lon: s.lon,
-                })),
-                { name: leg.to?.name, lat: leg.to?.lat ?? null, lon: leg.to?.lon ?? null },
-              ],
-      }));
+        const transitKm = legs
+          .filter((l) => l.mode !== 'walk')
+          .reduce((sum, l) => sum + (l.distance || 0), 0) / 1000;
 
-      const transitKm = legs
-        .filter((l) => l.mode !== 'walk')
-        .reduce((sum, l) => sum + (l.distance || 0), 0) / 1000;
+        return {
+          duration: it.duration,
+          startTime: it.startTime,
+          endTime: it.endTime,
+          walkDistance: it.walkDistance,
+          fareEstimate: transitKm > 0 ? estimateFareCents(transitKm) / 100 : null,
+          legs,
+        };
+      });
+    }
 
-      return {
-        duration: it.duration,
-        startTime: it.startTime,
-        endTime: it.endTime,
-        walkDistance: it.walkDistance,
-        fareEstimate: transitKm > 0 ? estimateFareCents(transitKm) / 100 : null,
-        legs,
-      };
-    });
+    // Second query, restricted to WALK+TRAM only, merged into the real
+    // results below (not just logged). Root cause, confirmed by direct
+    // testing: OTP's own combined WALK+TRANSIT search prunes some valid
+    // all-LRT itineraries — e.g. Meridian LRT (PE loop) -> Punggol ->
+    // Sam Kee LRT (PW loop) -> SAFRA — as "dominated" during its own search,
+    // before results are even collected. Raising numItineraries (12 -> 24)
+    // did NOT surface it: the combined search's internal RAPTOR pruning
+    // discards it during the search itself, not just at the final top-N cut,
+    // so no amount of asking for more results fixes it. Querying OTP a
+    // second time with only WALK+TRAM allowed sidesteps that pruning
+    // entirely (proven live: the exact Meridian->Punggol->Sam Kee itinerary
+    // comes back correctly, ~22min). Its results are merged into the same
+    // shape-dedup + rail-priority ranking as the primary query below, so a
+    // rail option this reveals only shows up if it's genuinely competitive
+    // — it doesn't override real bus-only alternatives that are actually
+    // faster. Wrapped in try/catch and never blocks the primary response:
+    // worst case (transit-router hiccup on the 2nd call) is just fewer
+    // alternatives shown, not a failed request.
+    let railOnlyOtpItineraries = [];
+    try {
+      const railOnlyQuery = query.replace(
+        'transportModes: [{ mode: WALK }, { mode: TRANSIT }]',
+        'transportModes: [{ mode: WALK }, { mode: TRAM }]'
+      );
+      const railRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: railOnlyQuery,
+          variables: {
+            fromLat: parseFloat(fromLat),
+            fromLon: parseFloat(fromLon),
+            toLat: parseFloat(toLat),
+            toLon: parseFloat(toLon),
+          },
+        }),
+      });
+      const railBody = await railRes.json();
+      railOnlyOtpItineraries = railBody?.data?.plan?.itineraries || [];
+    } catch (railErr) {
+      console.warn('transit-plan rail-only follow-up query failed (non-fatal):', railErr.message);
+    }
+
+    const itineraries = [
+      ...shapeOtpItineraries(plan.itineraries),
+      ...shapeOtpItineraries(railOnlyOtpItineraries),
+    ];
 
     // OTP can return several nearly-identical itineraries that differ only
     // by departure time (e.g. "Bus 168" three times over) — those eat up
