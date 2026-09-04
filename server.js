@@ -801,6 +801,49 @@ app.get('/api/transit-plan', async (req, res) => {
       })),
     }))));
 
+    // TEMPORARY diagnostic (2nd query): re-ask OTP for the SAME origin/dest,
+    // but restricted to WALK+TRAM only (no bus/subway/rail-other), fired
+    // fire-and-forget so it never slows down or breaks the real response.
+    // This directly answers whether OTP's graph/search can produce an
+    // all-LRT itinerary (e.g. Meridian PE loop -> Punggol -> Sam Kee PW
+    // loop) AT ALL for this OD, independent of whether normal ranking
+    // against bus alternatives ever surfaces it. If this comes back empty
+    // or with a routingError, that's a graph/boarding problem, not a
+    // ranking/cost one. Safe to remove once the Punggol LRT loop-transfer
+    // question is settled.
+    (async () => {
+      try {
+        const railOnlyQuery = query.replace(
+          'transportModes: [{ mode: WALK }, { mode: TRANSIT }]',
+          'transportModes: [{ mode: WALK }, { mode: TRAM }]'
+        );
+        const railRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: railOnlyQuery,
+            variables: {
+              fromLat: parseFloat(fromLat),
+              fromLon: parseFloat(fromLon),
+              toLat: parseFloat(toLat),
+              toLon: parseFloat(toLon),
+            },
+          }),
+        });
+        const railBody = await railRes.json();
+        console.log('transit-plan RAIL-ONLY (WALK+TRAM) result:', JSON.stringify({
+          routingErrors: railBody?.data?.plan?.routingErrors || null,
+          itineraries: (railBody?.data?.plan?.itineraries || []).map((it) => ({
+            duration: it.duration,
+            legs: it.legs.map((l) => `${l.mode}${l.route ? ':' + (l.route.shortName || l.route.longName) : ''} ${l.from?.name || '?'}->${l.to?.name || '?'}`),
+          })),
+          errors: railBody?.errors || null,
+        }));
+      } catch (railErr) {
+        console.warn('transit-plan RAIL-ONLY diagnostic query failed:', railErr.message);
+      }
+    })();
+
     const itineraries = (plan.itineraries || []).map((it) => {
       const legs = it.legs.map((leg) => ({
         mode: otpModeToLabel(leg.mode),
