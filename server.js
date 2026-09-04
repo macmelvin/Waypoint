@@ -419,6 +419,28 @@ async function fetchNominatimResults(q) {
   }
 }
 
+// A named institution ("SAFRA Punggol", "Punggol Regional Library") is
+// exactly what OneMap's official building index is best at — but the
+// default ranking below still puts any Nominatim hit tagged as a POI ahead
+// of it, on the assumption that a POI-classified OSM node is a real,
+// accurately-placed storefront. That assumption broke for "Punggol Safra":
+// OSM has no matching POI there at all, so Nominatim's fuzzy matching fell
+// back to a loosely-related, much less accurate hit (evidently anchored
+// right next to Punggol MRT), which still got tagged isPoi and jumped the
+// queue ahead of OneMap's correct, address-verified "9 Sentul Crescent"
+// result — sending the transit planner to the wrong destination entirely
+// (reported as a bogus 158m walk from Punggol MRT, when the real building
+// is ~800m from the MRT and only ~160m from Sam Kee LRT instead).
+// Guard against that: when OneMap returns a result whose name/address
+// contains every significant word of the query, it's a confident exact-name
+// match for a real building — promote it above Nominatim POI hits rather
+// than trusting OSM's classification alone.
+function isStrongNameMatch(result, query) {
+  const haystack = `${result.label} ${result.address || ''}`.toLowerCase();
+  const tokens = query.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+  return tokens.length > 0 && tokens.every((t) => haystack.includes(t));
+}
+
 app.get('/api/geocode', async (req, res) => {
   const q = (req.query.q || '').trim();
   if (q.length < 2) return res.json({ results: [] });
@@ -436,12 +458,16 @@ app.get('/api/geocode', async (req, res) => {
     return res.status(502).json({ error: 'Could not search that location.' });
   }
 
-  // Named-POI hits from Nominatim first (that's what a business-name search
-  // is actually looking for), then OneMap's address/building results, then
-  // any leftover non-POI Nominatim results as a last resort.
+  // Exact-name OneMap matches (a confident building-level hit for a named
+  // institution) first, then named-POI hits from Nominatim (that's what a
+  // business-name search is otherwise looking for), then OneMap's remaining
+  // address/building results, then any leftover non-POI Nominatim results
+  // as a last resort.
+  const strongOneMap = oneMapResults.filter((r) => isStrongNameMatch(r, q));
+  const weakOneMap = oneMapResults.filter((r) => !isStrongNameMatch(r, q));
   const poiHits = nominatimResults.filter((r) => r.isPoi);
   const otherHits = nominatimResults.filter((r) => !r.isPoi);
-  const combined = [...poiHits, ...oneMapResults, ...otherHits];
+  const combined = [...strongOneMap, ...poiHits, ...weakOneMap, ...otherHits];
 
   // Dedupe near-identical pins that both sources returned for the same spot.
   const kept = [];
