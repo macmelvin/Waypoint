@@ -367,13 +367,54 @@ def main():
         add_trip(bp_route_id, f"BP-{label}", f"Bukit Panjang LRT (Service {label})", sequence)
 
     # --- Sengkang / Punggol: independent loops off a shared MRT stop ---
+    #
+    # Each loop trip's stop_sequence used to be [hub_id] + loop + [hub_id] —
+    # the same stop_id at both the first and last position, since a real LRT
+    # loop train physically departs the interchange and returns to it. Legal
+    # GTFS, but confirmed live (via a real A/B test against the deployed
+    # router, comparing raw OTP output before/after a coordinate fix) to
+    # break onward boarding: a rider arriving via one loop (e.g. PE, alighting
+    # at hub_id) never got offered a transfer onto the other loop (PW, whose
+    # trips also depart from that same hub_id) — every itinerary OTP proposed
+    # either stayed on one loop or ignored LRT entirely, never combined two.
+    # Ordinary same-stop_id interchanges elsewhere in this graph (Serangoon,
+    # Sengkang-with-the-NE-line, etc.) work fine, so the difference is this
+    # repeated-within-one-trip pattern specifically, not same-stop transfers
+    # in general.
+    #
+    # Fix: give each route its own "departure platform" stop_id at hub_id's
+    # exact coordinates, used only as that route's first stop — hub_id itself
+    # stays the universal last stop (and the one the NE Line / everything
+    # else keys off, so nothing outside this function needs to know these
+    # platform twins exist). Every trip now visits each of its stops only
+    # once. OTP auto-links same-location stops with a ~0m walk transfer, so a
+    # transferring rider still just "arrives and immediately boards" — the
+    # only change is that boarding the second loop is now indexed like any
+    # other transfer instead of hitting whatever indexing edge case a
+    # repeated stop_id triggered.
+    def mint_hub_departure_stop(hub_id, short_code):
+        hub = stops_by_id[hub_id]
+        lat, lon = float(hub["stop_lat"]), float(hub["stop_lon"])
+        stop_id = f"{hub_id}_{short_code}_DEP"
+        stops.append({
+            "stop_id": stop_id,
+            "stop_name": f"{hub['stop_name']} ({short_code} platform)",
+            "stop_lat": f"{lat:.6f}",
+            "stop_lon": f"{lon:.6f}",
+            "location_type": "0",
+            "parent_station": "",
+        })
+        stops_by_id[stop_id] = stops[-1]
+        return stop_id
+
     def add_loop_route(short_code, hub_id, loop_names):
         route_id = add_route(short_code)
         loop_ids = [mint_stop(n) for n in loop_names]
+        dep_id = mint_hub_departure_stop(hub_id, short_code)
         add_trip(route_id, f"{short_code}-CW", f"{short_code} Loop via {loop_names[0]}",
-                  [hub_id] + loop_ids + [hub_id])
+                  [dep_id] + loop_ids + [hub_id])
         add_trip(route_id, f"{short_code}-CCW", f"{short_code} Loop via {loop_names[-1]}",
-                  [hub_id] + list(reversed(loop_ids)) + [hub_id])
+                  [dep_id] + list(reversed(loop_ids)) + [hub_id])
 
     add_loop_route("SE", sengkang_id, SE_LOOP)
     add_loop_route("SW", sengkang_id, SW_LOOP)
