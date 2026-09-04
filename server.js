@@ -354,18 +354,40 @@ function stopCode(stop) {
 // results behind OneMap, which is what avoided the under-construction-station
 // problem above.
 
+// OneMap's public search endpoint takes no API key and, under real traffic
+// (autocomplete firing per keystroke, popular places searched by lots of
+// different people from this one server's IP), starts returning 429s. When
+// that happens the geocode handler below silently has no OneMap result to
+// work with, so isStrongNameMatch never gets a chance to promote the
+// correct hit — confirmed live: this is exactly what let the "Punggol
+// Safra" bug reappear even after that ranking fix shipped (deploy logs
+// showed "OneMap responded 429" at the moment of the bad search). A short
+// backoff-and-retry clears most transient rate-limit hits.
 async function fetchOneMapResults(q) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
-  try {
-    const url = `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${encodeURIComponent(q)}&returnGeom=Y&getAddrDetails=Y&pageNum=1`;
-    const omRes = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; WaypointSG/1.0; +https://waypoint-production-0307.up.railway.app/)',
-        Accept: 'application/json',
-      },
-    });
+  const url = `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${encodeURIComponent(q)}&returnGeom=Y&getAddrDetails=Y&pageNum=1`;
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    let omRes;
+    try {
+      omRes = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; WaypointSG/1.0; +https://waypoint-production-0307.up.railway.app/)',
+          Accept: 'application/json',
+        },
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (omRes.status === 429) {
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, attempt * 400));
+        continue;
+      }
+      throw new Error('OneMap responded 429 (rate limited)');
+    }
     if (!omRes.ok) throw new Error(`OneMap responded ${omRes.status}`);
     const data = await omRes.json();
     return (data.results || [])
@@ -377,9 +399,8 @@ async function fetchOneMapResults(q) {
         lon: parseFloat(r.LONGITUDE),
       }))
       .filter((r) => r.label && !Number.isNaN(r.lat) && !Number.isNaN(r.lon));
-  } finally {
-    clearTimeout(timeout);
   }
+  return [];
 }
 
 // Nominatim "class" values that mean the hit is an administrative/geographic
@@ -441,9 +462,44 @@ function isStrongNameMatch(result, query) {
   return tokens.length > 0 && tokens.every((t) => haystack.includes(t));
 }
 
+// Short server-side cache for geocode results, keyed by normalized query.
+// The retries above help a single request survive a 429, but the bigger
+// lever is not making the request at all: a handful of popular searches
+// (MRT station names, well-known landmarks) account for a large share of
+// total lookups across every user of the app, plus the search box itself
+// re-queries on every keystroke as someone types the same place out. This
+// cuts that traffic to roughly once per 15 minutes per distinct query,
+// which is the real fix for staying under OneMap's rate limit rather than
+// just retrying around it.
+const GEOCODE_CACHE_TTL_MS = 15 * 60 * 1000;
+const GEOCODE_CACHE_MAX_ENTRIES = 500;
+const geocodeCache = new Map(); // normalized query -> { at, results }
+
+function getCachedGeocode(key) {
+  const entry = geocodeCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.at > GEOCODE_CACHE_TTL_MS) {
+    geocodeCache.delete(key);
+    return null;
+  }
+  return entry.results;
+}
+
+function setCachedGeocode(key, results) {
+  if (!geocodeCache.has(key) && geocodeCache.size >= GEOCODE_CACHE_MAX_ENTRIES) {
+    const oldestKey = geocodeCache.keys().next().value;
+    geocodeCache.delete(oldestKey);
+  }
+  geocodeCache.set(key, { at: Date.now(), results });
+}
+
 app.get('/api/geocode', async (req, res) => {
   const q = (req.query.q || '').trim();
   if (q.length < 2) return res.json({ results: [] });
+
+  const cacheKey = q.toLowerCase();
+  const cached = getCachedGeocode(cacheKey);
+  if (cached) return res.json({ results: cached });
 
   const [oneMapOutcome, nominatimOutcome] = await Promise.allSettled([
     fetchOneMapResults(q),
@@ -478,7 +534,19 @@ app.get('/api/geocode', async (req, res) => {
     return true;
   });
 
-  res.json({ results: deduped.slice(0, 8).map(({ isPoi, ...r }) => r) });
+  const finalResults = deduped.slice(0, 8).map(({ isPoi, ...r }) => r);
+
+  // Only cache when OneMap actually succeeded. If OneMap was rate-limited
+  // (see fetchOneMapResults above), this response is a degraded,
+  // Nominatim-only fallback — caching that would lock the wrong answer in
+  // for the next 15 minutes, which is precisely the failure mode this cache
+  // is meant to prevent, not reproduce. Let the next request retry OneMap
+  // fresh instead.
+  if (oneMapOutcome.status === 'fulfilled') {
+    setCachedGeocode(cacheKey, finalResults);
+  }
+
+  res.json({ results: finalResults });
 });
 
 // ---- Nearby places by category (Waze-style "Categories" quick search) ------
