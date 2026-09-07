@@ -2201,13 +2201,22 @@ const RIDE_HAILING_APPS = {
     iosAppId: '647268330',
     androidPackage: 'com.grabtaxi.passenger',
     webUrl: 'https://www.grab.com/sg/transport/',
-    buildDeepLink: (from) => {
+    buildDeepLink: (from, to) => {
       const params = new URLSearchParams({
         screenType: 'BOOKING',
         pickUpLatitude: from.lat,
         pickUpLongitude: from.lon,
       });
       if (from.label) params.set('pickUpAddress', from.label);
+      // Same affiliate-integration pattern as pickUp* above, mirrored for
+      // dropoff — carries over the destination you already searched for
+      // (e.g. tapping "Gardens by the Bay" then Get Directions) so Grab
+      // doesn't just get your current location with nowhere to go.
+      if (to) {
+        params.set('dropOffLatitude', to.lat);
+        params.set('dropOffLongitude', to.lon);
+        if (to.label) params.set('dropOffAddress', to.label);
+      }
       return `grab://open?${params.toString()}`;
     },
   },
@@ -2265,17 +2274,18 @@ function openRideHailingApp(appId) {
     return;
   }
 
-  // Best-effort deep link with pickup pre-filled — only attempted on mobile
-  // (custom schemes are meaningless on desktop), and only when we actually
-  // have a "from" location to pre-fill. If nothing intercepts the
-  // navigation (app not installed, or the scheme is wrong), the page stays
-  // visible and the timeout below quietly continues to the normal link.
+  // Best-effort deep link with pickup (and, where supported, dropoff)
+  // pre-filled — only attempted on mobile (custom schemes are meaningless on
+  // desktop), and only when we actually have a "from" location to pre-fill.
+  // If nothing intercepts the navigation (app not installed, or the scheme
+  // is wrong), the page stays visible and the timeout below quietly
+  // continues to the normal link.
   if (isMobile && app.buildDeepLink && fromCoords) {
     let leftPage = false;
     const markLeft = () => { leftPage = true; };
     document.addEventListener('visibilitychange', markLeft, { once: true });
     window.addEventListener('pagehide', markLeft, { once: true });
-    window.location.href = app.buildDeepLink(fromCoords);
+    window.location.href = app.buildDeepLink(fromCoords, toCoords);
     setTimeout(() => {
       document.removeEventListener('visibilitychange', markLeft);
       if (!leftPage) window.location.href = fallbackUrl;
