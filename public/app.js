@@ -2984,13 +2984,32 @@ let weatherWidgetTimer = null;
 
 async function loadWeatherWidget(coords) {
   try {
-    const res = await fetch(`/api/weather-nearby?lat=${coords.lat}&lon=${coords.lon}`);
-    const data = await res.json();
-    if (!res.ok || !data.forecast) {
+    const [wxRes, psiRes] = await Promise.all([
+      fetch(`/api/weather-nearby?lat=${coords.lat}&lon=${coords.lon}`),
+      // PSI is a nice-to-have alongside the weather text — never let a
+      // failure here (or the endpoint being briefly unavailable) block the
+      // weather widget itself.
+      fetch(`/api/psi-nearby?lat=${coords.lat}&lon=${coords.lon}`).catch(() => null),
+    ]);
+    const data = await wxRes.json();
+    if (!wxRes.ok || !data.forecast) {
       els.weatherWidget.classList.add('hidden');
       return;
     }
-    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}`;
+
+    let psiSuffix = '';
+    delete els.weatherWidget.dataset.psi;
+    if (psiRes && psiRes.ok) {
+      const psiData = await psiRes.json();
+      if (psiData.psi != null) {
+        els.weatherWidget.dataset.psi = psiData.psi;
+        els.weatherWidget.dataset.psiCategory = psiData.category || '';
+        els.weatherWidget.dataset.psiRegion = psiData.region || '';
+        psiSuffix = ` · 😷 PSI ${psiData.psi}`;
+      }
+    }
+
+    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}${psiSuffix}`;
     els.weatherWidget.title = `${data.forecast} near ${data.area} — tap for details`;
     els.weatherWidget.dataset.area = data.area;
     els.weatherWidget.dataset.forecast = data.forecast;
@@ -3030,6 +3049,10 @@ function renderWeatherPanel(daily) {
   const nowLine = area && nowForecast
     ? `<p class="weather-panel-now">📍 Right now near <strong>${area}</strong>: ${nowForecast}</p>`
     : '';
+  const psi = els.weatherWidget.dataset.psi;
+  const psiLine = psi
+    ? `<p class="weather-panel-now">😷 PSI (24-hr) in <strong>${els.weatherWidget.dataset.psiRegion}</strong>: <strong>${psi}</strong> — ${els.weatherWidget.dataset.psiCategory}</p>`
+    : '';
   const temp = daily.tempLow != null && daily.tempHigh != null ? `${daily.tempLow}–${daily.tempHigh}°C` : '—';
   const humidity = daily.humidityLow != null && daily.humidityHigh != null ? `${daily.humidityLow}–${daily.humidityHigh}%` : '—';
   const wind = daily.windSpeedLow != null && daily.windSpeedHigh != null
@@ -3040,6 +3063,7 @@ function renderWeatherPanel(daily) {
     <div class="weather-panel-icon">${daily.icon || '🌤️'}</div>
     <h3 class="weather-panel-headline">${daily.forecast || "Today's outlook"}</h3>
     ${nowLine}
+    ${psiLine}
     <div class="weather-panel-grid">
       <div><span class="weather-panel-label">Temperature</span><span class="weather-panel-value">${temp}</span></div>
       <div><span class="weather-panel-label">Humidity</span><span class="weather-panel-value">${humidity}</span></div>

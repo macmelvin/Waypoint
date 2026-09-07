@@ -1860,6 +1860,82 @@ app.get('/api/weather-today', async (req, res) => {
   }
 });
 
+// ---- Air quality (NEA PSI 24-hour reading, data.gov.sg) --------------------
+// Singapore-specific value-add: the Pollutant Standards Index for the region
+// nearest the user, shown alongside the existing weather widget — most
+// relevant during the haze season (typically Jun-Oct here), when PSI rather
+// than rain is the thing worth checking before heading out. Free public
+// dataset, no API key required. Only 5 broad regions exist (north/south/
+// east/west/central), unlike the ~47 fine-grained weather forecast areas, so
+// this does its own nearest-region match rather than reusing the weather
+// area list.
+
+let psiCache = null; // { regionMetadata, readings, timestamp }
+let psiCacheAt = 0;
+const PSI_TTL_MS = 30 * 60 * 1000; // NEA's 24-hour PSI reading updates hourly
+
+async function getPsiReading() {
+  if (psiCache && Date.now() - psiCacheAt < PSI_TTL_MS) return psiCache;
+  const res = await fetch('https://api.data.gov.sg/v1/environment/psi');
+  if (!res.ok) throw new Error(`NEA PSI API responded ${res.status}`);
+  const data = await res.json();
+  const item = data.items?.[0];
+  if (!item) throw new Error('No PSI data returned');
+  psiCache = {
+    regionMetadata: data.region_metadata || [],
+    readings: item.readings?.psi_twenty_four_hourly || {},
+    timestamp: item.timestamp || null,
+  };
+  psiCacheAt = Date.now();
+  return psiCache;
+}
+
+// NEA's own published PSI bands.
+function psiCategory(value) {
+  if (value == null) return null;
+  if (value <= 50) return { label: 'Good', color: '2E7D32' };
+  if (value <= 100) return { label: 'Moderate', color: 'F9A825' };
+  if (value <= 200) return { label: 'Unhealthy', color: 'EF6C00' };
+  if (value <= 300) return { label: 'Very Unhealthy', color: 'C62828' };
+  return { label: 'Hazardous', color: '6A1B9A' };
+}
+
+app.get('/api/psi-nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+
+  try {
+    const { regionMetadata, readings, timestamp } = await getPsiReading();
+    if (!regionMetadata.length) {
+      return res.status(502).json({ error: 'No PSI regions available.' });
+    }
+
+    let nearest = null;
+    let nearestDist = Infinity;
+    regionMetadata.forEach((r) => {
+      const d = haversineMeters(lat, lon, r.label_location.latitude, r.label_location.longitude);
+      if (d < nearestDist) { nearestDist = d; nearest = r; }
+    });
+
+    const psi = readings[nearest.name] ?? null;
+    const category = psiCategory(psi);
+
+    res.json({
+      region: nearest.name,
+      psi,
+      category: category?.label || null,
+      categoryColor: category?.color || null,
+      timestamp,
+    });
+  } catch (err) {
+    console.error('psi-nearby error:', err.message);
+    res.status(502).json({ error: 'Could not fetch PSI reading.', detail: err.message });
+  }
+});
+
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
