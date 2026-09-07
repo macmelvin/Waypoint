@@ -463,6 +463,11 @@ const LANDMARKS = {
   uss: { label: 'Universal Studios Singapore', address: '8 Sentosa Gateway, Singapore 098269', lat: 1.25400, lon: 103.82380 },
   seaaquarium: { label: 'S.E.A. Aquarium', address: '8 Sentosa Gateway, Singapore 098269', lat: 1.25780, lon: 103.82030 },
   jewelchangi: { label: 'Jewel Changi Airport', address: '78 Airport Blvd, Singapore 819666', lat: 1.36030, lon: 103.98950 },
+  // The airport itself (terminals), distinct from Jewel — this points at the
+  // Aerodrome Reference Point roughly centred between T1-T4, a reasonable
+  // "the airport in general" pin for someone flying out rather than visiting
+  // Jewel specifically.
+  changiairport: { label: 'Changi Airport', address: 'Airport Boulevard, Singapore 819643', lat: 1.36440, lon: 103.99150 },
   merlionpark: { label: 'Merlion Park', address: '1 Fullerton Rd, Singapore 049213', lat: 1.28680, lon: 103.85450 },
   sgflyer: { label: 'Singapore Flyer', address: '30 Raffles Ave, Singapore 039803', lat: 1.28930, lon: 103.86320 },
   sgzoo: { label: 'Singapore Zoo', address: '80 Mandai Lake Rd, Singapore 729826', lat: 1.40430, lon: 103.79300 },
@@ -684,6 +689,7 @@ const CHIP_I18N = {
   uss: { en: 'Universal Studios', zh: '环球影城', ms: 'Universal Studios', ta: 'யுனிவர்சல் ஸ்டுடியோஸ்', ja: 'ユニバーサル・スタジオ', ko: '유니버설 스튜디오' },
   seaaquarium: { en: 'S.E.A. Aquarium', zh: '星耀水族馆', ms: 'Akuarium S.E.A.', ta: 'எஸ்.இ.ஏ. மீன்காட்சியகம்', ja: 'S.E.A.アクアリウム', ko: 'S.E.A. 아쿠아리움' },
   jewelchangi: { en: 'Jewel Changi', zh: '星耀樟宜', ms: 'Jewel Changi', ta: 'ஜூவல் சாங்கி', ja: 'ジュエル・チャンギ', ko: '주얼 창이' },
+  changiairport: { en: 'Changi Airport', zh: '樟宜机场', ms: 'Lapangan Terbang Changi', ta: 'சாங்கி விமான நிலையம்', ja: 'チャンギ空港', ko: '창이공항' },
   merlionpark: { en: 'Merlion Park', zh: '鱼尾狮公园', ms: 'Taman Merlion', ta: 'மெர்லயன் பூங்கா', ja: 'マーライオン公園', ko: '멀라이언 파크' },
   sgflyer: { en: 'Singapore Flyer', zh: '新加坡摩天观景轮', ms: 'Singapore Flyer', ta: 'சிங்கப்பூர் ஃபிளையர்', ja: 'シンガポール・フライヤー', ko: '싱가포르 플라이어' },
   sgzoo: { en: 'Singapore Zoo', zh: '新加坡动物园', ms: 'Zoo Singapura', ta: 'சிங்கப்பூர் உயிரியல் பூங்கா', ja: 'シンガポール動物園', ko: '싱가포르 동물원' },
