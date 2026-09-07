@@ -552,24 +552,15 @@ app.get('/api/geocode', async (req, res) => {
 // ---- Nearby places by category (Waze-style "Categories" quick search) ------
 // Sourced live from OpenStreetMap's Overpass API, scoped to a radius around
 // wherever the person is standing, rather than a preloaded whole-of-Singapore
-// dataset like the EV/petrol features use — "food" alone would be tens of
-// thousands of entries island-wide, and a live radius query stays fresh
-// (restaurants open and close) without needing a manual dataset refresh.
-// Most categories key off OSM's "amenity" tag, but a few (groceries, shopping,
-// hotels, parks) are tagged under "shop"/"tourism"/"leisure" instead — each
-// entry says which key to filter on. radius is a fixed 1km for every category
-// per request — results are only ever "near me right now", not island-wide.
+// dataset like the EV/petrol features use — a live radius query stays fresh
+// without needing a manual dataset refresh. Each entry says which OSM key to
+// filter on ("amenity" here, though other categories may use "shop"/
+// "tourism"/"leisure" etc.). radius is a fixed 1km for every category per
+// request — results are only ever "near me right now", not island-wide.
 const PLACES_RADIUS_M = 1000;
 const PLACE_CATEGORIES = {
   hospital: { key: 'amenity', tags: ['hospital'] },
   police: { key: 'amenity', tags: ['police'] },
-  food: { key: 'amenity', tags: ['restaurant', 'fast_food', 'food_court'] },
-  coffee: { key: 'amenity', tags: ['cafe'] },
-  groceries: { key: 'shop', tags: ['supermarket', 'convenience'] },
-  pharmacy: { key: 'amenity', tags: ['pharmacy'] },
-  shopping: { key: 'shop', tags: ['mall', 'department_store'] },
-  hotel: { key: 'tourism', tags: ['hotel'] },
-  park: { key: 'leisure', tags: ['park'] },
 };
 
 function buildOverpassNearbyQuery({ key, tags }, lat, lon, radius) {

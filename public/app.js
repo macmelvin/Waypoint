@@ -247,14 +247,7 @@ function selectSearchResult(r) {
 
 const CATEGORY_LABELS = {
   hospital: 'hospital',
-  food: 'restaurant',
   police: 'police station',
-  coffee: 'coffee spot',
-  groceries: 'grocery store',
-  pharmacy: 'pharmacy',
-  shopping: 'mall',
-  hotel: 'hotel',
-  park: 'park',
   vets: 'vet',
   toilets: 'toilet',
   vegetarian: 'vegetarian-friendly restaurant',
@@ -263,7 +256,6 @@ const CATEGORY_LABELS = {
   moneychanger: 'money changer',
   postoffice: 'post office',
   library: 'library',
-  laundromat: 'laundromat',
   church: 'church',
   temple: 'temple',
   dogpark: 'dog park',
@@ -279,13 +271,6 @@ const CATEGORY_LABELS = {
 const CATEGORY_OSM_TAGS = {
   hospital: { key: 'amenity', tags: ['hospital'] },
   police: { key: 'amenity', tags: ['police'] },
-  food: { key: 'amenity', tags: ['restaurant', 'fast_food', 'food_court'] },
-  coffee: { key: 'amenity', tags: ['cafe'] },
-  groceries: { key: 'shop', tags: ['supermarket', 'convenience'] },
-  pharmacy: { key: 'amenity', tags: ['pharmacy'] },
-  shopping: { key: 'shop', tags: ['mall', 'department_store'] },
-  hotel: { key: 'tourism', tags: ['hotel'] },
-  park: { key: 'leisure', tags: ['park'] },
   vets: { key: 'amenity', tags: ['veterinary'] },
   toilets: { key: 'amenity', tags: ['toilets'] },
   // Vegetarian/halal aren't their own OSM place types — they're food places
@@ -307,11 +292,10 @@ const CATEGORY_OSM_TAGS = {
   moneychanger: { key: 'shop', tags: ['money_exchange'] },
   postoffice: { key: 'amenity', tags: ['post_office'] },
   library: { key: 'amenity', tags: ['library'] },
-  laundromat: { key: 'shop', tags: ['laundry'] },
   dogpark: { key: 'leisure', tags: ['dog_park'] },
 };
-// Tried in order — start close (keeps dense categories like food/coffee
-// genuinely local), then widen automatically for sparse categories that
+// Tried in order — start close (keeps dense categories genuinely local),
+// then widen automatically for sparse categories that
 // legitimately don't have one within 1km. Confirmed against Waze itself: for
 // a Punggol starting point, Waze's own nearest "Hospitals" result was 1.9km
 // away — a hard 1km cutoff would show "nothing found" even though Waze (and
@@ -661,16 +645,9 @@ const I18N = {
 // what's already hardcoded in index.html (used as the fallback / source of
 // truth when a key is somehow missing from a language).
 const CHIP_I18N = {
-  food: { en: 'Food', zh: '美食', ms: 'Makanan', ta: 'உணவு', ja: '食事', ko: '음식점' },
   carpark: { en: 'Carpark', zh: '停车场', ms: 'Tempat Letak Kereta', ta: 'கார் பார்க்கிங்', ja: '駐車場', ko: '주차장' },
-  coffee: { en: 'Coffee', zh: '咖啡', ms: 'Kopi', ta: 'காபி', ja: 'カフェ', ko: '카페' },
-  groceries: { en: 'Groceries', zh: '杂货店', ms: 'Barangan Runcit', ta: 'மளிகை', ja: 'スーパー', ko: '마트' },
-  shopping: { en: 'Shopping', zh: '购物中心', ms: 'Membeli-belah', ta: 'ஷாப்பிங்', ja: 'ショッピング', ko: '쇼핑' },
-  pharmacy: { en: 'Pharmacy', zh: '药店', ms: 'Farmasi', ta: 'மருந்தகம்', ja: '薬局', ko: '약국' },
   hospital: { en: 'Hospital', zh: '医院', ms: 'Hospital', ta: 'மருத்துவமனை', ja: '病院', ko: '병원' },
   police: { en: 'Police', zh: '警察局', ms: 'Balai Polis', ta: 'காவல் நிலையம்', ja: '警察署', ko: '경찰서' },
-  hotel: { en: 'Hotel', zh: '酒店', ms: 'Hotel', ta: 'ஹோட்டல்', ja: 'ホテル', ko: '호텔' },
-  park: { en: 'Park', zh: '公园', ms: 'Taman', ta: 'பூங்கா', ja: '公園', ko: '공원' },
   vets: { en: 'Vets', zh: '兽医', ms: 'Doktor Haiwan', ta: 'கால்நடை மருத்துவர்', ja: '動物病院', ko: '동물병원' },
   toilets: { en: 'Toilets', zh: '洗手间', ms: 'Tandas', ta: 'கழிப்பறை', ja: 'トイレ', ko: '화장실' },
   vegetarian: { en: 'Vegetarian', zh: '素食', ms: 'Vegetarian', ta: 'சைவம்', ja: 'ベジタリアン', ko: '채식' },
@@ -681,7 +658,6 @@ const CHIP_I18N = {
   moneychanger: { en: 'Money Changer', zh: '找换店', ms: 'Penukar Wang', ta: 'பண மாற்று நிலையம்', ja: '両替所', ko: '환전소' },
   postoffice: { en: 'Post Office', zh: '邮局', ms: 'Pejabat Pos', ta: 'அஞ்சல் அலுவலகம்', ja: '郵便局', ko: '우체국' },
   library: { en: 'Library', zh: '图书馆', ms: 'Perpustakaan', ta: 'நூலகம்', ja: '図書館', ko: '도서관' },
-  laundromat: { en: 'Laundromat', zh: '自助洗衣店', ms: 'Dobi Layan Diri', ta: 'சலவை நிலையம்', ja: 'コインランドリー', ko: '빨래방' },
   dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா', ja: 'ドッグパーク', ko: '반려견 공원' },
   mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
