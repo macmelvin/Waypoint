@@ -41,6 +41,7 @@ const els = {
   swapBtn: document.getElementById('swapBtn'),
   getDirectionsBtn: document.getElementById('getDirectionsBtn'),
   routeSummary: document.getElementById('routeSummary'),
+  rideHailingLinks: document.getElementById('rideHailingLinks'),
   routeSteps: document.getElementById('routeSteps'),
   itineraryOptionsLabel: document.getElementById('itineraryOptionsLabel'),
   itineraryOptions: document.getElementById('itineraryOptions'),
@@ -260,6 +261,7 @@ const CATEGORY_LABELS = {
   temple: 'temple',
   dogpark: 'dog park',
   carpark: 'carpark',
+  towtruck: 'tow truck service',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -293,6 +295,11 @@ const CATEGORY_OSM_TAGS = {
   postoffice: { key: 'amenity', tags: ['post_office'] },
   library: { key: 'amenity', tags: ['library'] },
   dogpark: { key: 'leisure', tags: ['dog_park'] },
+  // Towing isn't its own OSM place type either — it's a car repair shop
+  // (shop=car_repair) additionally tagged service:vehicle:towing=yes, per
+  // OSM's documented Key:service:vehicle:* scheme. Without the extra filter
+  // this would surface every car workshop, most of which don't tow.
+  towtruck: { key: 'shop', tags: ['car_repair'], extraKey: 'service:vehicle:towing', extraValue: 'yes' },
 };
 // Tried in order — start close (keeps dense categories genuinely local),
 // then widen automatically for sparse categories that
@@ -678,6 +685,7 @@ const CHIP_I18N = {
   postoffice: { en: 'Post Office', zh: '邮局', ms: 'Pejabat Pos', ta: 'அஞ்சல் அலுவலகம்', ja: '郵便局', ko: '우체국' },
   library: { en: 'Library', zh: '图书馆', ms: 'Perpustakaan', ta: 'நூலகம்', ja: '図書館', ko: '도서관' },
   dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா', ja: 'ドッグパーク', ko: '반려견 공원' },
+  towtruck: { en: 'Tow Truck', zh: '拖车服务', ms: 'Khidmat Tunda Kereta', ta: 'இழுவை வாகன சேவை', ja: 'レッカーサービス', ko: '견인 서비스' },
   mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
   sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு', ja: 'セントーサ島', ko: '센토사 섬' },
@@ -2034,6 +2042,7 @@ function renderTransitSummary(itinerary) {
   const fareText = itinerary.fareEstimate != null ? ` &nbsp;·&nbsp; ${formatFare(itinerary.fareEstimate)}` : '';
   els.routeSummary.innerHTML = `<strong>${formatDuration(itinerary.duration)}</strong> &nbsp;·&nbsp; `
     + `${formatClockTime(itinerary.startTime)} – ${formatClockTime(itinerary.endTime)} &nbsp;·&nbsp; ${transferText}${fareText}`;
+  renderRideHailingLinks();
 }
 
 function renderTransitSteps(itinerary) {
@@ -2154,6 +2163,73 @@ function formatDistance(meters) {
 function renderRouteSummary(route) {
   els.routeSummary.classList.remove('hidden');
   els.routeSummary.innerHTML = `<strong>${formatDuration(route.duration)}</strong> &nbsp;·&nbsp; ${formatDistance(route.distance)}`;
+  renderRideHailingLinks();
+}
+
+// ---- Ride-hailing quick links (Grab / Gojek / Ryde / TADA) ------------------
+//
+// IMPORTANT — what this deliberately does NOT do: none of these four apps
+// publishes a documented, verifiable consumer deep-link format for
+// pre-filling a pickup/dropoff location (Grab's help centre only documents
+// in-app UX; the widely-copied "grab://open?...&pickUpLatitude=..." strings
+// floating around the web trace back to unofficial/affiliate use, not an
+// official spec; Gojek, Ryde and TADA have no public deep-link docs at all).
+// Guessing at that format risks silently breaking (wrong param name, app
+// ignores it, or — worse — opens to a blank/error screen) with no way for us
+// to verify it actually works. So instead of guessing, this opens the
+// correct store listing for the user's platform (or the official site on
+// desktop) — a link that is 100% correct today and works whether or not the
+// app is already installed, at the cost of not pre-filling the route.
+const RIDE_HAILING_APPS = {
+  grab: {
+    label: 'Grab',
+    iosAppId: '647268330',
+    androidPackage: 'com.grabtaxi.passenger',
+    webUrl: 'https://www.grab.com/sg/transport/',
+  },
+  gojek: {
+    label: 'Gojek',
+    iosAppId: '944875099',
+    androidPackage: 'com.gojek.app',
+    webUrl: 'https://www.gojek.com/sg',
+  },
+  ryde: {
+    label: 'Ryde',
+    iosAppId: '979806982',
+    androidPackage: 'com.rydesharing.ryde',
+    webUrl: 'https://rydesharing.com/',
+  },
+  tada: {
+    label: 'TADA',
+    iosAppId: '1412329684',
+    androidPackage: 'io.mvlchain.tada',
+    // No standalone consumer marketing site could be verified — the Play
+    // Store listing is the most reliable link to fall back to on desktop.
+    webUrl: 'https://play.google.com/store/apps/details?id=io.mvlchain.tada',
+  },
+};
+
+function openRideHailingApp(appId) {
+  const app = RIDE_HAILING_APPS[appId];
+  if (!app) return;
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  let url = app.webUrl;
+  if (isIOS && app.iosAppId) url = `https://apps.apple.com/sg/app/id${app.iosAppId}`;
+  else if (isAndroid && app.androidPackage) url = `https://play.google.com/store/apps/details?id=${app.androidPackage}`;
+  window.open(url, '_blank', 'noopener');
+}
+
+let rideHailingLinksWired = false;
+function renderRideHailingLinks() {
+  if (!els.rideHailingLinks) return;
+  els.rideHailingLinks.classList.remove('hidden');
+  if (rideHailingLinksWired) return;
+  rideHailingLinksWired = true;
+  els.rideHailingLinks.querySelectorAll('.ride-hailing-btn[data-ride-app]').forEach((btn) => {
+    btn.addEventListener('click', () => openRideHailingApp(btn.dataset.rideApp));
+  });
 }
 
 const STEP_ICONS = {

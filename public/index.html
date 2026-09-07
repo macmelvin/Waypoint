@@ -57,7 +57,7 @@
     <div class="topbar-actions">
       <button id="langBtn" class="icon-btn lang-btn" type="button" title="Language">🌐 EN</button>
       <button id="weatherWidget" class="weather-widget hidden" type="button" title="Current weather"></button>
-      <button id="notifyBtn" class="icon-btn" type="button" data-i18n-title="notify_title" data-i18n-aria="notify_title" title="Turn on train/traffic alerts" aria-label="Turn on train/traffic alerts">🔔</button>
+      <button id="notifyBtn" class="icon-btn" type="button" data-i18n-title="notify_title" data-i18n-aria="notify_title" title="Turn on train/traffic/haze alerts" aria-label="Turn on train/traffic/haze alerts">🔔</button>
       <button id="locateBtn" class="icon-btn locate-btn" type="button" data-i18n-title="where_am_i" data-i18n-aria="where_am_i" title="Where am I" aria-label="Where am I">
         <span id="locateBtnIcon">🎯</span> <span data-i18n="where_am_i">Where am I</span>
       </button>
@@ -94,6 +94,7 @@
           <div class="category-row-label" data-i18n="category_nearby">Nearby</div>
           <div class="category-row">
             <button class="category-chip" type="button" data-category="carpark"><span class="category-chip-icon">🅿️</span>Carpark</button>
+            <button class="category-chip" type="button" data-category="towtruck"><span class="category-chip-icon">🛻</span>Tow Truck</button>
             <button class="category-chip" type="button" data-category="hospital"><span class="category-chip-icon">🏥</span>Hospital</button>
             <button class="category-chip" type="button" data-category="police"><span class="category-chip-icon">👮</span>Police</button>
             <button class="category-chip" type="button" data-category="vets"><span class="category-chip-icon">🐾</span>Vets</button>
@@ -188,6 +189,15 @@
         <div id="itineraryOptionsLabel" class="itinerary-options-label hidden"></div>
         <div id="itineraryOptions" class="itinerary-options hidden"></div>
         <div id="routeSummary" class="route-summary hidden"></div>
+        <div id="rideHailingLinks" class="ride-hailing-links hidden">
+          <div class="ride-hailing-label" data-i18n="ride_hailing_label">Or book a ride</div>
+          <div class="ride-hailing-buttons">
+            <button class="ride-hailing-btn" type="button" data-ride-app="grab"><span class="rh-icon">🚗</span>Grab</button>
+            <button class="ride-hailing-btn" type="button" data-ride-app="gojek"><span class="rh-icon">🟢</span>Gojek</button>
+            <button class="ride-hailing-btn" type="button" data-ride-app="ryde"><span class="rh-icon">🚙</span>Ryde</button>
+            <button class="ride-hailing-btn" type="button" data-ride-app="tada"><span class="rh-icon">🚕</span>TADA</button>
+          </div>
+        </div>
         <button id="startNavBtn" class="primary-btn nav-start-btn hidden" type="button" data-i18n="start_navigation">▶️ Start Navigation</button>
         <div id="parkingInfo" class="driving-extra hidden"></div>
         <div id="evChargingInfo" class="driving-extra hidden"></div>
