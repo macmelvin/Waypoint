@@ -897,20 +897,17 @@ app.get('/api/transit-plan', async (req, res) => {
         bestByShape.set(shape, itinerary);
       }
     }
-    // MRT/LRT is generally faster and far less affected by road traffic than
-    // a bus, so give rail-inclusive itineraries a modest priority over pure
-    // duration — a route with a train leg only needs to be within 5 minutes
-    // of the fastest bus-only option to rank above it, rather than requiring
-    // it to literally win on raw time. Actual duration (shown to the user
-    // and used for the "Fastest" badge below) is never altered — this only
-    // affects display order.
-    const RAIL_PRIORITY_BONUS_SECONDS = 5 * 60;
-    const rankScore = (it) => {
-      const hasRail = it.legs.some((l) => l.mode === 'train');
-      return hasRail ? it.duration - RAIL_PRIORITY_BONUS_SECONDS : it.duration;
-    };
+    // MRT/LRT options are always shown ahead of bus-only ones — a categorical
+    // priority, not just a scoring nudge: any itinerary with a train leg
+    // ranks above every bus-only itinerary regardless of raw duration, and
+    // within each of those two groups the fastest comes first. (This used to
+    // be a softer "within 5 minutes of the fastest bus" bonus; per explicit
+    // request, rail now always wins the tiebreak, full stop.) Actual duration
+    // (shown to the user and used for the "Fastest" badge in the app) is
+    // never altered — this only affects display order.
+    const railTier = (it) => (it.legs.some((l) => l.mode === 'train') ? 0 : 1);
     const dedupedItineraries = [...bestByShape.values()]
-      .sort((a, b) => rankScore(a) - rankScore(b))
+      .sort((a, b) => railTier(a) - railTier(b) || a.duration - b.duration)
       .slice(0, 6);
 
     res.json({
@@ -1926,6 +1923,67 @@ app.get('/api/psi-nearby', async (req, res) => {
     res.status(502).json({ error: 'Could not fetch PSI reading.', detail: err.message });
   }
 });
+
+// ---- Push trigger: PSI reaching Unhealthy ----------------------------------
+// Same shape as the MRT/LRT disruption push trigger above: polls the same
+// cached getPsiReading() proactively so an alert goes out even while nobody
+// has the app open, only fires on the actual OFF->ON transition (not every
+// poll while it stays unhealthy), and the first check after startup only
+// records a baseline so a redeploy during an ongoing haze episode doesn't
+// blast a notification. Unlike the MRT/traffic pushes this isn't tied to a
+// single region — it checks the WORST reading across all 5 regions, since
+// "is the air unhealthy anywhere in Singapore right now" is the useful
+// island-wide signal here (haze episodes are rarely confined to one region
+// for long), and this reuses the same subscriber list as every other push
+// (the one 🔔 toggle in the app), not a separate opt-in.
+
+const PSI_UNHEALTHY_THRESHOLD = 100; // NEA: 0-50 Good, 51-100 Moderate, 101+ Unhealthy
+
+let lastPsiUnhealthy; // undefined until the first successful check
+
+async function checkPsiForPush() {
+  if (!PUSH_ENABLED) return;
+  try {
+    const { regionMetadata, readings } = await getPsiReading();
+    if (!regionMetadata.length) return;
+
+    let worstRegion = null;
+    let worstValue = -Infinity;
+    regionMetadata.forEach((r) => {
+      const v = readings[r.name];
+      if (typeof v === 'number' && v > worstValue) { worstValue = v; worstRegion = r.name; }
+    });
+    if (worstRegion == null) return; // no numeric readings at all — skip this cycle
+
+    const isUnhealthy = worstValue > PSI_UNHEALTHY_THRESHOLD;
+    const hadBaseline = lastPsiUnhealthy !== undefined;
+
+    if (hadBaseline && isUnhealthy !== lastPsiUnhealthy) {
+      if (isUnhealthy) {
+        const category = psiCategory(worstValue);
+        broadcastPush({
+          title: '😷 Haze Alert: PSI Unhealthy',
+          body: `PSI in ${worstRegion} has reached ${worstValue} (${category?.label || 'Unhealthy'}). Consider limiting outdoor activity.`,
+          url: '/',
+        }).catch((err) => console.error('PSI alert push failed:', err.message));
+      } else {
+        broadcastPush({
+          title: '🌤️ Air Quality Back to Normal',
+          body: 'PSI has dropped back to a Moderate or Good level island-wide.',
+          url: '/',
+        }).catch((err) => console.error('PSI alert push failed:', err.message));
+      }
+    }
+    lastPsiUnhealthy = isUnhealthy;
+  } catch (err) {
+    console.error('PSI push check failed:', err.message);
+  }
+}
+
+if (PUSH_ENABLED) {
+  setInterval(checkPsiForPush, PSI_TTL_MS);
+  checkPsiForPush();
+}
 
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {

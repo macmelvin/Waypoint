@@ -515,7 +515,7 @@ try {
 const I18N = {
   en: {
     tab_search: 'Search', tab_directions: 'Directions', tab_bus: '🚌 Bus Arrival Time',
-    notify_title: 'Turn on train/traffic alerts', where_am_i: 'Where am I',
+    notify_title: 'Turn on train/traffic/haze alerts', where_am_i: 'Where am I',
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
     category_nearby: 'Nearby', category_attractions: 'Attractions',
@@ -536,7 +536,7 @@ const I18N = {
   },
   zh: {
     tab_search: '搜索', tab_directions: '路线', tab_bus: '🚌 巴士到站时间',
-    notify_title: '开启地铁/交通提醒', where_am_i: '我的位置',
+    notify_title: '开启地铁/交通/雾霾提醒', where_am_i: '我的位置',
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
     category_nearby: '附近', category_attractions: '景点',
@@ -557,7 +557,7 @@ const I18N = {
   },
   ms: {
     tab_search: 'Carian', tab_directions: 'Arah', tab_bus: '🚌 Waktu Ketibaan Bas',
-    notify_title: 'Hidupkan makluman keretapi/trafik', where_am_i: 'Di Mana Saya',
+    notify_title: 'Hidupkan makluman keretapi/trafik/jerebu', where_am_i: 'Di Mana Saya',
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
     category_nearby: 'Berdekatan', category_attractions: 'Tempat Menarik',
@@ -578,7 +578,7 @@ const I18N = {
   },
   ta: {
     tab_search: 'தேடல்', tab_directions: 'வழிகள்', tab_bus: '🚌 பேருந்து வருகை நேரம்',
-    notify_title: 'ரயில்/போக்குவரத்து எச்சரிக்கைகளை இயக்கு', where_am_i: 'நான் எங்கே',
+    notify_title: 'ரயில்/போக்குவரத்து/புகைமூட்ட எச்சரிக்கைகளை இயக்கு', where_am_i: 'நான் எங்கே',
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
     category_nearby: 'அருகில்', category_attractions: 'சுற்றுலா தளங்கள்',
@@ -599,7 +599,7 @@ const I18N = {
   },
   ja: {
     tab_search: '検索', tab_directions: 'ルート', tab_bus: '🚌 バス到着時刻',
-    notify_title: '電車・交通情報の通知をオンにする', where_am_i: '現在地',
+    notify_title: '電車・交通・ヘイズ情報の通知をオンにする', where_am_i: '現在地',
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
     category_nearby: '近く', category_attractions: '観光スポット',
@@ -620,7 +620,7 @@ const I18N = {
   },
   ko: {
     tab_search: '검색', tab_directions: '길찾기', tab_bus: '🚌 버스 도착 시간',
-    notify_title: '열차/교통 알림 켜기', where_am_i: '내 위치',
+    notify_title: '열차/교통/실안개 알림 켜기', where_am_i: '내 위치',
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
     category_nearby: '주변', category_attractions: '관광명소',
@@ -2831,7 +2831,7 @@ function updateNotifyButton() {
   if (!els.notifyBtn) return;
   const enabled = localStorage.getItem(PUSH_ENABLED_KEY) === '1';
   els.notifyBtn.classList.toggle('active', enabled);
-  els.notifyBtn.title = enabled ? 'Train/traffic alerts are ON — tap to turn off' : 'Turn on train/traffic alerts';
+  els.notifyBtn.title = enabled ? 'Train/traffic/haze alerts are ON — tap to turn off' : 'Turn on train/traffic/haze alerts';
 }
 
 async function enablePushAlerts() {
