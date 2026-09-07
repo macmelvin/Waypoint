@@ -2169,28 +2169,32 @@ function renderRouteSummary(route) {
 // ---- Ride-hailing quick links (Grab / Gojek / Ryde / TADA) ------------------
 //
 // None of these four apps publishes an OFFICIAL, developer-documented deep
-// link format for pre-filling a pickup location (Grab's own help centre only
-// documents in-app UX; Gojek, Ryde and TADA have no public deep-link docs at
-// all). All four attempts below are therefore "best effort, safely
-// degrading" rather than guaranteed:
+// link format for pre-filling a pickup location. Each app below uses
+// whatever's the most solid mechanism actually found for it — updated after
+// live testing showed the two pure guesses (ryde://, tada://) didn't work:
 //   - Grab: "grab://open?screenType=BOOKING&pickUpLatitude=...&pickUpLongitude
 //     =..." is a widely-used pattern across many real-world affiliate/OneLink
 //     integrations (hotel/mall sites' "Book a Grab" buttons) — not something
-//     we invented, but also not a page Grab themselves publish. Reasonable
-//     confidence it actually pre-fills the pickup point.
-//   - Gojek/Ryde/TADA: no equivalent scheme or parameter names could be
-//     found anywhere, documented or otherwise. "gojek://", "ryde://", and
-//     "tada://" below are pure guesses based on the near-universal
-//     convention of an app registering its own brand name as its scheme
-//     (the same convention Uber/Lyft/etc follow) — there's a reasonable
-//     chance the bare scheme opens the app, but no basis at all for guessing
-//     pickup-location parameter names, so those three do NOT attempt to
-//     pre-fill the route, only to open the app directly.
-// Every attempt below shares one safety net: if the scheme doesn't launch
-// anything within RIDE_DEEP_LINK_TIMEOUT_MS (app not installed, or the
-// guessed scheme is simply wrong), the tab silently continues to the normal
-// store/website link instead of showing an error — so a wrong guess never
-// leaves you stuck on a blank or broken screen.
+//     we invented, but also not a page Grab themselves publish. Confirmed
+//     working (pre-fills pickup) via live testing.
+//   - Gojek: "gojek://" is an unverified guess at the bare scheme (no pickup
+//     pre-fill possible — no known param format), but confirmed via live
+//     testing to actually open the app.
+//   - Ryde: the raw "ryde://" guess did NOT open the app in testing. Found
+//     instead that rydesharing.com's own download button links to
+//     "https://ryde.app.link/download-ryde" — Ryde's own official Branch.io
+//     universal link. That's used directly below: no guessing, and Branch's
+//     own infrastructure (not us) handles "open the app if installed, else
+//     show a download page" — no pickup pre-fill, but a real, working open.
+//   - TADA: the raw "tada://" guess also did NOT open the app, and unlike
+//     Ryde, no universal link, smart banner, or any deep-link mechanism at
+//     all could be found anywhere for TADA (their own site, App Store
+//     listing, docs). So this now just opens the correct store listing
+//     directly — no broken guess in the way.
+// The custom-scheme guesses (Grab, Gojek) share one safety net: if the
+// scheme doesn't launch anything within RIDE_DEEP_LINK_TIMEOUT_MS (app not
+// installed, or the guess is wrong), the tab silently continues to the
+// normal store/website link instead of getting stuck on a blank screen.
 const RIDE_HAILING_APPS = {
   grab: {
     label: 'Grab',
@@ -2212,7 +2216,8 @@ const RIDE_HAILING_APPS = {
     iosAppId: '944875099',
     androidPackage: 'com.gojek.app',
     webUrl: 'https://www.gojek.com/sg',
-    // Unverified guess at the bare scheme — no pickup pre-fill (see note above).
+    // Unverified guess at the bare scheme, but confirmed working live —
+    // no pickup pre-fill (see note above).
     buildDeepLink: () => 'gojek://',
   },
   ryde: {
@@ -2220,8 +2225,10 @@ const RIDE_HAILING_APPS = {
     iosAppId: '979806982',
     androidPackage: 'com.rydesharing.ryde',
     webUrl: 'https://rydesharing.com/',
-    // Unverified guess at the bare scheme — no pickup pre-fill (see note above).
-    buildDeepLink: () => 'ryde://',
+    // Ryde's own official Branch.io universal link (see note above) — opens
+    // the installed app directly, or Branch's own download page if it
+    // isn't. No pickup pre-fill, but no guessing either.
+    universalLink: 'https://ryde.app.link/download-ryde',
   },
   tada: {
     label: 'TADA',
@@ -2230,8 +2237,8 @@ const RIDE_HAILING_APPS = {
     // No standalone consumer marketing site could be verified — the Play
     // Store listing is the most reliable link to fall back to on desktop.
     webUrl: 'https://play.google.com/store/apps/details?id=io.mvlchain.tada',
-    // Unverified guess at the bare scheme — no pickup pre-fill (see note above).
-    buildDeepLink: () => 'tada://',
+    // No deep-link/universal-link mechanism found anywhere (see note above)
+    // — deliberately no buildDeepLink here, straight to the store listing.
   },
 };
 
@@ -2248,6 +2255,15 @@ function openRideHailingApp(appId) {
   let fallbackUrl = app.webUrl;
   if (isIOS && app.iosAppId) fallbackUrl = `https://apps.apple.com/sg/app/id${app.iosAppId}`;
   else if (isAndroid && app.androidPackage) fallbackUrl = `https://play.google.com/store/apps/details?id=${app.androidPackage}`;
+
+  // A verified https:// universal/app-link (Ryde) — the service's own
+  // infrastructure handles "open app if installed, else show download
+  // page," so this needs no guessing or timeout dance, unlike the schemes
+  // below.
+  if (isMobile && app.universalLink) {
+    window.location.href = app.universalLink;
+    return;
+  }
 
   // Best-effort deep link with pickup pre-filled — only attempted on mobile
   // (custom schemes are meaningless on desktop), and only when we actually
