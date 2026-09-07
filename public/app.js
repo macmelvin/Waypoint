@@ -2168,36 +2168,60 @@ function renderRouteSummary(route) {
 
 // ---- Ride-hailing quick links (Grab / Gojek / Ryde / TADA) ------------------
 //
-// IMPORTANT — what this deliberately does NOT do: none of these four apps
-// publishes a documented, verifiable consumer deep-link format for
-// pre-filling a pickup/dropoff location (Grab's help centre only documents
-// in-app UX; the widely-copied "grab://open?...&pickUpLatitude=..." strings
-// floating around the web trace back to unofficial/affiliate use, not an
-// official spec; Gojek, Ryde and TADA have no public deep-link docs at all).
-// Guessing at that format risks silently breaking (wrong param name, app
-// ignores it, or — worse — opens to a blank/error screen) with no way for us
-// to verify it actually works. So instead of guessing, this opens the
-// correct store listing for the user's platform (or the official site on
-// desktop) — a link that is 100% correct today and works whether or not the
-// app is already installed, at the cost of not pre-filling the route.
+// None of these four apps publishes an OFFICIAL, developer-documented deep
+// link format for pre-filling a pickup location (Grab's own help centre only
+// documents in-app UX; Gojek, Ryde and TADA have no public deep-link docs at
+// all). All four attempts below are therefore "best effort, safely
+// degrading" rather than guaranteed:
+//   - Grab: "grab://open?screenType=BOOKING&pickUpLatitude=...&pickUpLongitude
+//     =..." is a widely-used pattern across many real-world affiliate/OneLink
+//     integrations (hotel/mall sites' "Book a Grab" buttons) — not something
+//     we invented, but also not a page Grab themselves publish. Reasonable
+//     confidence it actually pre-fills the pickup point.
+//   - Gojek/Ryde/TADA: no equivalent scheme or parameter names could be
+//     found anywhere, documented or otherwise. "gojek://", "ryde://", and
+//     "tada://" below are pure guesses based on the near-universal
+//     convention of an app registering its own brand name as its scheme
+//     (the same convention Uber/Lyft/etc follow) — there's a reasonable
+//     chance the bare scheme opens the app, but no basis at all for guessing
+//     pickup-location parameter names, so those three do NOT attempt to
+//     pre-fill the route, only to open the app directly.
+// Every attempt below shares one safety net: if the scheme doesn't launch
+// anything within RIDE_DEEP_LINK_TIMEOUT_MS (app not installed, or the
+// guessed scheme is simply wrong), the tab silently continues to the normal
+// store/website link instead of showing an error — so a wrong guess never
+// leaves you stuck on a blank or broken screen.
 const RIDE_HAILING_APPS = {
   grab: {
     label: 'Grab',
     iosAppId: '647268330',
     androidPackage: 'com.grabtaxi.passenger',
     webUrl: 'https://www.grab.com/sg/transport/',
+    buildDeepLink: (from) => {
+      const params = new URLSearchParams({
+        screenType: 'BOOKING',
+        pickUpLatitude: from.lat,
+        pickUpLongitude: from.lon,
+      });
+      if (from.label) params.set('pickUpAddress', from.label);
+      return `grab://open?${params.toString()}`;
+    },
   },
   gojek: {
     label: 'Gojek',
     iosAppId: '944875099',
     androidPackage: 'com.gojek.app',
     webUrl: 'https://www.gojek.com/sg',
+    // Unverified guess at the bare scheme — no pickup pre-fill (see note above).
+    buildDeepLink: () => 'gojek://',
   },
   ryde: {
     label: 'Ryde',
     iosAppId: '979806982',
     androidPackage: 'com.rydesharing.ryde',
     webUrl: 'https://rydesharing.com/',
+    // Unverified guess at the bare scheme — no pickup pre-fill (see note above).
+    buildDeepLink: () => 'ryde://',
   },
   tada: {
     label: 'TADA',
@@ -2206,8 +2230,12 @@ const RIDE_HAILING_APPS = {
     // No standalone consumer marketing site could be verified — the Play
     // Store listing is the most reliable link to fall back to on desktop.
     webUrl: 'https://play.google.com/store/apps/details?id=io.mvlchain.tada',
+    // Unverified guess at the bare scheme — no pickup pre-fill (see note above).
+    buildDeepLink: () => 'tada://',
   },
 };
+
+const RIDE_DEEP_LINK_TIMEOUT_MS = 1500;
 
 function openRideHailingApp(appId) {
   const app = RIDE_HAILING_APPS[appId];
@@ -2215,10 +2243,31 @@ function openRideHailingApp(appId) {
   const ua = navigator.userAgent || '';
   const isIOS = /iPhone|iPad|iPod/i.test(ua);
   const isAndroid = /Android/i.test(ua);
-  let url = app.webUrl;
-  if (isIOS && app.iosAppId) url = `https://apps.apple.com/sg/app/id${app.iosAppId}`;
-  else if (isAndroid && app.androidPackage) url = `https://play.google.com/store/apps/details?id=${app.androidPackage}`;
-  window.open(url, '_blank', 'noopener');
+  const isMobile = isIOS || isAndroid;
+
+  let fallbackUrl = app.webUrl;
+  if (isIOS && app.iosAppId) fallbackUrl = `https://apps.apple.com/sg/app/id${app.iosAppId}`;
+  else if (isAndroid && app.androidPackage) fallbackUrl = `https://play.google.com/store/apps/details?id=${app.androidPackage}`;
+
+  // Best-effort deep link with pickup pre-filled — only attempted on mobile
+  // (custom schemes are meaningless on desktop), and only when we actually
+  // have a "from" location to pre-fill. If nothing intercepts the
+  // navigation (app not installed, or the scheme is wrong), the page stays
+  // visible and the timeout below quietly continues to the normal link.
+  if (isMobile && app.buildDeepLink && fromCoords) {
+    let leftPage = false;
+    const markLeft = () => { leftPage = true; };
+    document.addEventListener('visibilitychange', markLeft, { once: true });
+    window.addEventListener('pagehide', markLeft, { once: true });
+    window.location.href = app.buildDeepLink(fromCoords);
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', markLeft);
+      if (!leftPage) window.location.href = fallbackUrl;
+    }, RIDE_DEEP_LINK_TIMEOUT_MS);
+    return;
+  }
+
+  window.open(fallbackUrl, '_blank', 'noopener');
 }
 
 let rideHailingLinksWired = false;
