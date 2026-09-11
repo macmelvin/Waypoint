@@ -558,7 +558,7 @@ const I18N = {
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
     install_banner_text: '📲 Add Waypoint to your home screen for quick access', install: 'Install', not_now: 'Not now',
-    dismiss: 'Dismiss',
+    dismiss: 'Dismiss', ride_hailing_label: 'Or book a ride',
   },
   zh: {
     tab_search: '搜索', tab_directions: '路线', tab_bus: '🚌 巴士到站时间',
@@ -579,7 +579,7 @@ const I18N = {
     fav_empty_hint: '在上方搜索巴士车站并添加，即可随时查看实时到站时间 — 无需先规划行程。',
     share_footer: '💙 如果觉得好用，欢迎分享给朋友', support_footer: '☕ 请我喝杯咖啡 — 支持 Waypoint 持续运作',
     install_banner_text: '📲 将 Waypoint 添加到主屏幕，方便快速使用', install: '安装', not_now: '暂不安装',
-    dismiss: '关闭',
+    dismiss: '关闭', ride_hailing_label: '或预订叫车',
   },
   ms: {
     tab_search: 'Carian', tab_directions: 'Arah', tab_bus: '🚌 Waktu Ketibaan Bas',
@@ -600,7 +600,7 @@ const I18N = {
     fav_empty_hint: 'Cari perhentian bas di atas dan tambahkannya untuk semak ketibaan langsung di sini bila-bila masa — tidak perlu rancang perjalanan dahulu.',
     share_footer: '💙 Kongsikan aplikasi ini jika berguna', support_footer: '☕ Belanja saya kopi — bantu kekalkan Waypoint berjalan',
     install_banner_text: '📲 Tambah Waypoint ke skrin utama untuk akses pantas', install: 'Pasang', not_now: 'Bukan sekarang',
-    dismiss: 'Tutup',
+    dismiss: 'Tutup', ride_hailing_label: 'Atau tempah kenderaan',
   },
   ta: {
     tab_search: 'தேடல்', tab_directions: 'வழிகள்', tab_bus: '🚌 பேருந்து வருகை நேரம்',
@@ -621,7 +621,7 @@ const I18N = {
     fav_empty_hint: 'மேலே ஒரு பேருந்து நிறுத்தத்தைத் தேடி சேர்த்து, எப்போது வேண்டுமானாலும் நேரலை வருகையைச் சரிபார்க்கலாம் — முதலில் பயணத்தைத் திட்டமிட வேண்டியதில்லை.',
     share_footer: '💙 இது பயனுள்ளதாக இருந்தால் இந்த ஆப்பைப் பகிரவும்', support_footer: '☕ எனக்கு ஒரு காபி வாங்கிக் கொடுங்கள் — Waypoint செயல்பட உதவுங்கள்',
     install_banner_text: '📲 விரைவு அணுகலுக்காக Waypoint-ஐ உங்கள் முகப்புத் திரையில் சேர்க்கவும்', install: 'நிறுவு', not_now: 'இப்போது வேண்டாம்',
-    dismiss: 'மூடு',
+    dismiss: 'மூடு', ride_hailing_label: 'அல்லது ஒரு வாகனத்தை முன்பதிவு செய்யுங்கள்',
   },
   ja: {
     tab_search: '検索', tab_directions: 'ルート', tab_bus: '🚌 バス到着時刻',
@@ -642,7 +642,7 @@ const I18N = {
     fav_empty_hint: '上でバス停を検索して追加すると、いつでもリアルタイムの到着時刻を確認できます — 先にルートを計画する必要はありません。',
     share_footer: '💙 便利だと思ったらこのアプリをシェアしてください', support_footer: '☕ コーヒーをおごる — Waypointの運営を支援',
     install_banner_text: '📲 Waypointをホーム画面に追加してすぐにアクセス', install: 'インストール', not_now: '今はしない',
-    dismiss: '閉じる',
+    dismiss: '閉じる', ride_hailing_label: 'または配車サービスを予約',
   },
   ko: {
     tab_search: '검색', tab_directions: '길찾기', tab_bus: '🚌 버스 도착 시간',
@@ -663,7 +663,7 @@ const I18N = {
     fav_empty_hint: '위에서 버스 정류장을 검색해 추가하면 언제든지 실시간 도착 정보를 확인할 수 있습니다 — 먼저 경로를 계획할 필요가 없습니다.',
     share_footer: '💙 유용하다면 이 앱을 공유해 주세요', support_footer: '☕ 커피 한 잔 사주세요 — Waypoint 운영에 도움이 됩니다',
     install_banner_text: '📲 빠른 접근을 위해 Waypoint를 홈 화면에 추가하세요', install: '설치', not_now: '나중에',
-    dismiss: '닫기',
+    dismiss: '닫기', ride_hailing_label: '또는 차량 예약하기',
   },
 };
 
@@ -2079,8 +2079,16 @@ function renderTransitSteps(itinerary) {
       const headsign = leg.headsign ? ` towards ${leg.headsign}` : '';
       const fromCode = leg.fromStopCode ? ` (${leg.fromStopCode})` : '';
       const toCode = leg.toStopCode ? ` (${leg.toStopCode})` : '';
+      // The alighting stop (leg.to) is bolded, not the "via X" headsign —
+      // "via Renjong" is just a boarding-direction hint (like a bus's
+      // headsign), not where to get off, but it used to sit right next to
+      // the bold line name while the real stop to alight at (leg.to) was
+      // buried in a plain sentence. That's a real way to get off at the
+      // wrong stop, not just a cosmetic nitpick — confirmed by a user who
+      // did exactly that after boarding "towards SW Loop via Renjong" and
+      // assumed Renjong was the destination.
       text.innerHTML = `<strong>${line}</strong>${headsign}<br>`
-        + `${leg.from}${fromCode} → ${leg.to}${toCode} — ${formatDuration(leg.duration)} (${formatClockTime(leg.startTime)})`;
+        + `${leg.from}${fromCode} → <strong>${leg.to}${toCode}</strong> — ${formatDuration(leg.duration)} (${formatClockTime(leg.startTime)})`;
     }
     row.appendChild(icon);
     row.appendChild(text);
