@@ -3144,12 +3144,13 @@ let weatherWidgetTimer = null;
 
 async function loadWeatherWidget(coords) {
   try {
-    const [wxRes, psiRes] = await Promise.all([
+    const [wxRes, psiRes, uvRes] = await Promise.all([
       fetch(`/api/weather-nearby?lat=${coords.lat}&lon=${coords.lon}`),
-      // PSI is a nice-to-have alongside the weather text — never let a
-      // failure here (or the endpoint being briefly unavailable) block the
-      // weather widget itself.
+      // PSI and UV Index are nice-to-haves alongside the weather text — never
+      // let a failure here (or the endpoint being briefly unavailable) block
+      // the weather widget itself.
       fetch(`/api/psi-nearby?lat=${coords.lat}&lon=${coords.lon}`).catch(() => null),
+      fetch('/api/uv-index').catch(() => null), // island-wide, no lat/lon needed
     ]);
     const data = await wxRes.json();
     if (!wxRes.ok || !data.forecast) {
@@ -3169,7 +3170,22 @@ async function loadWeatherWidget(coords) {
       }
     }
 
-    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}${psiSuffix}`;
+    let uvSuffix = '';
+    delete els.weatherWidget.dataset.uv;
+    if (uvRes && uvRes.ok) {
+      const uvData = await uvRes.json();
+      // A UV value of 0 is a real, common reading (before sunrise/after
+      // sunset) — only skip on a genuine null (fetch/parse failure upstream).
+      if (uvData.value != null) {
+        els.weatherWidget.dataset.uv = uvData.value;
+        els.weatherWidget.dataset.uvCategory = uvData.category || '';
+        // Only worth flagging in the compact widget text once it's actually
+        // enough to matter — Low UV before 8am/after 6pm would just be noise.
+        if (uvData.value >= 3) uvSuffix = ` · ☀️ UV ${uvData.value}`;
+      }
+    }
+
+    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}${psiSuffix}${uvSuffix}`;
     els.weatherWidget.title = `${data.forecast} near ${data.area} — tap for details`;
     els.weatherWidget.dataset.area = data.area;
     els.weatherWidget.dataset.forecast = data.forecast;
@@ -3213,6 +3229,10 @@ function renderWeatherPanel(daily) {
   const psiLine = psi
     ? `<p class="weather-panel-now">😷 PSI (24-hr) in <strong>${els.weatherWidget.dataset.psiRegion}</strong>: <strong>${psi}</strong> — ${els.weatherWidget.dataset.psiCategory}</p>`
     : '';
+  const uv = els.weatherWidget.dataset.uv;
+  const uvLine = uv
+    ? `<p class="weather-panel-now">☀️ UV Index: <strong>${uv}</strong> — ${els.weatherWidget.dataset.uvCategory}</p>`
+    : '';
   const temp = daily.tempLow != null && daily.tempHigh != null ? `${daily.tempLow}–${daily.tempHigh}°C` : '—';
   const humidity = daily.humidityLow != null && daily.humidityHigh != null ? `${daily.humidityLow}–${daily.humidityHigh}%` : '—';
   const wind = daily.windSpeedLow != null && daily.windSpeedHigh != null
@@ -3224,6 +3244,7 @@ function renderWeatherPanel(daily) {
     <h3 class="weather-panel-headline">${daily.forecast || "Today's outlook"}</h3>
     ${nowLine}
     ${psiLine}
+    ${uvLine}
     <div class="weather-panel-grid">
       <div><span class="weather-panel-label">Temperature</span><span class="weather-panel-value">${temp}</span></div>
       <div><span class="weather-panel-label">Humidity</span><span class="weather-panel-value">${humidity}</span></div>
