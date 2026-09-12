@@ -2002,12 +2002,24 @@ const UV_TTL_MS = 30 * 60 * 1000;
 
 async function getUvReading() {
   if (uvCache && Date.now() - uvCacheAt < UV_TTL_MS) return uvCache;
-  const res = await fetch('https://api.data.gov.sg/v1/environment/uv-index');
+  // Passing an explicit `date` (Singapore's local calendar day — NEA's feed
+  // is SGT-based) turned out to be required, not optional. The "no date"
+  // request (what this used to call) is supposed to return the latest
+  // snapshot, but in practice it got stuck returning the PREVIOUS day's
+  // final snapshot indefinitely instead of rolling over — since that final
+  // snapshot's most recent reading is always 0 (UV is 0 by ~7-8pm), that's
+  // exactly the "stuck showing 0 since yesterday" bug. Scoping to today's
+  // date explicitly sidesteps whatever staleness/caching NEA has on the
+  // undated endpoint and reliably returns live, updating data instead.
+  const todaySG = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date());
+  const res = await fetch(`https://api.data.gov.sg/v1/environment/uv-index?date=${todaySG}`);
   if (!res.ok) throw new Error(`NEA UV Index API responded ${res.status}`);
   const data = await res.json();
-  const item = data.items?.[0];
-  if (!item) throw new Error('No UV Index data returned');
-  uvCache = item;
+  // With an explicit date, NEA returns one item PER HOUR it has published so
+  // far today (chronological order, oldest first) rather than a single
+  // "current" item — items is empty before its first publish of the day
+  // (~7am SGT).
+  uvCache = data.items || [];
   uvCacheAt = Date.now();
   return uvCache;
 }
@@ -2023,20 +2035,20 @@ function uvCategory(value) {
 
 app.get('/api/uv-index', async (req, res) => {
   try {
-    const item = await getUvReading();
-    const hourly = item.index || [];
-    if (!hourly.length) {
-      return res.json({ value: null, category: null, categoryColor: null, timestamp: null });
+    const items = await getUvReading();
+    // Before NEA's first publish of the day (pre-dawn, ~before 7am SGT)
+    // there's no snapshot yet — that genuinely means UV is 0 (it's still
+    // dark out), not "unknown".
+    if (!items.length) {
+      const category = uvCategory(0);
+      return res.json({ value: 0, category: category?.label || null, categoryColor: category?.color || null, timestamp: null });
     }
 
-    const now = Date.now();
-    let current = null;
-    for (const entry of hourly) {
-      if (new Date(entry.timestamp).getTime() <= now) current = entry;
-      else break;
-    }
-    // Before the day's first entry or after the last (night), NEA simply has
-    // no row for "now" — that means UV is 0, not "unknown."
+    // Last item = most recent hour published today. Within one snapshot,
+    // its own index[] is newest-first, so index[0] is the reading as of
+    // that snapshot's timestamp — i.e. the current value.
+    const latest = items[items.length - 1];
+    const current = latest.index?.[0];
     const value = current ? current.value : 0;
     const category = uvCategory(value);
 
@@ -2044,7 +2056,7 @@ app.get('/api/uv-index', async (req, res) => {
       value,
       category: category?.label || null,
       categoryColor: category?.color || null,
-      timestamp: current ? current.timestamp : item.timestamp,
+      timestamp: current ? current.timestamp : latest.timestamp,
     });
   } catch (err) {
     console.error('uv-index error:', err.message);
