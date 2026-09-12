@@ -262,6 +262,7 @@ const CATEGORY_LABELS = {
   dogpark: 'dog park',
   carpark: 'carpark',
   towtruck: 'tow truck service',
+  petgrooming: 'pet groomer',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -300,6 +301,8 @@ const CATEGORY_OSM_TAGS = {
   // OSM's documented Key:service:vehicle:* scheme. Without the extra filter
   // this would surface every car workshop, most of which don't tow.
   towtruck: { key: 'shop', tags: ['car_repair'], extraKey: 'service:vehicle:towing', extraValue: 'yes' },
+  // Standard, documented OSM tag — no sub-filter needed, same as hospital/police/vets.
+  petgrooming: { key: 'shop', tags: ['pet_grooming'] },
 };
 // Tried in order — start close (keeps dense categories genuinely local),
 // then widen automatically for sparse categories that
@@ -686,6 +689,7 @@ const CHIP_I18N = {
   library: { en: 'Library', zh: '图书馆', ms: 'Perpustakaan', ta: 'நூலகம்', ja: '図書館', ko: '도서관' },
   dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா', ja: 'ドッグパーク', ko: '반려견 공원' },
   towtruck: { en: 'Tow Truck', zh: '拖车服务', ms: 'Khidmat Tunda Kereta', ta: 'இழுவை வாகன சேவை', ja: 'レッカーサービス', ko: '견인 서비스' },
+  petgrooming: { en: 'Pet Grooming', zh: '宠物美容', ms: 'Dandanan Haiwan', ta: 'செல்லப்பிராணி அழகுபடுத்தல்', ja: 'ペットグルーミング', ko: '반려동물 미용' },
   mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
   sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு', ja: 'セントーサ島', ko: '센토사 섬' },
