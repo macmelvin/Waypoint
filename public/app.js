@@ -3371,6 +3371,40 @@ function initWeatherWidget() {
 // for today, via NEA's 24-hour forecast) alongside the hyper-local 2-hour
 // condition the widget itself already shows.
 
+// Standard WHO UV Index scale — same bands/colors as uvCategory() in
+// server.js (keep in sync if that ever changes). Shown as a small reference
+// strip in the weather panel so people know what a given number actually
+// means, not just today's raw value. Band NAMES alone ("Moderate", "High")
+// don't tell most people anything actionable, so each band also carries a
+// plain-language "what to actually do" line, shown for today's current
+// value rather than making people learn what the jargon means.
+const UV_BANDS = [
+  { max: 2, range: '0-2', label: 'Low', color: '2E7D32', advice: 'No real precautions needed.' },
+  { max: 5, range: '3-5', label: 'Moderate', color: 'F9A825', advice: 'Seek shade during midday; sunscreen if you\'ll be out a while.' },
+  { max: 7, range: '6-7', label: 'High', color: 'EF6C00', advice: 'Wear sunscreen, a hat and sunglasses; limit midday sun.' },
+  { max: 10, range: '8-10', label: 'Very High', color: 'C62828', advice: 'Unprotected skin can burn in under 30 min — avoid midday sun.' },
+  { max: Infinity, range: '11+', label: 'Extreme', color: '6A1B9A', advice: 'Skin can burn in 10–15 min — avoid sun 11am–3pm if you can.' },
+];
+
+function renderUvScale(value) {
+  let currentBand = null;
+  const bandsHtml = UV_BANDS.map((band, i) => {
+    const prevMax = i === 0 ? -Infinity : UV_BANDS[i - 1].max;
+    const isCurrent = value != null && value > prevMax && value <= band.max;
+    if (isCurrent) currentBand = band;
+    return `<div class="uv-scale-band${isCurrent ? ' current' : ''}" style="background:#${band.color}">`
+      + `<span class="uv-scale-range">${band.range}</span>`
+      + `<span class="uv-scale-label">${band.label}</span>`
+      + '</div>';
+  }).join('');
+  // The advice line is the actual point — what to do right now — not just
+  // which jargon bucket today falls into.
+  const adviceHtml = currentBand
+    ? `<p class="uv-scale-advice">${currentBand.advice}</p>`
+    : '';
+  return `<div class="uv-scale">${bandsHtml}</div>${adviceHtml}`;
+}
+
 function renderWeatherPanel(daily) {
   const area = els.weatherWidget.dataset.area;
   const nowForecast = els.weatherWidget.dataset.forecast;
@@ -3383,7 +3417,7 @@ function renderWeatherPanel(daily) {
     : '';
   const uv = els.weatherWidget.dataset.uv;
   const uvLine = uv
-    ? `<p class="weather-panel-now">☀️ UV Index: <strong>${uv}</strong> — ${els.weatherWidget.dataset.uvCategory}</p>`
+    ? `<p class="weather-panel-now">☀️ UV Index: <strong>${uv}</strong> — ${els.weatherWidget.dataset.uvCategory}</p>${renderUvScale(Number(uv))}`
     : '';
   const temp = daily.tempLow != null && daily.tempHigh != null ? `${daily.tempLow}–${daily.tempHigh}°C` : '—';
   const humidity = daily.humidityLow != null && daily.humidityHigh != null ? `${daily.humidityLow}–${daily.humidityHigh}%` : '—';
