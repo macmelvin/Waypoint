@@ -1481,16 +1481,17 @@ function drawTrafficOverlays() {
   });
 }
 
-// Set this to a free CARTO Basemaps API key (carto.com/basemaps/apikey/ — no
-// account needed, key emailed instantly) to switch both maps to CARTO's
-// clean "Positron" style (soft grays/greens, like Waze/Petal Maps) instead
-// of the default OSM "Standard" style's busy beige buildings and dense
-// labels. CARTO now requires a key even on their free tier (5M tiles/month)
-// — without one their tiles show a big "API KEY REQUIRED" watermark instead
-// of the map, which is worse than what's here now, so this stays empty
-// (falling back to default OSM tiles, softened by the CSS filter below)
-// until a real key is plugged in.
-const CARTO_API_KEY = '';
+// Free CARTO Basemaps API key (carto.com/basemaps/apikey/, free tier: 5M
+// tile requests/month) — switches both the live nav map and the route
+// preview map to CARTO's clean "Positron" style (soft grays/greens, like
+// Waze/Petal Maps) instead of the default OSM "Standard" style's busy beige
+// buildings and dense labels. This key is only good for pulling map tiles
+// (not an account/billing secret), and CARTO Basemaps keys are meant to
+// ship in client-side JS like this — but it is visible to anyone who views
+// this file, so if it's ever misused, regenerate/revoke it from the same
+// carto.com/basemaps/apikey/ form. Leave this empty to fall back to the
+// default OSM tiles (still softened by the CSS filter below).
+const CARTO_API_KEY = 'cb1_3i2h_1_e6f7d6e99ba7fde0991ed336';
 
 function buildBasemapLayer() {
   if (CARTO_API_KEY) {
