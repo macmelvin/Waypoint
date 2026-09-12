@@ -1482,9 +1482,18 @@ function drawTrafficOverlays() {
 function initNavMap() {
   if (navMap || typeof L === 'undefined') return;
   navMap = L.map('navMap', { zoomControl: false, attributionControl: true });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  // CARTO's "Positron" basemap — a clean, minimal light style (soft grays,
+  // muted greens, restrained labels) instead of the default OSM "Standard"
+  // style's busy beige buildings/purple-green POI icons/dense text, which
+  // is what made the nav map look cluttered next to something like Waze or
+  // Petal Maps. Free, no API key, same OSM data underneath — just restyled.
+  // CARTO's usage policy requires crediting both OSM (the data) and CARTO
+  // (the style/hosting), hence both links below.
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 20,
+    subdomains: 'abcd',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors '
+      + '&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
   }).addTo(navMap);
   // Manually panning away breaks course-up tracking — freeze back to a
   // plain north-up map rather than leaving it stuck at a rotated angle
