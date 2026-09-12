@@ -41,6 +41,7 @@ const els = {
   swapBtn: document.getElementById('swapBtn'),
   getDirectionsBtn: document.getElementById('getDirectionsBtn'),
   routeSummary: document.getElementById('routeSummary'),
+  routePreviewMap: document.getElementById('routePreviewMap'),
   rideHailingLinks: document.getElementById('rideHailingLinks'),
   routeSteps: document.getElementById('routeSteps'),
   itineraryOptionsLabel: document.getElementById('itineraryOptionsLabel'),
@@ -1323,6 +1324,7 @@ async function getDirections() {
 
     if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
       showToast('Could not find a route between those points.');
+      hideRoutePreviewMap();
       return;
     }
 
@@ -1479,26 +1481,150 @@ function drawTrafficOverlays() {
   });
 }
 
+// Set this to a free CARTO Basemaps API key (carto.com/basemaps/apikey/ — no
+// account needed, key emailed instantly) to switch both maps to CARTO's
+// clean "Positron" style (soft grays/greens, like Waze/Petal Maps) instead
+// of the default OSM "Standard" style's busy beige buildings and dense
+// labels. CARTO now requires a key even on their free tier (5M tiles/month)
+// — without one their tiles show a big "API KEY REQUIRED" watermark instead
+// of the map, which is worse than what's here now, so this stays empty
+// (falling back to default OSM tiles, softened by the CSS filter below)
+// until a real key is plugged in.
+const CARTO_API_KEY = '';
+
+function buildBasemapLayer() {
+  if (CARTO_API_KEY) {
+    return L.tileLayer(`https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`, {
+      maxZoom: 20,
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors '
+        + '&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    });
+  }
+  return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  });
+}
+
 function initNavMap() {
   if (navMap || typeof L === 'undefined') return;
   navMap = L.map('navMap', { zoomControl: false, attributionControl: true });
-  // CARTO's "Positron" basemap — a clean, minimal light style (soft grays,
-  // muted greens, restrained labels) instead of the default OSM "Standard"
-  // style's busy beige buildings/purple-green POI icons/dense text, which
-  // is what made the nav map look cluttered next to something like Waze or
-  // Petal Maps. Free, no API key, same OSM data underneath — just restyled.
-  // CARTO's usage policy requires crediting both OSM (the data) and CARTO
-  // (the style/hosting), hence both links below.
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 20,
-    subdomains: 'abcd',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors '
-      + '&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
-  }).addTo(navMap);
+  buildBasemapLayer().addTo(navMap);
   // Manually panning away breaks course-up tracking — freeze back to a
   // plain north-up map rather than leaving it stuck at a rotated angle
   // while the person's looking somewhere else on it.
   navMap.on('dragstart', () => { navFollowing = false; resetMapRotation(); });
+}
+
+// ---- Route preview map (Directions results, before "Start Navigation") ----
+// A small static map showing the route/itinerary right in the results —
+// same idea as Google/Waze/Petal Maps showing the route before you commit to
+// navigating, rather than Waypoint's previous text-only steps list. Separate
+// Leaflet instance from the full-screen live nav map (different container,
+// no live puck/rotation/traffic overlay — just the path + start/end pins),
+// but shares the same basemap choice via buildBasemapLayer().
+
+// Standard Google/OTP-format encoded polyline decoder (precision 5) — OTP's
+// leg.legGeometry.points comes back in this format. Returns [[lat,lon], ...].
+function decodePolyline(encoded) {
+  if (!encoded) return [];
+  const coordinates = [];
+  const factor = 1e5;
+  let index = 0, lat = 0, lon = 0;
+  while (index < encoded.length) {
+    let result = 0, shift = 0, b;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+    result = 0; shift = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lon += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+    coordinates.push([lat / factor, lon / factor]);
+  }
+  return coordinates;
+}
+
+let previewMap = null;
+let previewMapLayers = []; // polylines + markers drawn for the current route, cleared and rebuilt each call
+
+function initPreviewMap() {
+  if (previewMap || typeof L === 'undefined') return;
+  // No zoom control / dragging kept minimal — this is a small "here's your
+  // route at a glance" preview, not something you're meant to pan around;
+  // scrollWheelZoom off so scrolling the results panel over it on desktop
+  // doesn't accidentally zoom the map instead.
+  previewMap = L.map('routePreviewMap', { zoomControl: false, attributionControl: true, scrollWheelZoom: false });
+  buildBasemapLayer().addTo(previewMap);
+}
+
+// segments: [{ latlngs: [[lat,lon],...], color: '#hex', dashed: bool }, ...]
+function renderRoutePreviewMap(segments) {
+  if (typeof L === 'undefined' || !els.routePreviewMap) return;
+  const nonEmpty = segments.filter((s) => s.latlngs && s.latlngs.length);
+  if (!nonEmpty.length) { els.routePreviewMap.classList.add('hidden'); return; }
+
+  els.routePreviewMap.classList.remove('hidden');
+  initPreviewMap();
+  if (!previewMap) return;
+  // The container was just un-hidden (or the panel just became visible), so
+  // Leaflet needs a nudge to notice its real size — same fix as the nav map.
+  setTimeout(() => previewMap.invalidateSize(), 0);
+
+  previewMapLayers.forEach((layer) => previewMap.removeLayer(layer));
+  previewMapLayers = [];
+
+  const allPoints = [];
+  nonEmpty.forEach((seg) => {
+    allPoints.push(...seg.latlngs);
+    // Same white "halo under the line" trick as the nav map, so the route
+    // still reads clearly against building/park fills.
+    previewMapLayers.push(
+      L.polyline(seg.latlngs, { color: '#ffffff', weight: 7, opacity: 0.85 }).addTo(previewMap),
+      L.polyline(seg.latlngs, {
+        color: seg.color || '#2563eb',
+        weight: 4,
+        opacity: 0.95,
+        dashArray: seg.dashed ? '1,8' : null,
+      }).addTo(previewMap)
+    );
+  });
+
+  const startIcon = L.divIcon({ className: 'nav-start-marker', iconSize: [14, 14], iconAnchor: [7, 7] });
+  const destIcon = L.divIcon({ className: 'nav-dest-marker', html: '📍', iconSize: [26, 26], iconAnchor: [13, 26] });
+  previewMapLayers.push(
+    L.marker(allPoints[0], { icon: startIcon }).addTo(previewMap),
+    L.marker(allPoints[allPoints.length - 1], { icon: destIcon }).addTo(previewMap)
+  );
+
+  previewMap.fitBounds(L.latLngBounds(allPoints), { padding: [24, 24] });
+}
+
+function hideRoutePreviewMap() {
+  if (els.routePreviewMap) els.routePreviewMap.classList.add('hidden');
+}
+
+// Turns one transit itinerary's legs into preview-map segments — walk legs
+// dashed gray (de-emphasized, matches how the steps list treats them), train
+// legs colored by their real line color (same leg.routeColor used for line
+// badges elsewhere), everything else (bus) a plain blue.
+function transitPreviewSegments(itinerary) {
+  return itinerary.legs.map((leg) => {
+    const isWalk = leg.mode === 'walk';
+    let color = '#2563eb';
+    if (isWalk) color = '#9ca3af';
+    else if (leg.mode === 'train' && leg.routeColor) color = `#${leg.routeColor}`;
+    return { latlngs: decodePolyline(leg.geometry), color, dashed: isWalk };
+  });
 }
 
 function showNavMap(routeCoords) {
@@ -1911,6 +2037,7 @@ async function getTransitDirections() {
       els.itineraryOptions.classList.add('hidden');
       els.itineraryOptions.innerHTML = '';
       transitItineraries = [];
+      hideRoutePreviewMap();
       return;
     }
 
@@ -2035,6 +2162,7 @@ function selectItinerary(index) {
   hasRoute = true;
   renderTransitSummary(itinerary);
   renderTransitSteps(itinerary);
+  renderRoutePreviewMap(transitPreviewSegments(itinerary));
 }
 
 function formatClockTime(ms) {
@@ -2185,6 +2313,12 @@ function renderRouteSummary(route) {
   els.routeSummary.classList.remove('hidden');
   els.routeSummary.innerHTML = `<strong>${formatDuration(route.duration)}</strong> &nbsp;·&nbsp; ${formatDistance(route.distance)}`;
   renderRideHailingLinks();
+  const coords = route.geometry && route.geometry.coordinates;
+  if (coords && coords.length) {
+    renderRoutePreviewMap([{ latlngs: coords.map(([lon, lat]) => [lat, lon]), color: '#2563eb' }]);
+  } else {
+    hideRoutePreviewMap();
+  }
 }
 
 // ---- Ride-hailing quick links (Grab / Gojek / Ryde / TADA) ------------------

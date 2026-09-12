@@ -607,6 +607,25 @@ html, body {
 .route-summary.hidden { display: none; }
 .route-summary strong { font-size: 17px; }
 
+/* Route preview map — a small inline Leaflet map on the Directions results
+   panel showing the route/itinerary before "Start Navigation" is tapped
+   (mirrors Google Maps/Waze/Petal Maps). Distinct from #navMap (the
+   full-screen overlay used during live turn-by-turn nav). Leaflet needs an
+   explicit height on its container or it renders as a blank 0px box. */
+.route-preview-map {
+  height: 220px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--panel-bg);
+}
+.route-preview-map.hidden { display: none; }
+/* Same tile-mute treatment as .nav-map, for visual consistency between the
+   preview map and the live nav map (see the comment above .nav-map .leaflet-tile-pane). */
+.route-preview-map .leaflet-tile-pane {
+  filter: grayscale(25%) saturate(1.2) brightness(1.08) contrast(0.92);
+}
+
 .ride-hailing-links.hidden { display: none; }
 .ride-hailing-label {
   font-size: 11px;
