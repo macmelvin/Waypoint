@@ -1495,7 +1495,11 @@ const CARTO_API_KEY = 'cb1_3i2h_1_e6f7d6e99ba7fde0991ed336';
 
 function buildBasemapLayer() {
   if (CARTO_API_KEY) {
-    return L.tileLayer(`https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`, {
+    // CARTO's docs (and multiple other projects that hit this same "API KEY
+    // REQUIRED" watermark) confirm the query param is named "key", not
+    // "api_key" — that mismatch is what caused the watermark even with a
+    // valid key plugged in.
+    return L.tileLayer(`https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, {
       maxZoom: 20,
       subdomains: 'abcd',
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors '
