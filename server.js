@@ -2134,16 +2134,30 @@ app.get('/api/dengue-clusters', async (req, res) => {
 });
 
 // ---- Flash flood alerts (PUB) ------------------------------------------
-// PUB's real-time "Flood Alerts across Singapore" feed — locations with an
-// active flood alert right now, shown as markers and checked against your
-// route. This dataset's exact field names aren't documented in PUB's public
-// listing, so parsing below tries several common key spellings rather than
-// assuming one; if none match, it logs one raw sample once (visible in
-// Railway logs) instead of silently returning nothing forever.
+// PUB's real-time flood alert feed — locations with an active flood alert
+// right now, shown as markers and checked against your route.
+//
+// This is NOT the same "poll-download" flow as the dengue clusters/ERP
+// gantry static datasets above, even though data.gov.sg lists it on a
+// similar-looking dataset page. Tried that first — it turns out that for
+// this dataset, poll-download just hands back the API's OpenAPI SPEC
+// document (an "openapi": "3.0.0" JSON blob describing the endpoint), not
+// actual alert data. The spec itself names the real endpoint:
+// https://api-open.data.gov.sg/v2/real-time/api/weather/flood-alerts —
+// part of data.gov.sg's newer v2 real-time API family (same family as
+// rainfall/PM2.5), called directly below instead.
+//
+// Shape (confirmed live): { data: { records: [ { datetime, item: { readings:
+// [...], isStationData, type }, updatedTimestamp } ], paginationToken } }.
+// records[0] is the most recent ~2-minute snapshot. `readings` is empty
+// whenever there's no active alert anywhere (the normal state almost all of
+// the time) — a reading's own field names aren't confirmed yet since no
+// live example has been seen, so parsing below tries several common key
+// spellings and logs one raw sample the first time a non-empty reading
+// actually shows up, so the shape can be verified/tightened from real data.
 let floodCache = null;
 let floodCacheAt = 0;
 const FLOOD_TTL_MS = 5 * 60 * 1000; // this one really is event-based/real-time
-const FLOOD_DATASET_ID = 'd_f1404e08587ce555b9ea3f565e2eb9a3';
 let floodSchemaLogged = false;
 
 function firstDefined(obj, keys) {
@@ -2156,43 +2170,28 @@ function firstDefined(obj, keys) {
 async function getFloodAlerts() {
   if (floodCache && Date.now() - floodCacheAt < FLOOD_TTL_MS) return floodCache;
 
-  const pollRes = await fetch(
-    `https://api-open.data.gov.sg/v1/public/api/datasets/${FLOOD_DATASET_ID}/poll-download`
-  );
-  if (!pollRes.ok) throw new Error(`flood poll-download responded ${pollRes.status}`);
-  const pollData = await pollRes.json();
-  const url = pollData?.data?.url;
-  if (!url) throw new Error('flood dataset URL missing from poll-download response');
+  const res = await fetch('https://api-open.data.gov.sg/v2/real-time/api/weather/flood-alerts');
+  if (!res.ok) throw new Error(`flood-alerts API responded ${res.status}`);
+  const data = await res.json();
+  if (data.code !== 0) throw new Error(`flood-alerts API error: ${data.errorMsg || 'unknown'}`);
+  const readings = data?.data?.records?.[0]?.item?.readings || [];
 
-  const dataRes = await fetch(url);
-  if (!dataRes.ok) throw new Error(`flood data fetch responded ${dataRes.status}`);
-  const raw = await dataRes.json();
-
-  const list = Array.isArray(raw) ? raw
-    : Array.isArray(raw?.value) ? raw.value
-    : Array.isArray(raw?.features) ? raw.features
-    : Array.isArray(raw?.items) ? raw.items
-    : Array.isArray(raw?.result?.records) ? raw.result.records
-    : [];
-
-  if (!floodSchemaLogged) {
-    console.log('flood alerts raw sample:', JSON.stringify(list[0] ?? raw).slice(0, 600));
+  if (readings.length && !floodSchemaLogged) {
+    console.log('flood alerts raw reading sample:', JSON.stringify(readings[0]).slice(0, 600));
     floodSchemaLogged = true;
   }
 
-  const alerts = list
+  const alerts = readings
     .map((item, i) => {
-      const props = item.properties || item;
-      const geomCoords = item.geometry?.coordinates;
-      let lat = firstDefined(props, ['latitude', 'Latitude', 'LAT', 'lat', 'Lat']);
-      let lon = firstDefined(props, ['longitude', 'Longitude', 'LON', 'LNG', 'lng', 'lon', 'Lon']);
-      if ((lat == null || lon == null) && Array.isArray(geomCoords) && geomCoords.length >= 2) {
-        [lon, lat] = geomCoords;
-      }
+      const loc = item.location || item.Location || {};
+      let lat = firstDefined(item, ['latitude', 'Latitude', 'LAT', 'lat', 'Lat'])
+        ?? firstDefined(loc, ['latitude', 'Latitude', 'LAT', 'lat', 'Lat']);
+      let lon = firstDefined(item, ['longitude', 'Longitude', 'LON', 'LNG', 'lng', 'lon', 'Lon'])
+        ?? firstDefined(loc, ['longitude', 'Longitude', 'LON', 'LNG', 'lng', 'lon', 'Lon']);
       if (lat == null || lon == null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lon))) return null;
-      const name = firstDefined(props, ['name', 'Name', 'NAME', 'location', 'Location', 'LOCATION', 'description', 'Description']) || `Flood alert ${i + 1}`;
-      const status = firstDefined(props, ['status', 'Status', 'STATUS', 'alert', 'Alert', 'severity', 'Severity']);
-      return { id: props.id ?? props.ID ?? props.OBJECTID ?? i, name, status, lat: Number(lat), lon: Number(lon) };
+      const name = firstDefined(item, ['name', 'Name', 'NAME', 'location', 'Location', 'LOCATION', 'description', 'Description', 'area', 'Area']) || `Flood alert ${i + 1}`;
+      const status = firstDefined(item, ['status', 'Status', 'STATUS', 'alert', 'Alert', 'severity', 'Severity', 'value', 'Value']);
+      return { id: item.id ?? item.ID ?? item.stationId ?? i, name, status, lat: Number(lat), lon: Number(lon) };
     })
     .filter(Boolean);
 
