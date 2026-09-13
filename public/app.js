@@ -48,6 +48,10 @@ const els = {
   itineraryOptions: document.getElementById('itineraryOptions'),
   rainBanner: document.getElementById('rainBanner'),
   rainBannerText: document.getElementById('rainBannerText'),
+  dengueBanner: document.getElementById('dengueBanner'),
+  dengueBannerText: document.getElementById('dengueBannerText'),
+  floodBanner: document.getElementById('floodBanner'),
+  floodBannerText: document.getElementById('floodBannerText'),
   trainAlertBanner: document.getElementById('trainAlertBanner'),
   trainAlertText: document.getElementById('trainAlertText'),
   trainAlertDismiss: document.getElementById('trainAlertDismiss'),
@@ -1512,6 +1516,138 @@ function buildBasemapLayer() {
   });
 }
 
+// ---- Hazard layers: dengue cluster zones (NEA) + flash flood alerts (PUB) --
+// Fetched once at load and refreshed periodically (see setInterval below),
+// then drawn as shaded zones / markers on BOTH maps (live nav + route
+// preview) and checked against whatever route is currently shown so a
+// walk/cycle through one gets a heads-up banner.
+let dengueClusters = [];
+let floodAlerts = [];
+const HAZARD_POLL_MS = 10 * 60 * 1000;
+
+async function loadHazardData() {
+  try {
+    const [dengueRes, floodRes] = await Promise.all([
+      fetch('/api/dengue-clusters').then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/flood-alerts').then((r) => (r.ok ? r.json() : null)),
+    ]);
+    if (dengueRes?.clusters) dengueClusters = dengueRes.clusters;
+    if (floodRes?.alerts) floodAlerts = floodRes.alerts;
+    refreshHazardLayers();
+    // A route may already be on screen when this (re)loads — re-check it
+    // against the freshest data rather than waiting for the next search.
+    if (lastPreviewPoints) checkRouteHazards(lastPreviewPoints);
+  } catch (err) {
+    console.error('hazard data load failed:', err);
+  }
+}
+
+function buildDengueLayer() {
+  const group = L.layerGroup();
+  dengueClusters.forEach((cluster) => {
+    const caseLabel = cluster.caseSize != null ? ` — ${cluster.caseSize} case${cluster.caseSize === 1 ? '' : 's'}` : '';
+    (cluster.rings || []).forEach((ring) => {
+      L.polygon(ring, { color: '#c2410c', weight: 1.5, fillColor: '#f97316', fillOpacity: 0.28 })
+        .bindTooltip(`🦟 ${cluster.locality}${caseLabel}`, { sticky: true })
+        .addTo(group);
+    });
+  });
+  return group;
+}
+
+function buildFloodLayer() {
+  const group = L.layerGroup();
+  floodAlerts.forEach((alert) => {
+    const icon = L.divIcon({ className: 'flood-alert-marker', html: '🌊', iconSize: [24, 24], iconAnchor: [12, 12] });
+    L.marker([alert.lat, alert.lon], { icon })
+      .bindTooltip(`${alert.name}${alert.status ? ` — ${alert.status}` : ''}`, { sticky: true })
+      .addTo(group);
+  });
+  return group;
+}
+
+let navHazardLayers = null;
+let previewHazardLayers = null;
+
+// Redraws both hazard layers on whichever of the two maps currently exist —
+// safe to call before either map is created (it just does nothing for the
+// missing one) and safe to call repeatedly as data refreshes.
+function refreshHazardLayers() {
+  if (typeof L === 'undefined') return;
+  if (navMap) {
+    if (navHazardLayers) { navMap.removeLayer(navHazardLayers.dengue); navMap.removeLayer(navHazardLayers.flood); }
+    navHazardLayers = { dengue: buildDengueLayer().addTo(navMap), flood: buildFloodLayer().addTo(navMap) };
+  }
+  if (previewMap) {
+    if (previewHazardLayers) { previewMap.removeLayer(previewHazardLayers.dengue); previewMap.removeLayer(previewHazardLayers.flood); }
+    previewHazardLayers = { dengue: buildDengueLayer().addTo(previewMap), flood: buildFloodLayer().addTo(previewMap) };
+  }
+}
+
+// Ray-casting point-in-polygon test. ring: [[lat,lon], ...].
+function pointInRing(lat, lon, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [yi, xi] = ring[i];
+    const [yj, xj] = ring[j];
+    const intersect = (yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInAnyDengueCluster(lat, lon) {
+  return dengueClusters.find((c) => (c.rings || []).some((ring) => pointInRing(lat, lon, ring))) || null;
+}
+
+const FLOOD_ALERT_PROXIMITY_M = 300;
+
+function showDengueAlert(cluster) {
+  const caseLabel = cluster.caseSize != null ? ` (${cluster.caseSize} case${cluster.caseSize === 1 ? '' : 's'})` : '';
+  els.dengueBannerText.textContent = `Your route passes through an active dengue cluster near ${cluster.locality}${caseLabel} — consider insect repellent.`;
+  els.dengueBanner.classList.remove('hidden');
+}
+function hideDengueAlert() { els.dengueBanner.classList.add('hidden'); }
+
+function showFloodAlert(alert) {
+  const statusLabel = alert.status ? ` (${alert.status})` : '';
+  els.floodBannerText.textContent = `Active flash flood alert near your route at ${alert.name}${statusLabel} — consider an alternate route or delay.`;
+  els.floodBanner.classList.remove('hidden');
+}
+function hideFloodAlert() { els.floodBanner.classList.add('hidden'); }
+
+// Remembers the last route's points so a hazard-data refresh mid-session
+// (see loadHazardData) can re-check the route already on screen.
+let lastPreviewPoints = null;
+
+// points: [[lat,lon], ...] — every vertex of the route/itinerary currently
+// shown on the preview map. Checks the WHOLE route, not just endpoints,
+// since a cluster or flood spot in the middle of the path matters just as
+// much as one at either end.
+function checkRouteHazards(points) {
+  hideDengueAlert();
+  hideFloodAlert();
+  if (!points || !points.length) return;
+
+  for (const [lat, lon] of points) {
+    const hit = pointInAnyDengueCluster(lat, lon);
+    if (hit) { showDengueAlert(hit); break; }
+  }
+
+  pointLoop:
+  for (const [lat, lon] of points) {
+    for (const alert of floodAlerts) {
+      if (haversineMeters(lat, lon, alert.lat, alert.lon) <= FLOOD_ALERT_PROXIMITY_M) {
+        showFloodAlert(alert);
+        break pointLoop;
+      }
+    }
+  }
+}
+
+loadHazardData();
+setInterval(loadHazardData, HAZARD_POLL_MS);
+
 function initNavMap() {
   if (navMap || typeof L === 'undefined') return;
   navMap = L.map('navMap', { zoomControl: false, attributionControl: true });
@@ -1520,6 +1656,7 @@ function initNavMap() {
   // plain north-up map rather than leaving it stuck at a rotated angle
   // while the person's looking somewhere else on it.
   navMap.on('dragstart', () => { navFollowing = false; resetMapRotation(); });
+  refreshHazardLayers();
 }
 
 // ---- Route preview map (Directions results, before "Start Navigation") ----
@@ -1570,6 +1707,7 @@ function initPreviewMap() {
   // doesn't accidentally zoom the map instead.
   previewMap = L.map('routePreviewMap', { zoomControl: false, attributionControl: true, scrollWheelZoom: false });
   buildBasemapLayer().addTo(previewMap);
+  refreshHazardLayers();
 }
 
 // segments: [{ latlngs: [[lat,lon],...], color: '#hex', dashed: bool }, ...]
@@ -1612,10 +1750,16 @@ function renderRoutePreviewMap(segments) {
   );
 
   previewMap.fitBounds(L.latLngBounds(allPoints), { padding: [24, 24] });
+
+  lastPreviewPoints = allPoints;
+  checkRouteHazards(allPoints);
 }
 
 function hideRoutePreviewMap() {
   if (els.routePreviewMap) els.routePreviewMap.classList.add('hidden');
+  lastPreviewPoints = null;
+  hideDengueAlert();
+  hideFloodAlert();
 }
 
 // Turns one transit itinerary's legs into preview-map segments — walk legs

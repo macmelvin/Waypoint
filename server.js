@@ -2064,6 +2064,156 @@ app.get('/api/uv-index', async (req, res) => {
   }
 });
 
+// ---- Dengue cluster zones (NEA) ---------------------------------------
+// Active dengue cluster boundaries — drawn as shaded zones on the map and
+// checked against your route so a walk/cycle through one gets a heads-up.
+// Same "static dataset via poll-download" flow as the ERP gantry geometry
+// above: ask data.gov.sg for a fresh signed download URL, then fetch the
+// actual GeoJSON from there.
+let dengueCache = null;
+let dengueCacheAt = 0;
+const DENGUE_TTL_MS = 6 * 60 * 60 * 1000; // NEA updates this every so often, not live-live
+const DENGUE_DATASET_ID = 'd_dbfabf16158d1b0e1c420627c0819168';
+
+async function getDengueClusters() {
+  if (dengueCache && Date.now() - dengueCacheAt < DENGUE_TTL_MS) return dengueCache;
+
+  const pollRes = await fetch(
+    `https://api-open.data.gov.sg/v1/public/api/datasets/${DENGUE_DATASET_ID}/poll-download`
+  );
+  if (!pollRes.ok) throw new Error(`dengue poll-download responded ${pollRes.status}`);
+  const pollData = await pollRes.json();
+  const url = pollData?.data?.url;
+  if (!url) throw new Error('dengue dataset URL missing from poll-download response');
+
+  const geoRes = await fetch(url);
+  if (!geoRes.ok) throw new Error(`dengue geojson fetch responded ${geoRes.status}`);
+  const geojson = await geoRes.json();
+
+  const clusters = (geojson.features || [])
+    .map((f, i) => {
+      const geom = f.geometry;
+      if (!geom) return null;
+      // GeoJSON stores rings as [lon, lat] — flip to [lat, lon] for Leaflet.
+      // Both Polygon (one ring set) and MultiPolygon (several) show up in
+      // this dataset (a cluster can span disconnected areas).
+      let rings = [];
+      if (geom.type === 'Polygon') {
+        rings = geom.coordinates.map((ring) => ring.map(([lon, lat]) => [lat, lon]));
+      } else if (geom.type === 'MultiPolygon') {
+        rings = geom.coordinates.flat().map((ring) => ring.map(([lon, lat]) => [lat, lon]));
+      } else {
+        return null;
+      }
+      if (!rings.length) return null;
+      const props = f.properties || {};
+      const locality = props.LOCALITY || props.Locality || props.locality || `Cluster ${i + 1}`;
+      const caseSizeRaw = props.CASE_SIZE ?? props.Case_Size ?? props.case_size;
+      const caseSize = caseSizeRaw != null && !Number.isNaN(Number(caseSizeRaw)) ? Number(caseSizeRaw) : null;
+      return { id: props.OBJECTID ?? i, locality, caseSize, rings };
+    })
+    .filter(Boolean);
+
+  // Only replace the cache with a non-empty result — an empty/failed parse
+  // shouldn't wipe out the last known-good clusters.
+  if (clusters.length) {
+    dengueCache = clusters;
+    dengueCacheAt = Date.now();
+  }
+  return dengueCache || [];
+}
+
+app.get('/api/dengue-clusters', async (req, res) => {
+  try {
+    const clusters = await getDengueClusters();
+    res.json({ clusters });
+  } catch (err) {
+    console.error('dengue-clusters error:', err.message);
+    res.json({ clusters: [] });
+  }
+});
+
+// ---- Flash flood alerts (PUB) ------------------------------------------
+// PUB's real-time "Flood Alerts across Singapore" feed — locations with an
+// active flood alert right now, shown as markers and checked against your
+// route. This dataset's exact field names aren't documented in PUB's public
+// listing, so parsing below tries several common key spellings rather than
+// assuming one; if none match, it logs one raw sample once (visible in
+// Railway logs) instead of silently returning nothing forever.
+let floodCache = null;
+let floodCacheAt = 0;
+const FLOOD_TTL_MS = 5 * 60 * 1000; // this one really is event-based/real-time
+const FLOOD_DATASET_ID = 'd_f1404e08587ce555b9ea3f565e2eb9a3';
+let floodSchemaLogged = false;
+
+function firstDefined(obj, keys) {
+  for (const k of keys) {
+    if (obj && obj[k] != null && obj[k] !== '') return obj[k];
+  }
+  return null;
+}
+
+async function getFloodAlerts() {
+  if (floodCache && Date.now() - floodCacheAt < FLOOD_TTL_MS) return floodCache;
+
+  const pollRes = await fetch(
+    `https://api-open.data.gov.sg/v1/public/api/datasets/${FLOOD_DATASET_ID}/poll-download`
+  );
+  if (!pollRes.ok) throw new Error(`flood poll-download responded ${pollRes.status}`);
+  const pollData = await pollRes.json();
+  const url = pollData?.data?.url;
+  if (!url) throw new Error('flood dataset URL missing from poll-download response');
+
+  const dataRes = await fetch(url);
+  if (!dataRes.ok) throw new Error(`flood data fetch responded ${dataRes.status}`);
+  const raw = await dataRes.json();
+
+  const list = Array.isArray(raw) ? raw
+    : Array.isArray(raw?.value) ? raw.value
+    : Array.isArray(raw?.features) ? raw.features
+    : Array.isArray(raw?.items) ? raw.items
+    : Array.isArray(raw?.result?.records) ? raw.result.records
+    : [];
+
+  if (!floodSchemaLogged) {
+    console.log('flood alerts raw sample:', JSON.stringify(list[0] ?? raw).slice(0, 600));
+    floodSchemaLogged = true;
+  }
+
+  const alerts = list
+    .map((item, i) => {
+      const props = item.properties || item;
+      const geomCoords = item.geometry?.coordinates;
+      let lat = firstDefined(props, ['latitude', 'Latitude', 'LAT', 'lat', 'Lat']);
+      let lon = firstDefined(props, ['longitude', 'Longitude', 'LON', 'LNG', 'lng', 'lon', 'Lon']);
+      if ((lat == null || lon == null) && Array.isArray(geomCoords) && geomCoords.length >= 2) {
+        [lon, lat] = geomCoords;
+      }
+      if (lat == null || lon == null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lon))) return null;
+      const name = firstDefined(props, ['name', 'Name', 'NAME', 'location', 'Location', 'LOCATION', 'description', 'Description']) || `Flood alert ${i + 1}`;
+      const status = firstDefined(props, ['status', 'Status', 'STATUS', 'alert', 'Alert', 'severity', 'Severity']);
+      return { id: props.id ?? props.ID ?? props.OBJECTID ?? i, name, status, lat: Number(lat), lon: Number(lon) };
+    })
+    .filter(Boolean);
+
+  // Unlike dengue clusters, an empty result here is expected and correct
+  // most of the time (no active flood alerts right now) — so an empty
+  // array from a successful fetch DOES overwrite the cache.
+  floodCache = alerts;
+  floodCacheAt = Date.now();
+  return floodCache;
+}
+
+app.get('/api/flood-alerts', async (req, res) => {
+  try {
+    const alerts = await getFloodAlerts();
+    res.json({ alerts });
+  } catch (err) {
+    console.error('flood-alerts error:', err.message);
+    res.json({ alerts: [] });
+  }
+});
+
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

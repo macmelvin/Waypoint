@@ -703,6 +703,32 @@ html, body {
 }
 .rain-banner.hidden { display: none; }
 
+.dengue-banner {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.dengue-banner.hidden { display: none; }
+
+.flood-banner {
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  color: #155e75;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.flood-banner.hidden { display: none; }
+
+.flood-alert-marker { font-size: 20px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+
 .route-steps {
   list-style: none;
   margin: 0;
