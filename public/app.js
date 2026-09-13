@@ -1573,14 +1573,18 @@ let previewHazardLayers = null;
 // safe to call before either map is created (it just does nothing for the
 // missing one) and safe to call repeatedly as data refreshes.
 function refreshHazardLayers() {
-  if (typeof L === 'undefined') return;
-  if (navMap) {
-    if (navHazardLayers) { navMap.removeLayer(navHazardLayers.dengue); navMap.removeLayer(navHazardLayers.flood); }
-    navHazardLayers = { dengue: buildDengueLayer().addTo(navMap), flood: buildFloodLayer().addTo(navMap) };
-  }
-  if (previewMap) {
-    if (previewHazardLayers) { previewMap.removeLayer(previewHazardLayers.dengue); previewMap.removeLayer(previewHazardLayers.flood); }
-    previewHazardLayers = { dengue: buildDengueLayer().addTo(previewMap), flood: buildFloodLayer().addTo(previewMap) };
+  try {
+    if (typeof L === 'undefined') return;
+    if (navMap) {
+      if (navHazardLayers) { navMap.removeLayer(navHazardLayers.dengue); navMap.removeLayer(navHazardLayers.flood); }
+      navHazardLayers = { dengue: buildDengueLayer().addTo(navMap), flood: buildFloodLayer().addTo(navMap) };
+    }
+    if (previewMap) {
+      if (previewHazardLayers) { previewMap.removeLayer(previewHazardLayers.dengue); previewMap.removeLayer(previewHazardLayers.flood); }
+      previewHazardLayers = { dengue: buildDengueLayer().addTo(previewMap), flood: buildFloodLayer().addTo(previewMap) };
+    }
+  } catch (err) {
+    console.error('hazard layer refresh failed:', err);
   }
 }
 
@@ -1625,23 +1629,27 @@ let lastPreviewPoints = null;
 // since a cluster or flood spot in the middle of the path matters just as
 // much as one at either end.
 function checkRouteHazards(points) {
-  hideDengueAlert();
-  hideFloodAlert();
-  if (!points || !points.length) return;
+  try {
+    hideDengueAlert();
+    hideFloodAlert();
+    if (!points || !points.length) return;
 
-  for (const [lat, lon] of points) {
-    const hit = pointInAnyDengueCluster(lat, lon);
-    if (hit) { showDengueAlert(hit); break; }
-  }
+    for (const [lat, lon] of points) {
+      const hit = pointInAnyDengueCluster(lat, lon);
+      if (hit) { showDengueAlert(hit); break; }
+    }
 
-  pointLoop:
-  for (const [lat, lon] of points) {
-    for (const alert of floodAlerts) {
-      if (haversineMeters(lat, lon, alert.lat, alert.lon) <= FLOOD_ALERT_PROXIMITY_M) {
-        showFloodAlert(alert);
-        break pointLoop;
+    pointLoop:
+    for (const [lat, lon] of points) {
+      for (const alert of floodAlerts) {
+        if (haversineMeters(lat, lon, alert.lat, alert.lon) <= FLOOD_ALERT_PROXIMITY_M) {
+          showFloodAlert(alert);
+          break pointLoop;
+        }
       }
     }
+  } catch (err) {
+    console.error('hazard route check failed:', err);
   }
 }
 
@@ -1711,48 +1719,62 @@ function initPreviewMap() {
 }
 
 // segments: [{ latlngs: [[lat,lon],...], color: '#hex', dashed: bool }, ...]
+// Everything below is wrapped in one try/catch. Reasoning: this function is
+// called from INSIDE renderRouteSummary()/selectItinerary(), both of which
+// still have important work to do right after (rendering route steps,
+// revealing the "Start Navigation" button, showing cycling/driving extras).
+// Those are plain synchronous statements after this call — if anything in
+// here threw, the exception would propagate straight up and silently skip
+// all of that later code too, which is a much worse failure than "the
+// preview map/hazard overlay didn't draw this one time." A rendering bug in
+// a map overlay should never be able to take down the rest of the results
+// screen with it.
 function renderRoutePreviewMap(segments) {
-  if (typeof L === 'undefined' || !els.routePreviewMap) return;
-  const nonEmpty = segments.filter((s) => s.latlngs && s.latlngs.length);
-  if (!nonEmpty.length) { els.routePreviewMap.classList.add('hidden'); return; }
+  try {
+    if (typeof L === 'undefined' || !els.routePreviewMap) return;
+    const nonEmpty = segments.filter((s) => s.latlngs && s.latlngs.length);
+    if (!nonEmpty.length) { els.routePreviewMap.classList.add('hidden'); return; }
 
-  els.routePreviewMap.classList.remove('hidden');
-  initPreviewMap();
-  if (!previewMap) return;
-  // The container was just un-hidden (or the panel just became visible), so
-  // Leaflet needs a nudge to notice its real size — same fix as the nav map.
-  setTimeout(() => previewMap.invalidateSize(), 0);
+    els.routePreviewMap.classList.remove('hidden');
+    initPreviewMap();
+    if (!previewMap) return;
+    // The container was just un-hidden (or the panel just became visible), so
+    // Leaflet needs a nudge to notice its real size — same fix as the nav map.
+    setTimeout(() => previewMap.invalidateSize(), 0);
 
-  previewMapLayers.forEach((layer) => previewMap.removeLayer(layer));
-  previewMapLayers = [];
+    previewMapLayers.forEach((layer) => previewMap.removeLayer(layer));
+    previewMapLayers = [];
 
-  const allPoints = [];
-  nonEmpty.forEach((seg) => {
-    allPoints.push(...seg.latlngs);
-    // Same white "halo under the line" trick as the nav map, so the route
-    // still reads clearly against building/park fills.
+    const allPoints = [];
+    nonEmpty.forEach((seg) => {
+      allPoints.push(...seg.latlngs);
+      // Same white "halo under the line" trick as the nav map, so the route
+      // still reads clearly against building/park fills.
+      previewMapLayers.push(
+        L.polyline(seg.latlngs, { color: '#ffffff', weight: 7, opacity: 0.85 }).addTo(previewMap),
+        L.polyline(seg.latlngs, {
+          color: seg.color || '#2563eb',
+          weight: 4,
+          opacity: 0.95,
+          dashArray: seg.dashed ? '1,8' : null,
+        }).addTo(previewMap)
+      );
+    });
+
+    const startIcon = L.divIcon({ className: 'nav-start-marker', iconSize: [14, 14], iconAnchor: [7, 7] });
+    const destIcon = L.divIcon({ className: 'nav-dest-marker', html: '📍', iconSize: [26, 26], iconAnchor: [13, 26] });
     previewMapLayers.push(
-      L.polyline(seg.latlngs, { color: '#ffffff', weight: 7, opacity: 0.85 }).addTo(previewMap),
-      L.polyline(seg.latlngs, {
-        color: seg.color || '#2563eb',
-        weight: 4,
-        opacity: 0.95,
-        dashArray: seg.dashed ? '1,8' : null,
-      }).addTo(previewMap)
+      L.marker(allPoints[0], { icon: startIcon }).addTo(previewMap),
+      L.marker(allPoints[allPoints.length - 1], { icon: destIcon }).addTo(previewMap)
     );
-  });
 
-  const startIcon = L.divIcon({ className: 'nav-start-marker', iconSize: [14, 14], iconAnchor: [7, 7] });
-  const destIcon = L.divIcon({ className: 'nav-dest-marker', html: '📍', iconSize: [26, 26], iconAnchor: [13, 26] });
-  previewMapLayers.push(
-    L.marker(allPoints[0], { icon: startIcon }).addTo(previewMap),
-    L.marker(allPoints[allPoints.length - 1], { icon: destIcon }).addTo(previewMap)
-  );
+    previewMap.fitBounds(L.latLngBounds(allPoints), { padding: [24, 24] });
 
-  previewMap.fitBounds(L.latLngBounds(allPoints), { padding: [24, 24] });
-
-  lastPreviewPoints = allPoints;
-  checkRouteHazards(allPoints);
+    lastPreviewPoints = allPoints;
+    checkRouteHazards(allPoints);
+  } catch (err) {
+    console.error('route preview map failed (route steps/Start Navigation still proceed):', err);
+  }
 }
 
 function hideRoutePreviewMap() {
