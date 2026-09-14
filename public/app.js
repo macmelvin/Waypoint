@@ -3470,13 +3470,32 @@ function saveSosContact(name, phone) {
   localStorage.setItem(SOS_CONTACT_KEY, JSON.stringify({ name, phone }));
 }
 
-// Normalizes a Singapore number to the digits-only "countrycode+number"
-// form WhatsApp's click-to-chat links expect (wa.me/6591234567), accepting
-// the common ways people actually type a local number (with/without +65,
-// with/without spaces, with/without a leading 0) rather than forcing one
-// exact input format.
-function normalizeSgPhone(raw) {
-  const digits = (raw || '').replace(/\D/g, '');
+const SOS_MESSAGE_KEY = 'waypoint_sos_message'; // last-used SOS text, editable each time, defaults to "I NEED HELP"
+const SOS_DEFAULT_MESSAGE = 'I NEED HELP';
+
+function loadSosMessage() {
+  try {
+    return localStorage.getItem(SOS_MESSAGE_KEY) || SOS_DEFAULT_MESSAGE;
+  } catch (err) {
+    return SOS_DEFAULT_MESSAGE;
+  }
+}
+
+function saveSosMessage(message) {
+  try { localStorage.setItem(SOS_MESSAGE_KEY, message); } catch (err) { /* ignore */ }
+}
+
+// Normalizes a phone number to the digits-only "countrycode+number" form
+// WhatsApp's click-to-chat links expect (wa.me/6591234567). A leading "+"
+// is treated as an explicit international number and trusted as-is (once
+// non-digits are stripped) so contacts outside Singapore work too. With no
+// "+", falls back to the common ways people type a local Singapore number
+// (with/without +65, with/without spaces, with/without a leading 0), since
+// that's still the default case for this app.
+function normalizePhoneNumber(raw) {
+  const trimmed = (raw || '').trim();
+  const digits = trimmed.replace(/\D/g, '');
+  if (trimmed.startsWith('+')) return digits;
   if (digits.startsWith('65') && digits.length === 10) return digits;
   if (digits.length === 8) return `65${digits}`;
   if (digits.startsWith('0') && digits.length === 9) return `65${digits.slice(1)}`;
@@ -3491,17 +3510,17 @@ function renderSosSetupForm(existing) {
     <div class="sos-form">
       <label class="sos-form-label" for="sosContactName">Name</label>
       <input id="sosContactName" class="sos-form-input" type="text" placeholder="e.g. Mum" value="${existing?.name ? escapeHtml(existing.name) : ''}" />
-      <label class="sos-form-label" for="sosContactPhone">Phone number (Singapore)</label>
-      <input id="sosContactPhone" class="sos-form-input" type="tel" placeholder="e.g. 9123 4567" value="${existing?.phone ? escapeHtml(existing.phone) : ''}" />
+      <label class="sos-form-label" for="sosContactPhone">Phone number</label>
+      <input id="sosContactPhone" class="sos-form-input" type="tel" placeholder="e.g. 9123 4567, or +1 415 555 0100 outside Singapore" value="${existing?.phone ? escapeHtml(existing.phone) : ''}" />
     </div>
     <button id="sosSaveBtn" class="sos-primary-btn" type="button">Save contact</button>
   `;
   document.getElementById('sosSaveBtn').addEventListener('click', () => {
     const name = document.getElementById('sosContactName').value.trim();
     const phoneRaw = document.getElementById('sosContactPhone').value.trim();
-    const phone = normalizeSgPhone(phoneRaw);
+    const phone = normalizePhoneNumber(phoneRaw);
     if (!name) { showToast('Enter a name for this contact.'); return; }
-    if (phone.length < 10) { showToast('Enter a valid Singapore phone number.'); return; }
+    if (phone.length < 8 || phone.length > 15) { showToast('Enter a valid phone number, with a country code (+ and the number) if outside Singapore.'); return; }
     saveSosContact(name, phone);
     showToast(`SOS contact saved: ${name}`);
     renderSosConfirm({ name, phone });
@@ -3512,11 +3531,20 @@ function renderSosConfirm(contact) {
   els.sosModalBody.innerHTML = `
     <div class="weather-panel-icon">🆘</div>
     <h3 class="weather-panel-headline">Send HELP to ${escapeHtml(contact.name)}?</h3>
-    <p class="weather-panel-now">Opens WhatsApp with a HELP message and a link that keeps updating with your live location for up to 1 hour (or until you tap "Stop sharing"). You tap Send in WhatsApp to actually deliver it.</p>
+    <p class="weather-panel-now">Opens WhatsApp with the message below and a link that keeps updating with your live location for up to 1 hour (or until you tap "Stop sharing"). You tap Send in WhatsApp to actually deliver it.</p>
+    <div class="sos-form">
+      <label class="sos-form-label" for="sosMessageInput">Message</label>
+      <input id="sosMessageInput" class="sos-form-input" type="text" value="${escapeHtml(loadSosMessage())}" />
+    </div>
     <button id="sosSendBtn" class="sos-primary-btn sos-send-btn" type="button">🆘 Send HELP via WhatsApp</button>
     <button id="sosChangeContactBtn" class="sos-secondary-btn" type="button">Change contact</button>
   `;
-  document.getElementById('sosSendBtn').addEventListener('click', () => triggerSos(contact));
+  document.getElementById('sosSendBtn').addEventListener('click', () => {
+    const messageInput = document.getElementById('sosMessageInput');
+    const message = (messageInput?.value || '').trim() || SOS_DEFAULT_MESSAGE;
+    saveSosMessage(message);
+    triggerSos(contact, message);
+  });
   document.getElementById('sosChangeContactBtn').addEventListener('click', () => renderSosSetupForm(contact));
 }
 
@@ -3538,7 +3566,7 @@ function postSosPosition(sessionId, lat, lon) {
   }).catch((err) => console.error('SOS position update failed:', err));
 }
 
-function triggerSos(contact) {
+function triggerSos(contact, message) {
   const sendBtn = document.getElementById('sosSendBtn');
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Getting your location…'; }
 
@@ -3550,10 +3578,11 @@ function triggerSos(contact) {
   // button appear to do nothing at the exact moment it matters most.
   const sosTab = window.open('', '_blank');
   const sessionId = genSosSessionId();
+  const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
 
   const openWhatsapp = (trackingLine) => {
-    const message = `🆘 HELP - I need assistance.${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
-    const url = `https://wa.me/${contact.phone}?text=${encodeURIComponent(message)}`;
+    const fullMessage = `🆘 ${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+    const url = `https://wa.me/${contact.phone}?text=${encodeURIComponent(fullMessage)}`;
     if (sosTab) sosTab.location.href = url;
     else window.open(url, '_blank'); // popup was blocked outright — best effort fallback
     closeSosModal();
@@ -3993,6 +4022,39 @@ function renderUvScale(value) {
   return `<div class="uv-scale">${bandsHtml}</div>${adviceHtml}`;
 }
 
+// Official NEA PSI scale — same bands/colors as psiCategory() in server.js
+// (keep in sync if that ever changes). Reuses the uv-scale-* CSS classes
+// since the visual (a row of colored bands, current one highlighted, with
+// an advice line for today's value) is identical to the UV scale above.
+// Guidance text is NEA's own general-population activity guidance from
+// haze.gov.sg, not a guess — this answers "how bad is the haze right now"
+// on the full scale, distinct from the mask-specific line shown above it
+// (which uses MOH's separate, higher mask thresholds).
+const PSI_BANDS = [
+  { max: 50, range: '0-50', label: 'Good', color: '2E7D32', advice: 'Normal activities can be carried out as usual.' },
+  { max: 100, range: '51-100', label: 'Moderate', color: 'F9A825', advice: 'Normal activities as usual. If you\'re unusually sensitive to haze, cutting down on prolonged outdoor exertion can help.' },
+  { max: 200, range: '101-200', label: 'Unhealthy', color: 'EF6C00', advice: 'Reduce prolonged or strenuous outdoor physical exertion.' },
+  { max: 300, range: '201-300', label: 'Very Unhealthy', color: 'C62828', advice: 'Avoid prolonged or strenuous outdoor physical exertion.' },
+  { max: Infinity, range: '301+', label: 'Hazardous', color: '6A1B9A', advice: 'Minimise outdoor activity.' },
+];
+
+function renderPsiScale(value) {
+  let currentBand = null;
+  const bandsHtml = PSI_BANDS.map((band, i) => {
+    const prevMax = i === 0 ? -Infinity : PSI_BANDS[i - 1].max;
+    const isCurrent = value != null && value > prevMax && value <= band.max;
+    if (isCurrent) currentBand = band;
+    return `<div class="uv-scale-band${isCurrent ? ' current' : ''}" style="background:#${band.color}">`
+      + `<span class="uv-scale-range">${band.range}</span>`
+      + `<span class="uv-scale-label">${band.label}</span>`
+      + '</div>';
+  }).join('');
+  const adviceHtml = currentBand
+    ? `<p class="uv-scale-advice">${currentBand.advice}</p>`
+    : '';
+  return `<div class="uv-scale">${bandsHtml}</div>${adviceHtml}`;
+}
+
 function renderWeatherPanel(daily) {
   const area = els.weatherWidget.dataset.area;
   const nowForecast = els.weatherWidget.dataset.forecast;
@@ -4008,7 +4070,7 @@ function renderWeatherPanel(daily) {
   // for the exact thresholds and sourcing). Spelling that out here directly
   // instead of leaving people to interpret the label themselves.
   const psiLine = psi
-    ? `<p class="weather-panel-now">😷 PSI (24-hr) in <strong>${els.weatherWidget.dataset.psiRegion}</strong>: <strong>${psi}</strong> — ${els.weatherWidget.dataset.psiCategory}${psiMaskAdvice ? `<br><span class="weather-panel-mask-advice">${psiMaskAdvice}</span>` : ''}</p>`
+    ? `<p class="weather-panel-now">😷 PSI (24-hr) in <strong>${els.weatherWidget.dataset.psiRegion}</strong>: <strong>${psi}</strong> — ${els.weatherWidget.dataset.psiCategory}${psiMaskAdvice ? `<br><span class="weather-panel-mask-advice">${psiMaskAdvice}</span>` : ''}</p>${renderPsiScale(Number(psi))}`
     : '';
   const uv = els.weatherWidget.dataset.uv;
   const uvLine = uv
