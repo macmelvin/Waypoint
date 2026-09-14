@@ -1461,7 +1461,25 @@ let navMapRouteLine = null;
 let navMapLiveMarker = null;
 let navMapStartMarker = null;
 let navMapDestMarker = null;
-let navFollowing = true; // false once the user manually drags the map, until they tap recenter
+let navFollowing = true; // false once the user manually drags/zooms the map, until they tap recenter
+
+// Leaflet fires the exact same 'zoomstart' event whether WE change the zoom
+// (auto-follow re-centering) or the PERSON does (pinch/scroll/+-buttons) —
+// there's no built-in way to tell those apart, unlike 'dragstart' (which only
+// ever fires for a real manual drag). Without this flag, every GPS fix that
+// calls followNavPosition() and changes the zoom level would immediately
+// re-trigger 'zoomstart' and get treated as "the user zoomed," which in turn
+// would (a) wrongly flip navFollowing off after every single auto-recenter,
+// and worse (b) mean any REAL pinch-zoom the user does gets silently undone
+// a few seconds later by the next GPS fix calling followNavPosition() again
+// while navFollowing was never actually turned off. So: set this right
+// before any zoom/pan WE trigger, and the zoomstart handler below only
+// treats the event as a manual zoom when this is false.
+let navProgrammaticZoom = false;
+function navMarkProgrammaticZoom() {
+  navProgrammaticZoom = true;
+  if (navMap) navMap.once('moveend', () => { navProgrammaticZoom = false; });
+}
 
 // Live-traffic overlay segments matched against the current route by
 // /api/route-traffic (see loadRouteTraffic()) — [{ color: 'red'|'amber',
@@ -1678,6 +1696,13 @@ function initNavMap() {
   // plain north-up map rather than leaving it stuck at a rotated angle
   // while the person's looking somewhere else on it.
   navMap.on('dragstart', () => { navFollowing = false; resetMapRotation(); });
+  // Covers pinch-zoom, scroll-wheel zoom, and the +/- buttons — see
+  // navProgrammaticZoom above for why this guard is needed.
+  navMap.on('zoomstart', () => {
+    if (navProgrammaticZoom) return;
+    navFollowing = false;
+    resetMapRotation();
+  });
   refreshHazardLayers();
 }
 
@@ -1859,6 +1884,7 @@ function showNavMap(routeCoords) {
     // etc.) instead of a thin line getting lost in the background.
     navMapRouteHalo = L.polyline(latlngs, { color: '#ffffff', weight: 9, opacity: 0.9 }).addTo(navMap);
     navMapRouteLine = L.polyline(latlngs, { color: '#2563eb', weight: 5, opacity: 0.95 }).addTo(navMap);
+    navMarkProgrammaticZoom();
     navMap.fitBounds(navMapRouteLine.getBounds(), { padding: [40, 40] });
     drawTrafficOverlays();
 
@@ -1956,6 +1982,7 @@ const NAV_FAR_FROM_ROUTE_M = 1500;
 function followNavPosition(lat, lon) {
   if (!navMap) return;
   const farFromRoute = navMapRouteLine && distanceToRouteLine(lat, lon) > NAV_FAR_FROM_ROUTE_M;
+  navMarkProgrammaticZoom();
   if (farFromRoute) {
     const bounds = navMapRouteLine.getBounds();
     bounds.extend([lat, lon]);
