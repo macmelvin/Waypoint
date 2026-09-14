@@ -515,6 +515,17 @@ const LANDMARKS = {
   // MOM Services Centre (Bendemeer) — work pass applications/renewals,
   // employment disputes/claims, foreign worker matters, etc.
   momservices: { label: 'MOM Services Centre', address: '1500 Bendemeer Rd, Singapore 339946', lat: 1.326422, lon: 103.869041 },
+  // Nature/reservoir spots — requested together as a group (hiking + water
+  // catchment parks), not just the two named first.
+  macritchie: { label: 'MacRitchie Reservoir', address: 'MacRitchie Reservoir Park, Lornie Rd, Singapore', lat: 1.34140, lon: 103.82560 },
+  // TreeTop Walk itself sits deep in the forest with no vehicle access — this
+  // points at Venus Drive Car Park, the actual trailhead people drive/get
+  // dropped off at to start the hike out to it.
+  macritchietreetop: { label: 'MacRitchie TreeTop Walk (via Venus Drive)', address: 'Venus Drive Car Park, Singapore', lat: 1.34690, lon: 103.81680 },
+  bukittimah: { label: 'Bukit Timah Hill', address: '177 Hindhede Dr, Singapore 589333', lat: 1.35200, lon: 103.77670 },
+  lowerpeirce: { label: 'Lower Peirce Reservoir', address: 'Lower Peirce Reservoir Park, Singapore', lat: 1.36390, lon: 103.82830 },
+  upperseletar: { label: 'Upper Seletar Reservoir', address: 'Upper Seletar Reservoir Park, Singapore', lat: 1.40580, lon: 103.81020 },
+  bedokreservoir: { label: 'Bedok Reservoir', address: 'Bedok Reservoir Park, Singapore', lat: 1.33620, lon: 103.93190 },
 };
 
 document.querySelectorAll('.category-chip').forEach((btn) => {
@@ -721,6 +732,12 @@ const CHIP_I18N = {
   tuascheckpoint: { en: 'To JB (2nd Link)', zh: '前往新山（第二通道）', ms: 'Ke JB (Laluan Kedua)', ta: 'ஜேபிக்கு (2வது இணைப்பு)', ja: 'JBへ（第2リンク）', ko: 'JB로 (2번째 링크)' },
   icabuilding: { en: 'ICA Building', zh: '移民与关卡局大厦', ms: 'Bangunan ICA', ta: 'ஐசிஏ கட்டிடம்', ja: 'ICAビル', ko: 'ICA 빌딩' },
   momservices: { en: 'MOM Services', zh: '人力部服务中心', ms: 'Perkhidmatan KSM', ta: 'MOM சேவைகள்', ja: 'MOMサービスセンター', ko: 'MOM 서비스센터' },
+  macritchie: { en: 'MacRitchie Reservoir', zh: '麦里芝蓄水池', ms: 'Takungan MacRitchie', ta: 'மேக்ரிட்சி நீர்த்தேக்கம்', ja: 'マクリッチー貯水池', ko: '맥리치 저수지' },
+  macritchietreetop: { en: 'TreeTop Walk', zh: '树梢吊桥', ms: 'TreeTop Walk', ta: 'ட்ரீடாப் வாக்', ja: 'ツリートップウォーク', ko: '트리톱 워크' },
+  bukittimah: { en: 'Bukit Timah Hill', zh: '武吉知马山', ms: 'Bukit Timah', ta: 'புக்கிட் திமா மலை', ja: 'ブキティマヒル', ko: '부킷 티마 힐' },
+  lowerpeirce: { en: 'Lower Peirce Reservoir', zh: '下白沙浮蓄水池', ms: 'Takungan Lower Peirce', ta: 'லோயர் பியர்ஸ் நீர்த்தேக்கம்', ja: 'ローワー・ピアース貯水池', ko: '로어 피어스 저수지' },
+  upperseletar: { en: 'Upper Seletar Reservoir', zh: '上实里达蓄水池', ms: 'Takungan Upper Seletar', ta: 'அப்பர் செலெடார் நீர்த்தேக்கம்', ja: 'アッパー・セレター貯水池', ko: '어퍼 셀레타 저수지' },
+  bedokreservoir: { en: 'Bedok Reservoir', zh: '勿洛蓄水池', ms: 'Takungan Bedok', ta: 'பேடோக் நீர்த்தேக்கம்', ja: 'ベドック貯水池', ko: '베독 저수지' },
 };
 
 function t(key) {
