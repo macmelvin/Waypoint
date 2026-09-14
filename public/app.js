@@ -1565,8 +1565,11 @@ function buildDengueLayer() {
   dengueClusters.forEach((cluster) => {
     const caseLabel = cluster.caseSize != null ? ` — ${cluster.caseSize} case${cluster.caseSize === 1 ? '' : 's'}` : '';
     (cluster.rings || []).forEach((ring) => {
+      // Spell out "Dengue cluster" rather than relying on the 🦟 emoji alone
+      // to say what this is — the emoji renders tiny/hard to read on some
+      // phones, so the word itself needs to carry the meaning.
       L.polygon(ring, { color: '#c2410c', weight: 1.5, fillColor: '#f97316', fillOpacity: 0.28 })
-        .bindTooltip(`🦟 ${cluster.locality}${caseLabel}`, { sticky: true })
+        .bindTooltip(`🦟 Dengue cluster — ${cluster.locality}${caseLabel}`, { sticky: true })
         .addTo(group);
     });
   });
@@ -1577,8 +1580,10 @@ function buildFloodLayer() {
   const group = L.layerGroup();
   floodAlerts.forEach((alert) => {
     const icon = L.divIcon({ className: 'flood-alert-marker', html: '🌊', iconSize: [24, 24], iconAnchor: [12, 12] });
+    // Same reasoning as the dengue tooltip above — spell out "Flash flood
+    // alert" instead of leaning on the small 🌊 marker icon alone.
     L.marker([alert.lat, alert.lon], { icon })
-      .bindTooltip(`${alert.name}${alert.status ? ` — ${alert.status}` : ''}`, { sticky: true })
+      .bindTooltip(`🌊 Flash flood alert — ${alert.name}${alert.status ? ` — ${alert.status}` : ''}`, { sticky: true })
       .addTo(group);
   });
   return group;
