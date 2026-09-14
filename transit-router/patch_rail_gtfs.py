@@ -43,6 +43,7 @@ Usage: python3 patch_rail_gtfs.py <input.zip> <output.zip>
 """
 import csv
 import io
+import re
 import sys
 import zipfile
 from collections import defaultdict
@@ -324,6 +325,7 @@ def main():
 
     existing_stop_ids = {s["stop_id"] for s in stops}
     stops_by_id = {s["stop_id"]: s for s in stops}
+    trips_by_id = {t["trip_id"]: t for t in trips}
     trips_by_route = defaultdict(list)
     for t in trips:
         trips_by_route[t["route_id"]].append(t["trip_id"])
@@ -386,9 +388,23 @@ def main():
     # waiting for its own live bug report. Coordinates match
     # FALLBACK_INTERCHANGE_COORDS in add_lrt_gtfs.py — keep both in sync if
     # either ever needs correcting.
+    # Confirmed via a live build (2026-09-14): these three interchange
+    # stations have NO native stop_id under any of the lines that share
+    # their key, AND find_station_coords()'s bus-stop-name fuzzy match also
+    # comes up empty for all of them -- so without an override they were
+    # silently dropped ("no coordinate match ... skipping, will not be
+    # patched in") from every line that needs them: Outram Park from
+    # NE/EW/TE, Raffles Place from NS/EW, Botanic Gardens from CC/DT. These
+    # are three of the busiest interchanges in the network, so silently
+    # dropping them is a much bigger problem than the fuzzy-match
+    # mismatches above -- coordinates are Wikipedia-sourced (station
+    # infobox), not independently OneMap-verified like the two above.
     STATION_COORD_OVERRIDES = {
         "punggol": (1.40454672779, 103.902072638),
         "sengkang": (1.3916946261, 103.895484694),
+        "outram_park": (1.28056, 103.84000),
+        "raffles_place": (1.28389, 103.85139),
+        "botanic_gardens": (1.32250, 103.81528),
     }
 
     # Figure out which canonical stations are missing, and mint one shared
@@ -553,6 +569,23 @@ def main():
                 for row in stop_times_by_trip.get(trip_id, []):
                     new_stop_times.append(row)
                 continue
+
+            # The feed's own trip_headsign convention for every heavy rail
+            # line is literally "To <canonical code of the trip's own last
+            # stop>" (confirmed live: "To NE5", "To NS28", etc.) -- when a
+            # trip's arrival end just got extended further out, that
+            # headsign is now stale (still names the old, pre-extension
+            # stub's endpoint even though the train genuinely continues
+            # further). Recompute it the same way the feed itself does, so
+            # it always names the trip's REAL current last stop -- but only
+            # when the existing value actually follows that "To <code>"
+            # convention, so a line/feed that ever used a different scheme
+            # (e.g. a descriptive LRT-style headsign) is left untouched
+            # rather than guessed at.
+            trip_row = trips_by_id.get(trip_id)
+            if trip_row is not None and re.fullmatch(r"To [A-Z]+\d+", trip_row.get("trip_headsign") or ""):
+                dest_idx = eff_hi if direction_forward else eff_lo
+                trip_row["trip_headsign"] = f"To {canon_codes[dest_idx]}"
 
             for seq, (code_or_id, arr, dep, is_new) in enumerate(rebuilt, start=1):
                 new_stop_times.append({

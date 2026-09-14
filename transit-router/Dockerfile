@@ -28,14 +28,26 @@ COPY patch_rail_gtfs.py /graph/
 RUN python3 patch_rail_gtfs.py singapore-gtfs-raw.zip singapore-gtfs-mrt.zip && \
     rm singapore-gtfs-raw.zip
 
+# The East-West Line's Changi Airport spur (Tanah Merah -> Expo -> Changi
+# Airport) isn't a truncation of an existing EW pattern like the fixes
+# above — it's a branch that never existed as a pattern in the raw feed at
+# all (no route/trip/stop_times reference CG1/CG2 anywhere). See
+# add_changi_airport_branch.py for the full explanation. Must run after
+# patch_rail_gtfs.py: it reuses the synthetic stop_ids that script mints
+# for Tanah Merah and Expo (neither has a native stop_id in the raw feed)
+# so the transfer at each end is free rather than a disconnected duplicate.
+COPY add_changi_airport_branch.py /graph/
+RUN python3 add_changi_airport_branch.py singapore-gtfs-mrt.zip singapore-gtfs-mrt-cg.zip && \
+    rm singapore-gtfs-mrt.zip
+
 # The feed has ZERO LRT service at all (Bukit Panjang / Sengkang / Punggol
 # routes don't exist, not even as empty timetables) — see add_lrt_gtfs.py
 # for the full explanation and sourcing. Synthesizes real GTFS service for
 # all 3 lines from scratch (real station topology + coordinates, headway-
 # based frequencies.txt) on top of the MRT-patched feed above.
 COPY add_lrt_gtfs.py /graph/
-RUN python3 add_lrt_gtfs.py singapore-gtfs-mrt.zip singapore-gtfs.zip && \
-    rm singapore-gtfs-mrt.zip
+RUN python3 add_lrt_gtfs.py singapore-gtfs-mrt-cg.zip singapore-gtfs.zip && \
+    rm singapore-gtfs-mrt-cg.zip
 
 # Street network for walk/transfer legs: Geofabrik's Malaysia/Singapore/Brunei
 # extract, clipped down to just Singapore (+ a small border buffer) so the
