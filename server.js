@@ -2133,6 +2133,51 @@ app.get('/api/dengue-clusters', async (req, res) => {
   }
 });
 
+// ---- Push trigger: new dengue clusters --------------------------------------
+// Same "baseline on first check, only push for genuinely NEW entries" shape as
+// the MRT/traffic/PSI triggers above. The difference: this is a LIST of many
+// simultaneous zones across Singapore rather than one island-wide on/off
+// state, so every cluster that's newly appeared since the last check (NEA
+// refreshes roughly every 6 hours) is batched into a single push instead of
+// firing one notification per cluster — three new clusters showing up in the
+// same refresh shouldn't mean three separate notifications stacking up.
+// Deliberately island-wide/unscoped, same as every other push here: Waypoint
+// doesn't send your Home/Work location to the server (kept local to your
+// device on purpose), so there's no server-side way to know which clusters
+// are actually near you — this pushes for ANY new cluster anywhere in
+// Singapore, not just ones close to you.
+
+let knownDengueClusterIds = null; // null until the first successful check
+
+async function checkDengueClustersForPush() {
+  if (!PUSH_ENABLED) return;
+  try {
+    const clusters = await getDengueClusters();
+    const currentIds = new Set(clusters.map((c) => String(c.id)));
+
+    if (knownDengueClusterIds) {
+      const newOnes = clusters.filter((c) => !knownDengueClusterIds.has(String(c.id)));
+      if (newOnes.length) {
+        const names = newOnes.slice(0, 3).map((c) => c.locality);
+        const extra = newOnes.length > 3 ? `, +${newOnes.length - 3} more` : '';
+        broadcastPush({
+          title: newOnes.length === 1 ? '🦟 New Dengue Cluster' : `🦟 ${newOnes.length} New Dengue Clusters`,
+          body: `${names.join(', ')}${extra}`,
+          url: '/',
+        }).catch((err) => console.error('dengue cluster push failed:', err.message));
+      }
+    }
+    knownDengueClusterIds = currentIds;
+  } catch (err) {
+    console.error('dengue cluster push check failed:', err.message);
+  }
+}
+
+if (PUSH_ENABLED) {
+  setInterval(checkDengueClustersForPush, DENGUE_TTL_MS);
+  checkDengueClustersForPush();
+}
+
 // ---- Flash flood alerts (PUB) ------------------------------------------
 // PUB's real-time flood alert feed — locations with an active flood alert
 // right now, shown as markers and checked against your route.
@@ -2212,6 +2257,53 @@ app.get('/api/flood-alerts', async (req, res) => {
     res.json({ alerts: [] });
   }
 });
+
+// ---- Push trigger: new flash flood alerts -----------------------------------
+// PUB's feed is genuinely real-time and alerts are relatively rare, so unlike
+// dengue clusters this fits the same shape as the traffic incident trigger
+// above almost exactly — poll every 5 min (FLOOD_TTL_MS), baseline on the
+// first check so a redeploy during an active alert doesn't blast a push, and
+// push for anything genuinely new since the last check. Alerts don't come
+// with a stable ID from the API (see getFloodAlerts() above), so identity is
+// keyed off name+coordinates instead, same idea as the traffic trigger keying
+// off message text. Batches multiple simultaneous new alerts into one push,
+// same reasoning as the dengue trigger, and is island-wide/unscoped for the
+// same privacy reason (no Home/Work location on the server).
+
+let knownFloodAlertKeys = null; // null until the first successful check
+
+function floodAlertKey(alert) {
+  return `${alert.name}@${alert.lat},${alert.lon}`;
+}
+
+async function checkFloodAlertsForPush() {
+  if (!PUSH_ENABLED) return;
+  try {
+    const alerts = await getFloodAlerts();
+    const currentKeys = new Set(alerts.map(floodAlertKey));
+
+    if (knownFloodAlertKeys) {
+      const newOnes = alerts.filter((a) => !knownFloodAlertKeys.has(floodAlertKey(a)));
+      if (newOnes.length) {
+        const names = newOnes.slice(0, 3).map((a) => a.name);
+        const extra = newOnes.length > 3 ? `, +${newOnes.length - 3} more` : '';
+        broadcastPush({
+          title: newOnes.length === 1 ? '🌊 Flash Flood Alert' : `🌊 ${newOnes.length} New Flash Flood Alerts`,
+          body: `${names.join(', ')}${extra}`,
+          url: '/',
+        }).catch((err) => console.error('flood alert push failed:', err.message));
+      }
+    }
+    knownFloodAlertKeys = currentKeys;
+  } catch (err) {
+    console.error('flood alert push check failed:', err.message);
+  }
+}
+
+if (PUSH_ENABLED) {
+  setInterval(checkFloodAlertsForPush, FLOOD_TTL_MS);
+  checkFloodAlertsForPush();
+}
 
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {
