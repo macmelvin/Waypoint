@@ -92,6 +92,9 @@ const els = {
   sosModal: document.getElementById('sosModal'),
   sosModalBody: document.getElementById('sosModalBody'),
   sosModalClose: document.getElementById('sosModalClose'),
+  sosTrackingBanner: document.getElementById('sosTrackingBanner'),
+  sosTrackingText: document.getElementById('sosTrackingText'),
+  sosTrackingStopBtn: document.getElementById('sosTrackingStopBtn'),
   weatherWidget: document.getElementById('weatherWidget'),
   weatherPanel: document.getElementById('weatherPanel'),
   weatherPanelBody: document.getElementById('weatherPanelBody'),
@@ -3429,13 +3432,31 @@ els.locateBtn.addEventListener('click', () => {
 // A one-tap "send HELP" button to a single designated contact. Deliberately
 // NOT a silent background send: Waypoint has no backend messaging/SMS
 // gateway and no user accounts, so this opens WhatsApp with the HELP
-// message and a live Google Maps link to your current GPS position already
-// filled in — the contact's phone number is all that's needed, and the
-// person still taps Send themselves inside WhatsApp, which also means a
-// misfire (an accidental tap that gets this far) still can't actually
-// notify anyone without a deliberate second action.
+// message and a link to a live-updating location page already filled in —
+// the contact's phone number is all that's needed, and the person still
+// taps Send themselves inside WhatsApp, which also means a misfire (an
+// accidental tap that gets this far) still can't actually notify anyone
+// without a deliberate second action.
+//
+// The location keeps updating after the message is sent, not just a single
+// pin at send-time: this device posts its position to /api/sos-track/:id
+// every few seconds while sharing is on, and the link in the WhatsApp
+// message (/track/:id) is a plain page — no Waypoint install needed — that
+// polls the same session and redraws the marker, so the contact can
+// actually watch the person move. Sharing auto-stops after 1 hour (matching
+// the server's own session expiry) or whenever "Stop sharing" is pressed,
+// whichever comes first, so it can't keep running forgotten in the
+// background indefinitely; the tracking banner stays visible the whole
+// time as a reminder that location is actively being shared.
 
 const SOS_CONTACT_KEY = 'waypoint_sos_contact'; // { name, phone } — this device only, never sent anywhere
+const SOS_ACTIVE_SESSION_KEY = 'waypoint_sos_active_session'; // { sessionId, contactName, expiresAt } — resumes sharing across a reload
+const SOS_SHARE_DURATION_MS = 60 * 60 * 1000; // 1 hour — must match SOS_SESSION_TTL_MS in server.js
+const SOS_POST_MIN_INTERVAL_MS = 8000; // don't post a new fix more often than this even if GPS updates faster
+
+let sosWatchId = null;
+let sosStopTimer = null;
+let sosLastPostAt = 0;
 
 function loadSosContact() {
   try {
@@ -3491,12 +3512,30 @@ function renderSosConfirm(contact) {
   els.sosModalBody.innerHTML = `
     <div class="weather-panel-icon">🆘</div>
     <h3 class="weather-panel-headline">Send HELP to ${escapeHtml(contact.name)}?</h3>
-    <p class="weather-panel-now">Opens WhatsApp with a HELP message and your live location filled in — you tap Send in WhatsApp to actually deliver it.</p>
+    <p class="weather-panel-now">Opens WhatsApp with a HELP message and a link that keeps updating with your live location for up to 1 hour (or until you tap "Stop sharing"). You tap Send in WhatsApp to actually deliver it.</p>
     <button id="sosSendBtn" class="sos-primary-btn sos-send-btn" type="button">🆘 Send HELP via WhatsApp</button>
     <button id="sosChangeContactBtn" class="sos-secondary-btn" type="button">Change contact</button>
   `;
   document.getElementById('sosSendBtn').addEventListener('click', () => triggerSos(contact));
   document.getElementById('sosChangeContactBtn').addEventListener('click', () => renderSosSetupForm(contact));
+}
+
+// Generates an opaque, effectively-unguessable session id for the tracking
+// link — crypto.randomUUID() where available (all current mobile browsers),
+// falling back to a long random string for anything older.
+function genSosSessionId() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return window.crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
+function postSosPosition(sessionId, lat, lon) {
+  fetch(`/api/sos-track/${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lat, lon }),
+  }).catch((err) => console.error('SOS position update failed:', err));
 }
 
 function triggerSos(contact) {
@@ -3510,9 +3549,10 @@ function triggerSos(contact) {
   // several mobile browsers (Safari in particular), which would make this
   // button appear to do nothing at the exact moment it matters most.
   const sosTab = window.open('', '_blank');
+  const sessionId = genSosSessionId();
 
-  const openWhatsapp = (locationLine) => {
-    const message = `🆘 HELP - I need assistance.${locationLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+  const openWhatsapp = (trackingLine) => {
+    const message = `🆘 HELP - I need assistance.${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
     const url = `https://wa.me/${contact.phone}?text=${encodeURIComponent(message)}`;
     if (sosTab) sosTab.location.href = url;
     else window.open(url, '_blank'); // popup was blocked outright — best effort fallback
@@ -3526,8 +3566,10 @@ function triggerSos(contact) {
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { latitude, longitude } = pos.coords;
-      const mapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
-      openWhatsapp(`\nMy live location (trackable): ${mapsLink}`);
+      postSosPosition(sessionId, latitude, longitude);
+      startSosLiveTracking(sessionId, contact.name);
+      const trackLink = `${window.location.origin}/track/${sessionId}`;
+      openWhatsapp(`\nTrack my live location (updates for up to 1hr): ${trackLink}`);
     },
     (err) => {
       console.error('SOS geolocation error:', err);
@@ -3536,6 +3578,68 @@ function triggerSos(contact) {
     },
     GEO_OPTIONS
   );
+}
+
+function startSosLiveTracking(sessionId, contactName) {
+  stopSosLiveTracking(); // clear any previous session's watch/timer first
+
+  const expiresAt = Date.now() + SOS_SHARE_DURATION_MS;
+  localStorage.setItem(SOS_ACTIVE_SESSION_KEY, JSON.stringify({ sessionId, contactName, expiresAt }));
+
+  if (navigator.geolocation) {
+    sosLastPostAt = 0;
+    sosWatchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const now = Date.now();
+        if (now - sosLastPostAt < SOS_POST_MIN_INTERVAL_MS) return;
+        sosLastPostAt = now;
+        postSosPosition(sessionId, pos.coords.latitude, pos.coords.longitude);
+      },
+      (err) => console.error('SOS live tracking geolocation error:', err),
+      GEO_OPTIONS
+    );
+  }
+
+  sosStopTimer = setTimeout(() => {
+    stopSosLiveTracking();
+    showToast('SOS live location sharing ended after 1 hour.');
+  }, Math.max(0, expiresAt - Date.now()));
+
+  els.sosTrackingText.textContent = contactName
+    ? `Sharing your live location with ${contactName}…`
+    : 'Sharing your live location…';
+  els.sosTrackingBanner.classList.remove('hidden');
+}
+
+function stopSosLiveTracking() {
+  if (sosWatchId != null) {
+    navigator.geolocation.clearWatch(sosWatchId);
+    sosWatchId = null;
+  }
+  if (sosStopTimer != null) {
+    clearTimeout(sosStopTimer);
+    sosStopTimer = null;
+  }
+  localStorage.removeItem(SOS_ACTIVE_SESSION_KEY);
+  els.sosTrackingBanner.classList.add('hidden');
+}
+
+// Resumes an in-progress share after a page reload/relaunch — otherwise
+// simply reloading the app (or the OS restarting the tab in the background)
+// would silently stop the location the contact is watching from updating,
+// with no indication to the sender that it had stopped.
+function resumeSosLiveTrackingIfActive() {
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem(SOS_ACTIVE_SESSION_KEY) || 'null');
+  } catch (err) {
+    saved = null;
+  }
+  if (!saved || !saved.sessionId || Date.now() > saved.expiresAt) {
+    localStorage.removeItem(SOS_ACTIVE_SESSION_KEY);
+    return;
+  }
+  startSosLiveTracking(saved.sessionId, saved.contactName);
 }
 
 function openSosModal() {
@@ -3554,6 +3658,12 @@ els.sosModalClose.addEventListener('click', closeSosModal);
 els.sosModal.addEventListener('click', (e) => {
   if (e.target === els.sosModal) closeSosModal();
 });
+els.sosTrackingStopBtn.addEventListener('click', () => {
+  stopSosLiveTracking();
+  showToast('Stopped sharing your live location.');
+});
+
+resumeSosLiveTrackingIfActive();
 
 // ---------- Share ----------
 

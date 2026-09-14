@@ -2004,6 +2004,81 @@ app.get('/api/psi-nearby', async (req, res) => {
   }
 });
 
+// ---- SOS live location tracking --------------------------------------------
+// Backs the SOS button's "keep updating live in the message" mode: the
+// sender's phone posts its position here every so often while the SOS
+// button's live-share is on, and a plain web page (served below at
+// /track/:sessionId, no app install needed) polls the same session and
+// redraws a marker -- that page is what actually gets linked from the
+// WhatsApp message, instead of a single static Google Maps pin.
+//
+// In-memory only, no database: sessions are short-lived by design (auto-
+// expire, matching the client's own auto-stop) and this is meant for one
+// active share at a time per sender, so nothing here needs to survive a
+// server restart -- a restart mid-share just stops that link updating,
+// the same way live sharing in other apps also stops if their backend
+// hiccups. Session ids are opaque random tokens generated client-side
+// (crypto.randomUUID()); knowing the id is the only thing that gates
+// access to a session, matching how most consumer apps' own "share my
+// live location" links work (no login, unguessable URL).
+const SOS_SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour — matches the client's own auto-stop timer
+const sosSessions = new Map(); // sessionId -> { lat, lon, updatedAt, expiresAt, senderName }
+
+function cleanupSosSessions() {
+  const now = Date.now();
+  for (const [id, session] of sosSessions) {
+    if (now > session.expiresAt) sosSessions.delete(id);
+  }
+}
+setInterval(cleanupSosSessions, 5 * 60 * 1000);
+
+const SOS_SESSION_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
+
+app.post('/api/sos-track/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  if (!SOS_SESSION_ID_RE.test(sessionId)) {
+    return res.status(400).json({ error: 'invalid session id' });
+  }
+  const { lat, lon, senderName } = req.body || {};
+  if (typeof lat !== 'number' || typeof lon !== 'number' || Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon (numbers) are required' });
+  }
+  const now = Date.now();
+  const existing = sosSessions.get(sessionId);
+  const expiresAt = now + SOS_SESSION_TTL_MS;
+  sosSessions.set(sessionId, {
+    lat,
+    lon,
+    updatedAt: now,
+    expiresAt,
+    senderName: (typeof senderName === 'string' && senderName.trim()) || existing?.senderName || null,
+  });
+  res.json({ ok: true, expiresAt });
+});
+
+app.get('/api/sos-track/:sessionId', (req, res) => {
+  const session = sosSessions.get(req.params.sessionId);
+  if (!session || Date.now() > session.expiresAt) {
+    return res.status(404).json({ error: 'not_found_or_expired' });
+  }
+  res.json({
+    lat: session.lat,
+    lon: session.lon,
+    updatedAt: session.updatedAt,
+    expiresAt: session.expiresAt,
+    senderName: session.senderName,
+  });
+});
+
+// The page a recipient actually opens from the WhatsApp message — a plain,
+// self-contained page (not the main app shell) so it works for someone who
+// has never used Waypoint and doesn't need to. Registered ahead of the SPA
+// catch-all below, which would otherwise swallow this route and serve the
+// full app instead.
+app.get('/track/:sessionId', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'track.html'));
+});
+
 // ---- Push trigger: PSI reaching Unhealthy ----------------------------------
 // Same shape as the MRT/LRT disruption push trigger above: polls the same
 // cached getPsiReading() proactively so an alert goes out even while nobody
