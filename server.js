@@ -920,6 +920,68 @@ app.get('/api/transit-plan', async (req, res) => {
   }
 });
 
+// ---- TEMP diagnostic: inspect rail route patterns on the live OTP graph ----
+// Added to investigate a reported bug: some North East Line itineraries get
+// forced onto a bus past Clarke Quay instead of staying on the train to
+// HarbourFront. This queries the actual built transit graph (not the raw
+// upstream GTFS feed, which isn't reachable from where this is being
+// diagnosed) to see every distinct stop-sequence pattern OTP has for a given
+// route — reveals whether trips are genuinely missing the tail end of the
+// line, or something else is going on. Read-only, internal-only backend
+// (transit-router has no public domain), safe to leave temporarily.
+// Remove once the underlying patch_rail_gtfs.py fix is confirmed working.
+app.get('/api/debug/route-patterns', async (req, res) => {
+  const shortName = req.query.route;
+  if (!shortName) return res.status(400).json({ error: 'route query param required, e.g. ?route=NE' });
+  try {
+    const listQuery = `query { routes { gtfsId shortName longName mode } }`;
+    const listRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: listQuery }),
+    });
+    const listData = await listRes.json();
+    if (!listRes.ok || listData.errors) {
+      return res.status(502).json({ error: 'route list query failed', detail: listData.errors || listData });
+    }
+    const matches = (listData.data?.routes || []).filter((r) => r.shortName === shortName);
+    if (!matches.length) {
+      return res.json({ matches: [], allShortNames: [...new Set((listData.data?.routes || []).map((r) => r.shortName))].slice(0, 50) });
+    }
+
+    const detailQuery = `
+      query($id: String!) {
+        route(id: $id) {
+          gtfsId
+          shortName
+          longName
+          patterns {
+            code
+            name
+            directionId
+            stops { name gtfsId lat lon }
+            trips { gtfsId tripHeadsign }
+          }
+        }
+      }
+    `;
+    const details = [];
+    for (const m of matches) {
+      const detRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: detailQuery, variables: { id: m.gtfsId } }),
+      });
+      const detData = await detRes.json();
+      details.push(detData.data?.route || { gtfsId: m.gtfsId, error: detData.errors });
+    }
+    res.json({ matches, details });
+  } catch (err) {
+    console.error('route-patterns debug error:', err.message);
+    res.status(502).json({ error: err.message });
+  }
+});
+
 // ---- Live bus arrivals (LTA DataMall) ---------------------------------------
 // Needs a free AccountKey from https://datamall.lta.gov.sg — set it as the
 // LTA_ACCOUNT_KEY environment variable on this service. Until that's set,
