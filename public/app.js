@@ -88,6 +88,10 @@ const els = {
   locateBtnIcon: document.getElementById('locateBtnIcon'),
   offlineBanner: document.getElementById('offlineBanner'),
   notifyBtn: document.getElementById('notifyBtn'),
+  sosBtn: document.getElementById('sosBtn'),
+  sosModal: document.getElementById('sosModal'),
+  sosModalBody: document.getElementById('sosModalBody'),
+  sosModalClose: document.getElementById('sosModalClose'),
   weatherWidget: document.getElementById('weatherWidget'),
   weatherPanel: document.getElementById('weatherPanel'),
   weatherPanelBody: document.getElementById('weatherPanelBody'),
@@ -120,6 +124,15 @@ function debounce(fn, delay) {
     clearTimeout(t);
     t = setTimeout(() => fn(...args), delay);
   };
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function showToast(msg, ms = 2500) {
@@ -3410,6 +3423,136 @@ els.locateBtn.addEventListener('click', () => {
     },
     GEO_OPTIONS
   );
+});
+
+// ---------- SOS ----------
+// A one-tap "send HELP" button to a single designated contact. Deliberately
+// NOT a silent background send: Waypoint has no backend messaging/SMS
+// gateway and no user accounts, so this opens WhatsApp with the HELP
+// message and a live Google Maps link to your current GPS position already
+// filled in — the contact's phone number is all that's needed, and the
+// person still taps Send themselves inside WhatsApp, which also means a
+// misfire (an accidental tap that gets this far) still can't actually
+// notify anyone without a deliberate second action.
+
+const SOS_CONTACT_KEY = 'waypoint_sos_contact'; // { name, phone } — this device only, never sent anywhere
+
+function loadSosContact() {
+  try {
+    return JSON.parse(localStorage.getItem(SOS_CONTACT_KEY) || 'null');
+  } catch (err) {
+    return null;
+  }
+}
+
+function saveSosContact(name, phone) {
+  localStorage.setItem(SOS_CONTACT_KEY, JSON.stringify({ name, phone }));
+}
+
+// Normalizes a Singapore number to the digits-only "countrycode+number"
+// form WhatsApp's click-to-chat links expect (wa.me/6591234567), accepting
+// the common ways people actually type a local number (with/without +65,
+// with/without spaces, with/without a leading 0) rather than forcing one
+// exact input format.
+function normalizeSgPhone(raw) {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (digits.startsWith('65') && digits.length === 10) return digits;
+  if (digits.length === 8) return `65${digits}`;
+  if (digits.startsWith('0') && digits.length === 9) return `65${digits.slice(1)}`;
+  return digits;
+}
+
+function renderSosSetupForm(existing) {
+  els.sosModalBody.innerHTML = `
+    <div class="weather-panel-icon">🆘</div>
+    <h3 class="weather-panel-headline">Set up your SOS contact</h3>
+    <p class="weather-panel-now">Stored only on this device — never sent to Waypoint. Pressing SOS opens WhatsApp with a HELP message and your live location, pre-filled to this contact; you still tap Send yourself.</p>
+    <div class="sos-form">
+      <label class="sos-form-label" for="sosContactName">Name</label>
+      <input id="sosContactName" class="sos-form-input" type="text" placeholder="e.g. Mum" value="${existing?.name ? escapeHtml(existing.name) : ''}" />
+      <label class="sos-form-label" for="sosContactPhone">Phone number (Singapore)</label>
+      <input id="sosContactPhone" class="sos-form-input" type="tel" placeholder="e.g. 9123 4567" value="${existing?.phone ? escapeHtml(existing.phone) : ''}" />
+    </div>
+    <button id="sosSaveBtn" class="sos-primary-btn" type="button">Save contact</button>
+  `;
+  document.getElementById('sosSaveBtn').addEventListener('click', () => {
+    const name = document.getElementById('sosContactName').value.trim();
+    const phoneRaw = document.getElementById('sosContactPhone').value.trim();
+    const phone = normalizeSgPhone(phoneRaw);
+    if (!name) { showToast('Enter a name for this contact.'); return; }
+    if (phone.length < 10) { showToast('Enter a valid Singapore phone number.'); return; }
+    saveSosContact(name, phone);
+    showToast(`SOS contact saved: ${name}`);
+    renderSosConfirm({ name, phone });
+  });
+}
+
+function renderSosConfirm(contact) {
+  els.sosModalBody.innerHTML = `
+    <div class="weather-panel-icon">🆘</div>
+    <h3 class="weather-panel-headline">Send HELP to ${escapeHtml(contact.name)}?</h3>
+    <p class="weather-panel-now">Opens WhatsApp with a HELP message and your live location filled in — you tap Send in WhatsApp to actually deliver it.</p>
+    <button id="sosSendBtn" class="sos-primary-btn sos-send-btn" type="button">🆘 Send HELP via WhatsApp</button>
+    <button id="sosChangeContactBtn" class="sos-secondary-btn" type="button">Change contact</button>
+  `;
+  document.getElementById('sosSendBtn').addEventListener('click', () => triggerSos(contact));
+  document.getElementById('sosChangeContactBtn').addEventListener('click', () => renderSosSetupForm(contact));
+}
+
+function triggerSos(contact) {
+  const sendBtn = document.getElementById('sosSendBtn');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Getting your location…'; }
+
+  // Open the tab synchronously, right in the click handler, then point it
+  // at the real wa.me URL once the message is ready. Geolocation is async —
+  // opening a new tab from inside its callback instead of directly from the
+  // click gets treated as an unrequested popup and silently blocked by
+  // several mobile browsers (Safari in particular), which would make this
+  // button appear to do nothing at the exact moment it matters most.
+  const sosTab = window.open('', '_blank');
+
+  const openWhatsapp = (locationLine) => {
+    const message = `🆘 HELP - I need assistance.${locationLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+    const url = `https://wa.me/${contact.phone}?text=${encodeURIComponent(message)}`;
+    if (sosTab) sosTab.location.href = url;
+    else window.open(url, '_blank'); // popup was blocked outright — best effort fallback
+    closeSosModal();
+  };
+
+  if (!navigator.geolocation) {
+    openWhatsapp('');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      const mapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+      openWhatsapp(`\nMy live location (trackable): ${mapsLink}`);
+    },
+    (err) => {
+      console.error('SOS geolocation error:', err);
+      showToast('Could not get your location — sending HELP without it.');
+      openWhatsapp('');
+    },
+    GEO_OPTIONS
+  );
+}
+
+function openSosModal() {
+  const contact = loadSosContact();
+  els.sosModal.classList.remove('hidden');
+  if (contact) renderSosConfirm(contact);
+  else renderSosSetupForm(null);
+}
+
+function closeSosModal() {
+  els.sosModal.classList.add('hidden');
+}
+
+els.sosBtn.addEventListener('click', openSosModal);
+els.sosModalClose.addEventListener('click', closeSosModal);
+els.sosModal.addEventListener('click', (e) => {
+  if (e.target === els.sosModal) closeSosModal();
 });
 
 // ---------- Share ----------

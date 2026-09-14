@@ -58,6 +58,7 @@
       <button id="langBtn" class="icon-btn lang-btn" type="button" title="Language">🌐 EN</button>
       <button id="weatherWidget" class="weather-widget hidden" type="button" title="Current weather"></button>
       <button id="notifyBtn" class="icon-btn" type="button" data-i18n-title="notify_title" data-i18n-aria="notify_title" title="Turn on train/traffic/haze alerts" aria-label="Turn on train/traffic/haze alerts">🔔</button>
+      <button id="sosBtn" class="icon-btn sos-btn" type="button" title="Send HELP with your location" aria-label="Send HELP with your location">🆘</button>
       <button id="locateBtn" class="icon-btn locate-btn" type="button" data-i18n-title="where_am_i" data-i18n-aria="where_am_i" title="Where am I" aria-label="Where am I">
         <span id="locateBtnIcon">🎯</span> <span data-i18n="where_am_i">Where am I</span>
       </button>
@@ -317,6 +318,13 @@
   <div class="weather-panel-card">
     <button id="weatherPanelClose" class="weather-panel-close" type="button" aria-label="Close">✕</button>
     <div id="weatherPanelBody" class="weather-panel-body">Loading…</div>
+  </div>
+</div>
+
+<div id="sosModal" class="weather-panel hidden">
+  <div class="weather-panel-card">
+    <button id="sosModalClose" class="weather-panel-close" type="button" aria-label="Close">✕</button>
+    <div id="sosModalBody" class="weather-panel-body">Loading…</div>
   </div>
 </div>
 

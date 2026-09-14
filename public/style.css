@@ -144,6 +144,61 @@ html, body {
 }
 .icon-btn.active:hover { background: var(--accent-dark); }
 
+/* SOS: a plain icon-btn would blend into the rest of the topbar, but this
+   is a safety control that should read as distinct/urgent even before
+   anyone reads the tooltip -- red border/text on the same neutral
+   background the other icon buttons use, so it stands out without
+   shouting as loud as a solid red fill would in a toolbar full of
+   everyday icons. */
+.sos-btn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.sos-btn:hover { background: #fef2f2; }
+
+.sos-form { text-align: left; margin: 0 0 14px; display: flex; flex-direction: column; gap: 4px; }
+.sos-form-label { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.sos-form-label:first-child { margin-top: 0; }
+.sos-form-input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 10px;
+  font-size: 14px;
+  width: 100%;
+}
+.sos-form-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.sos-primary-btn {
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  cursor: pointer;
+  margin-top: 4px;
+}
+.sos-primary-btn:hover { background: var(--accent-dark); }
+.sos-primary-btn:disabled { opacity: 0.6; cursor: default; }
+
+.sos-send-btn { background: var(--danger); }
+.sos-send-btn:hover { background: #b91c1c; }
+
+.sos-secondary-btn {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 10px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .locate-btn {
   width: auto;
   border-radius: 999px;
