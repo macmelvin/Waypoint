@@ -1936,10 +1936,39 @@ function resetMapRotation() {
   if (els.navCompassNeedle) els.navCompassNeedle.style.transform = '';
 }
 
+// Beyond this distance from the drawn route, you're clearly not actually on
+// this trip — most commonly because you looked up directions from some
+// arbitrary "from" address without being there (a totally normal way to use
+// a directions app: "how far is it from X to Y", not "I am at X right now").
+// A real off-route drift while genuinely driving is normally well under
+// this (see NAV_OFFROUTE_THRESHOLD_M's 80m, used only for the warning
+// toast); this is deliberately much larger so it only kicks in for the
+// "nowhere near this route" case, not routine GPS wobble.
+const NAV_FAR_FROM_ROUTE_M = 1500;
+
+// Recenters the map on your current position. Normally (actually on/near
+// the route) that means the usual tight follow-zoom. But if you're clearly
+// not on this route at all, tightly zooming to wherever you actually are
+// would push the entire drawn route off-screen — the map would show a
+// blank area around a lone puck with no way to tell there's a route at all.
+// Instead, in that case, fit the view to show BOTH your position and the
+// whole route, so the line stays visible however far away you happen to be.
+function followNavPosition(lat, lon) {
+  if (!navMap) return;
+  const farFromRoute = navMapRouteLine && distanceToRouteLine(lat, lon) > NAV_FAR_FROM_ROUTE_M;
+  if (farFromRoute) {
+    const bounds = navMapRouteLine.getBounds();
+    bounds.extend([lat, lon]);
+    navMap.fitBounds(bounds, { padding: [40, 40] });
+  } else {
+    navMap.setView([lat, lon], Math.max(navMap.getZoom(), 16), { animate: true });
+  }
+}
+
 function updateNavMapPosition(lat, lon) {
   if (!navMap || !navMapLiveMarker) return;
   navMapLiveMarker.setLatLng([lat, lon]);
-  if (navFollowing) navMap.setView([lat, lon], Math.max(navMap.getZoom(), 16), { animate: true });
+  if (navFollowing) followNavPosition(lat, lon);
 }
 
 function hideNavMap() {
@@ -1953,7 +1982,10 @@ function hideNavMap() {
 if (els.navRecenterBtn) {
   els.navRecenterBtn.addEventListener('click', () => {
     navFollowing = true;
-    if (navMap && navMapLiveMarker) navMap.setView(navMapLiveMarker.getLatLng(), 16, { animate: true });
+    if (navMap && navMapLiveMarker) {
+      const { lat, lng } = navMapLiveMarker.getLatLng();
+      followNavPosition(lat, lng);
+    }
     // Re-apply course-up immediately from the last known heading rather than
     // sitting north-up until the next GPS fix happens to arrive.
     if (Number.isFinite(navLastHeadingDeg)) applyCourseUpRotation(navLastHeadingDeg);
