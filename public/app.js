@@ -1659,6 +1659,20 @@ setInterval(loadHazardData, HAZARD_POLL_MS);
 function initNavMap() {
   if (navMap || typeof L === 'undefined') return;
   navMap = L.map('navMap', { zoomControl: false, attributionControl: true });
+  // Give the map a view IMMEDIATELY, before anything is added to it. Until a
+  // map has had setView/fitBounds called at least once, Leaflet considers it
+  // "not ready" and silently QUEUES every addLayer call to replay once a
+  // view finally gets set — and replaying a big batch at once (tile layer +
+  // hazard polygons + route lines + markers, all queued together the first
+  // time this runs) is what was crashing deep inside Leaflet's renderer
+  // ("Cannot read properties of undefined (reading 'min')"), which in turn
+  // left those layers half-initialized and throwing AGAIN later when they
+  // got removed ("reading 'parentNode'") — this is what was silently eating
+  // the route line, markers, and live puck/arrow on the nav map. Centering
+  // on Singapore here is arbitrary — showNavMap()'s later fitBounds() call
+  // immediately re-frames it to the real route, this view is only ever
+  // visible for a single frame, if that.
+  navMap.setView([1.3521, 103.8198], 12);
   buildBasemapLayer().addTo(navMap);
   // Manually panning away breaks course-up tracking — freeze back to a
   // plain north-up map rather than leaving it stuck at a rotated angle
@@ -1714,6 +1728,12 @@ function initPreviewMap() {
   // scrollWheelZoom off so scrolling the results panel over it on desktop
   // doesn't accidentally zoom the map instead.
   previewMap = L.map('routePreviewMap', { zoomControl: false, attributionControl: true, scrollWheelZoom: false });
+  // See the matching comment in initNavMap(): a Leaflet map needs a view set
+  // before anything is added to it, or every addLayer call gets silently
+  // queued and replayed later, which is what was crashing (and eating the
+  // route line/pins) on this preview map too. renderRoutePreviewMap()'s
+  // fitBounds() call right after re-frames this to the real route.
+  previewMap.setView([1.3521, 103.8198], 12);
   buildBasemapLayer().addTo(previewMap);
   refreshHazardLayers();
 }
