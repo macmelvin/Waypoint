@@ -1950,6 +1950,23 @@ function psiCategory(value) {
   return { label: 'Hazardous', color: '6A1B9A' };
 }
 
+// A category label like "Unhealthy" doesn't tell most people what to
+// actually DO -- and the real MOH/HealthHub answer is much less alarming
+// than the label suggests: N95 masks aren't advised for sensitive groups
+// (elderly, pregnant, chronic heart/lung conditions) until PSI is actually
+// past 200, and not for generally healthy people until past 300 -- both
+// well into "Very Unhealthy"/"Hazardous", not merely "Unhealthy". Short
+// exposure (e.g. a commute) doesn't need a mask even above those
+// thresholds per the same guidance. This spells that out directly instead
+// of leaving people to guess whether "Moderate" or "Unhealthy" means a
+// mask is warranted.
+function maskAdvice(value) {
+  if (value == null) return null;
+  if (value > 300) return 'Wear an N95 mask if you will be outdoors for an extended period.';
+  if (value > 200) return 'Sensitive groups (elderly, pregnant, chronic heart/lung conditions): wear an N95 mask outdoors. Others: no mask needed for normal activity.';
+  return 'No mask needed.';
+}
+
 app.get('/api/psi-nearby', async (req, res) => {
   const lat = parseFloat(req.query.lat);
   const lon = parseFloat(req.query.lon);
@@ -1978,6 +1995,7 @@ app.get('/api/psi-nearby', async (req, res) => {
       psi,
       category: category?.label || null,
       categoryColor: category?.color || null,
+      maskAdvice: maskAdvice(psi),
       timestamp,
     });
   } catch (err) {
@@ -2023,9 +2041,16 @@ async function checkPsiForPush() {
     if (hadBaseline && isUnhealthy !== lastPsiUnhealthy) {
       if (isUnhealthy) {
         const category = psiCategory(worstValue);
+        // maskAdvice() gives the real, threshold-correct action instead of
+        // the vague "limit outdoor activity" -- this alert fires as soon as
+        // PSI crosses 101 (Unhealthy), which is still well below where a
+        // mask actually becomes necessary, so most of the time this will
+        // correctly say "No mask needed" even while calling the air quality
+        // "Unhealthy". That's intentional, not a downgrade of the alert --
+        // see maskAdvice()'s own comment for the guidance this is based on.
         broadcastPush({
           title: '😷 Haze Alert: PSI Unhealthy',
-          body: `PSI in ${worstRegion} has reached ${worstValue} (${category?.label || 'Unhealthy'}). Consider limiting outdoor activity.`,
+          body: `PSI in ${worstRegion} has reached ${worstValue} (${category?.label || 'Unhealthy'}). ${maskAdvice(worstValue)}`,
           url: '/',
         }).catch((err) => console.error('PSI alert push failed:', err.message));
       } else {

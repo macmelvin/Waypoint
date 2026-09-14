@@ -3652,6 +3652,7 @@ async function loadWeatherWidget(coords) {
         els.weatherWidget.dataset.psi = psiData.psi;
         els.weatherWidget.dataset.psiCategory = psiData.category || '';
         els.weatherWidget.dataset.psiRegion = psiData.region || '';
+        els.weatherWidget.dataset.psiMaskAdvice = psiData.maskAdvice || '';
         psiSuffix = ` · 😷 PSI ${psiData.psi}`;
       }
     }
@@ -3746,8 +3747,15 @@ function renderWeatherPanel(daily) {
     ? `<p class="weather-panel-now">📍 Right now near <strong>${area}</strong>: ${nowForecast}</p>`
     : '';
   const psi = els.weatherWidget.dataset.psi;
+  const psiMaskAdvice = els.weatherWidget.dataset.psiMaskAdvice;
+  // A bare category label ("Moderate", "Unhealthy") doesn't tell most
+  // people what to actually do, and guessing tends to overshoot -- the
+  // real MOH/HealthHub guidance doesn't call for a mask until well past
+  // where "Unhealthy" alone might suggest (see maskAdvice() in server.js
+  // for the exact thresholds and sourcing). Spelling that out here directly
+  // instead of leaving people to interpret the label themselves.
   const psiLine = psi
-    ? `<p class="weather-panel-now">😷 PSI (24-hr) in <strong>${els.weatherWidget.dataset.psiRegion}</strong>: <strong>${psi}</strong> — ${els.weatherWidget.dataset.psiCategory}</p>`
+    ? `<p class="weather-panel-now">😷 PSI (24-hr) in <strong>${els.weatherWidget.dataset.psiRegion}</strong>: <strong>${psi}</strong> — ${els.weatherWidget.dataset.psiCategory}${psiMaskAdvice ? `<br><span class="weather-panel-mask-advice">${psiMaskAdvice}</span>` : ''}</p>`
     : '';
   const uv = els.weatherWidget.dataset.uv;
   const uvLine = uv

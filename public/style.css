@@ -222,6 +222,12 @@ html, body {
 .weather-panel-headline { margin: 0 0 8px; font-size: 17px; }
 .weather-panel-now { margin: 0 0 14px; font-size: 12.5px; color: var(--muted); }
 
+/* The mask-advice sub-line under the PSI reading: needs to read as an
+   actual instruction, not just more muted metadata, so it gets full-
+   strength text color and a bit of weight instead of inheriting
+   weather-panel-now's muted gray. */
+.weather-panel-mask-advice { display: inline-block; margin-top: 3px; color: var(--ink); font-weight: 600; }
+
 .weather-panel-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
