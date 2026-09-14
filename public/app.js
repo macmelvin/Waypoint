@@ -41,12 +41,17 @@ const els = {
   swapBtn: document.getElementById('swapBtn'),
   getDirectionsBtn: document.getElementById('getDirectionsBtn'),
   routeSummary: document.getElementById('routeSummary'),
+  routePreviewMap: document.getElementById('routePreviewMap'),
   rideHailingLinks: document.getElementById('rideHailingLinks'),
   routeSteps: document.getElementById('routeSteps'),
   itineraryOptionsLabel: document.getElementById('itineraryOptionsLabel'),
   itineraryOptions: document.getElementById('itineraryOptions'),
   rainBanner: document.getElementById('rainBanner'),
   rainBannerText: document.getElementById('rainBannerText'),
+  dengueBanner: document.getElementById('dengueBanner'),
+  dengueBannerText: document.getElementById('dengueBannerText'),
+  floodBanner: document.getElementById('floodBanner'),
+  floodBannerText: document.getElementById('floodBannerText'),
   trainAlertBanner: document.getElementById('trainAlertBanner'),
   trainAlertText: document.getElementById('trainAlertText'),
   trainAlertDismiss: document.getElementById('trainAlertDismiss'),
@@ -262,6 +267,7 @@ const CATEGORY_LABELS = {
   dogpark: 'dog park',
   carpark: 'carpark',
   towtruck: 'tow truck service',
+  petgrooming: 'pet groomer',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -300,6 +306,8 @@ const CATEGORY_OSM_TAGS = {
   // OSM's documented Key:service:vehicle:* scheme. Without the extra filter
   // this would surface every car workshop, most of which don't tow.
   towtruck: { key: 'shop', tags: ['car_repair'], extraKey: 'service:vehicle:towing', extraValue: 'yes' },
+  // Standard, documented OSM tag — no sub-filter needed, same as hospital/police/vets.
+  petgrooming: { key: 'shop', tags: ['pet_grooming'] },
 };
 // Tried in order — start close (keeps dense categories genuinely local),
 // then widen automatically for sparse categories that
@@ -558,7 +566,7 @@ const I18N = {
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
     install_banner_text: '📲 Add Waypoint to your home screen for quick access', install: 'Install', not_now: 'Not now',
-    dismiss: 'Dismiss',
+    dismiss: 'Dismiss', ride_hailing_label: 'Or book a ride',
   },
   zh: {
     tab_search: '搜索', tab_directions: '路线', tab_bus: '🚌 巴士到站时间',
@@ -579,7 +587,7 @@ const I18N = {
     fav_empty_hint: '在上方搜索巴士车站并添加，即可随时查看实时到站时间 — 无需先规划行程。',
     share_footer: '💙 如果觉得好用，欢迎分享给朋友', support_footer: '☕ 请我喝杯咖啡 — 支持 Waypoint 持续运作',
     install_banner_text: '📲 将 Waypoint 添加到主屏幕，方便快速使用', install: '安装', not_now: '暂不安装',
-    dismiss: '关闭',
+    dismiss: '关闭', ride_hailing_label: '或预订叫车',
   },
   ms: {
     tab_search: 'Carian', tab_directions: 'Arah', tab_bus: '🚌 Waktu Ketibaan Bas',
@@ -600,7 +608,7 @@ const I18N = {
     fav_empty_hint: 'Cari perhentian bas di atas dan tambahkannya untuk semak ketibaan langsung di sini bila-bila masa — tidak perlu rancang perjalanan dahulu.',
     share_footer: '💙 Kongsikan aplikasi ini jika berguna', support_footer: '☕ Belanja saya kopi — bantu kekalkan Waypoint berjalan',
     install_banner_text: '📲 Tambah Waypoint ke skrin utama untuk akses pantas', install: 'Pasang', not_now: 'Bukan sekarang',
-    dismiss: 'Tutup',
+    dismiss: 'Tutup', ride_hailing_label: 'Atau tempah kenderaan',
   },
   ta: {
     tab_search: 'தேடல்', tab_directions: 'வழிகள்', tab_bus: '🚌 பேருந்து வருகை நேரம்',
@@ -621,7 +629,7 @@ const I18N = {
     fav_empty_hint: 'மேலே ஒரு பேருந்து நிறுத்தத்தைத் தேடி சேர்த்து, எப்போது வேண்டுமானாலும் நேரலை வருகையைச் சரிபார்க்கலாம் — முதலில் பயணத்தைத் திட்டமிட வேண்டியதில்லை.',
     share_footer: '💙 இது பயனுள்ளதாக இருந்தால் இந்த ஆப்பைப் பகிரவும்', support_footer: '☕ எனக்கு ஒரு காபி வாங்கிக் கொடுங்கள் — Waypoint செயல்பட உதவுங்கள்',
     install_banner_text: '📲 விரைவு அணுகலுக்காக Waypoint-ஐ உங்கள் முகப்புத் திரையில் சேர்க்கவும்', install: 'நிறுவு', not_now: 'இப்போது வேண்டாம்',
-    dismiss: 'மூடு',
+    dismiss: 'மூடு', ride_hailing_label: 'அல்லது ஒரு வாகனத்தை முன்பதிவு செய்யுங்கள்',
   },
   ja: {
     tab_search: '検索', tab_directions: 'ルート', tab_bus: '🚌 バス到着時刻',
@@ -642,7 +650,7 @@ const I18N = {
     fav_empty_hint: '上でバス停を検索して追加すると、いつでもリアルタイムの到着時刻を確認できます — 先にルートを計画する必要はありません。',
     share_footer: '💙 便利だと思ったらこのアプリをシェアしてください', support_footer: '☕ コーヒーをおごる — Waypointの運営を支援',
     install_banner_text: '📲 Waypointをホーム画面に追加してすぐにアクセス', install: 'インストール', not_now: '今はしない',
-    dismiss: '閉じる',
+    dismiss: '閉じる', ride_hailing_label: 'または配車サービスを予約',
   },
   ko: {
     tab_search: '검색', tab_directions: '길찾기', tab_bus: '🚌 버스 도착 시간',
@@ -663,7 +671,7 @@ const I18N = {
     fav_empty_hint: '위에서 버스 정류장을 검색해 추가하면 언제든지 실시간 도착 정보를 확인할 수 있습니다 — 먼저 경로를 계획할 필요가 없습니다.',
     share_footer: '💙 유용하다면 이 앱을 공유해 주세요', support_footer: '☕ 커피 한 잔 사주세요 — Waypoint 운영에 도움이 됩니다',
     install_banner_text: '📲 빠른 접근을 위해 Waypoint를 홈 화면에 추가하세요', install: '설치', not_now: '나중에',
-    dismiss: '닫기',
+    dismiss: '닫기', ride_hailing_label: '또는 차량 예약하기',
   },
 };
 
@@ -686,6 +694,7 @@ const CHIP_I18N = {
   library: { en: 'Library', zh: '图书馆', ms: 'Perpustakaan', ta: 'நூலகம்', ja: '図書館', ko: '도서관' },
   dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா', ja: 'ドッグパーク', ko: '반려견 공원' },
   towtruck: { en: 'Tow Truck', zh: '拖车服务', ms: 'Khidmat Tunda Kereta', ta: 'இழுவை வாகன சேவை', ja: 'レッカーサービス', ko: '견인 서비스' },
+  petgrooming: { en: 'Pet Grooming', zh: '宠物美容', ms: 'Dandanan Haiwan', ta: 'செல்லப்பிராணி அழகுபடுத்தல்', ja: 'ペットグルーミング', ko: '반려동물 미용' },
   mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
   sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு', ja: 'セントーサ島', ko: '센토사 섬' },
@@ -1319,6 +1328,7 @@ async function getDirections() {
 
     if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
       showToast('Could not find a route between those points.');
+      hideRoutePreviewMap();
       return;
     }
 
@@ -1475,67 +1485,332 @@ function drawTrafficOverlays() {
   });
 }
 
+// Free CARTO Basemaps API key (carto.com/basemaps/apikey/, free tier: 5M
+// tile requests/month) — switches both the live nav map and the route
+// preview map to CARTO's clean "Positron" style (soft grays/greens, like
+// Waze/Petal Maps) instead of the default OSM "Standard" style's busy beige
+// buildings and dense labels. This key is only good for pulling map tiles
+// (not an account/billing secret), and CARTO Basemaps keys are meant to
+// ship in client-side JS like this — but it is visible to anyone who views
+// this file, so if it's ever misused, regenerate/revoke it from the same
+// carto.com/basemaps/apikey/ form. Leave this empty to fall back to the
+// default OSM tiles (still softened by the CSS filter below).
+const CARTO_API_KEY = 'cb1_3i2h_1_e6f7d6e99ba7fde0991ed336';
+
+function buildBasemapLayer() {
+  if (CARTO_API_KEY) {
+    // CARTO's docs (and multiple other projects that hit this same "API KEY
+    // REQUIRED" watermark) confirm the query param is named "key", not
+    // "api_key" — that mismatch is what caused the watermark even with a
+    // valid key plugged in.
+    return L.tileLayer(`https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`, {
+      maxZoom: 20,
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors '
+        + '&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    });
+  }
+  return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  });
+}
+
+// ---- Hazard layers: dengue cluster zones (NEA) + flash flood alerts (PUB) --
+// Fetched once at load and refreshed periodically (see setInterval below),
+// then drawn as shaded zones / markers on BOTH maps (live nav + route
+// preview) and checked against whatever route is currently shown so a
+// walk/cycle through one gets a heads-up banner.
+let dengueClusters = [];
+let floodAlerts = [];
+const HAZARD_POLL_MS = 10 * 60 * 1000;
+
+async function loadHazardData() {
+  try {
+    const [dengueRes, floodRes] = await Promise.all([
+      fetch('/api/dengue-clusters').then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/flood-alerts').then((r) => (r.ok ? r.json() : null)),
+    ]);
+    if (dengueRes?.clusters) dengueClusters = dengueRes.clusters;
+    if (floodRes?.alerts) floodAlerts = floodRes.alerts;
+    refreshHazardLayers();
+    // A route may already be on screen when this (re)loads — re-check it
+    // against the freshest data rather than waiting for the next search.
+    if (lastPreviewPoints) checkRouteHazards(lastPreviewPoints);
+  } catch (err) {
+    console.error('hazard data load failed:', err);
+  }
+}
+
+function buildDengueLayer() {
+  const group = L.layerGroup();
+  dengueClusters.forEach((cluster) => {
+    const caseLabel = cluster.caseSize != null ? ` — ${cluster.caseSize} case${cluster.caseSize === 1 ? '' : 's'}` : '';
+    (cluster.rings || []).forEach((ring) => {
+      L.polygon(ring, { color: '#c2410c', weight: 1.5, fillColor: '#f97316', fillOpacity: 0.28 })
+        .bindTooltip(`🦟 ${cluster.locality}${caseLabel}`, { sticky: true })
+        .addTo(group);
+    });
+  });
+  return group;
+}
+
+function buildFloodLayer() {
+  const group = L.layerGroup();
+  floodAlerts.forEach((alert) => {
+    const icon = L.divIcon({ className: 'flood-alert-marker', html: '🌊', iconSize: [24, 24], iconAnchor: [12, 12] });
+    L.marker([alert.lat, alert.lon], { icon })
+      .bindTooltip(`${alert.name}${alert.status ? ` — ${alert.status}` : ''}`, { sticky: true })
+      .addTo(group);
+  });
+  return group;
+}
+
+let navHazardLayers = null;
+let previewHazardLayers = null;
+
+// Redraws both hazard layers on whichever of the two maps currently exist —
+// safe to call before either map is created (it just does nothing for the
+// missing one) and safe to call repeatedly as data refreshes.
+function refreshHazardLayers() {
+  try {
+    if (typeof L === 'undefined') return;
+    if (navMap) {
+      if (navHazardLayers) { navMap.removeLayer(navHazardLayers.dengue); navMap.removeLayer(navHazardLayers.flood); }
+      navHazardLayers = { dengue: buildDengueLayer().addTo(navMap), flood: buildFloodLayer().addTo(navMap) };
+    }
+    if (previewMap) {
+      if (previewHazardLayers) { previewMap.removeLayer(previewHazardLayers.dengue); previewMap.removeLayer(previewHazardLayers.flood); }
+      previewHazardLayers = { dengue: buildDengueLayer().addTo(previewMap), flood: buildFloodLayer().addTo(previewMap) };
+    }
+  } catch (err) {
+    console.error('hazard layer refresh failed:', err);
+  }
+}
+
+// Ray-casting point-in-polygon test. ring: [[lat,lon], ...].
+function pointInRing(lat, lon, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [yi, xi] = ring[i];
+    const [yj, xj] = ring[j];
+    const intersect = (yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInAnyDengueCluster(lat, lon) {
+  return dengueClusters.find((c) => (c.rings || []).some((ring) => pointInRing(lat, lon, ring))) || null;
+}
+
+const FLOOD_ALERT_PROXIMITY_M = 300;
+
+function showDengueAlert(cluster) {
+  const caseLabel = cluster.caseSize != null ? ` (${cluster.caseSize} case${cluster.caseSize === 1 ? '' : 's'})` : '';
+  els.dengueBannerText.textContent = `Your route passes through an active dengue cluster near ${cluster.locality}${caseLabel} — consider insect repellent.`;
+  els.dengueBanner.classList.remove('hidden');
+}
+function hideDengueAlert() { els.dengueBanner.classList.add('hidden'); }
+
+function showFloodAlert(alert) {
+  const statusLabel = alert.status ? ` (${alert.status})` : '';
+  els.floodBannerText.textContent = `Active flash flood alert near your route at ${alert.name}${statusLabel} — consider an alternate route or delay.`;
+  els.floodBanner.classList.remove('hidden');
+}
+function hideFloodAlert() { els.floodBanner.classList.add('hidden'); }
+
+// Remembers the last route's points so a hazard-data refresh mid-session
+// (see loadHazardData) can re-check the route already on screen.
+let lastPreviewPoints = null;
+
+// points: [[lat,lon], ...] — every vertex of the route/itinerary currently
+// shown on the preview map. Checks the WHOLE route, not just endpoints,
+// since a cluster or flood spot in the middle of the path matters just as
+// much as one at either end.
+function checkRouteHazards(points) {
+  try {
+    hideDengueAlert();
+    hideFloodAlert();
+    if (!points || !points.length) return;
+
+    for (const [lat, lon] of points) {
+      const hit = pointInAnyDengueCluster(lat, lon);
+      if (hit) { showDengueAlert(hit); break; }
+    }
+
+    pointLoop:
+    for (const [lat, lon] of points) {
+      for (const alert of floodAlerts) {
+        if (haversineMeters(lat, lon, alert.lat, alert.lon) <= FLOOD_ALERT_PROXIMITY_M) {
+          showFloodAlert(alert);
+          break pointLoop;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('hazard route check failed:', err);
+  }
+}
+
+loadHazardData();
+setInterval(loadHazardData, HAZARD_POLL_MS);
+
 function initNavMap() {
   if (navMap || typeof L === 'undefined') return;
   navMap = L.map('navMap', { zoomControl: false, attributionControl: true });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-  }).addTo(navMap);
+  buildBasemapLayer().addTo(navMap);
   // Manually panning away breaks course-up tracking — freeze back to a
   // plain north-up map rather than leaving it stuck at a rotated angle
   // while the person's looking somewhere else on it.
   navMap.on('dragstart', () => { navFollowing = false; resetMapRotation(); });
+  refreshHazardLayers();
+}
+
+// ---- Route preview map (Directions results, before "Start Navigation") ----
+// A small static map showing the route/itinerary right in the results —
+// same idea as Google/Waze/Petal Maps showing the route before you commit to
+// navigating, rather than Waypoint's previous text-only steps list. Separate
+// Leaflet instance from the full-screen live nav map (different container,
+// no live puck/rotation/traffic overlay — just the path + start/end pins),
+// but shares the same basemap choice via buildBasemapLayer().
+
+// Standard Google/OTP-format encoded polyline decoder (precision 5) — OTP's
+// leg.legGeometry.points comes back in this format. Returns [[lat,lon], ...].
+function decodePolyline(encoded) {
+  if (!encoded) return [];
+  const coordinates = [];
+  const factor = 1e5;
+  let index = 0, lat = 0, lon = 0;
+  while (index < encoded.length) {
+    let result = 0, shift = 0, b;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+    result = 0; shift = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lon += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+    coordinates.push([lat / factor, lon / factor]);
+  }
+  return coordinates;
+}
+
+let previewMap = null;
+let previewMapLayers = []; // polylines + markers drawn for the current route, cleared and rebuilt each call
+
+function initPreviewMap() {
+  if (previewMap || typeof L === 'undefined') return;
+  // No zoom control / dragging kept minimal — this is a small "here's your
+  // route at a glance" preview, not something you're meant to pan around;
+  // scrollWheelZoom off so scrolling the results panel over it on desktop
+  // doesn't accidentally zoom the map instead.
+  previewMap = L.map('routePreviewMap', { zoomControl: false, attributionControl: true, scrollWheelZoom: false });
+  buildBasemapLayer().addTo(previewMap);
+  refreshHazardLayers();
+}
+
+// segments: [{ latlngs: [[lat,lon],...], color: '#hex', dashed: bool }, ...]
+// Everything below is wrapped in one try/catch. Reasoning: this function is
+// called from INSIDE renderRouteSummary()/selectItinerary(), both of which
+// still have important work to do right after (rendering route steps,
+// revealing the "Start Navigation" button, showing cycling/driving extras).
+// Those are plain synchronous statements after this call — if anything in
+// here threw, the exception would propagate straight up and silently skip
+// all of that later code too, which is a much worse failure than "the
+// preview map/hazard overlay didn't draw this one time." A rendering bug in
+// a map overlay should never be able to take down the rest of the results
+// screen with it.
+function renderRoutePreviewMap(segments) {
+  try {
+    if (typeof L === 'undefined' || !els.routePreviewMap) return;
+    const nonEmpty = segments.filter((s) => s.latlngs && s.latlngs.length);
+    if (!nonEmpty.length) { els.routePreviewMap.classList.add('hidden'); return; }
+
+    els.routePreviewMap.classList.remove('hidden');
+    initPreviewMap();
+    if (!previewMap) return;
+    // The container was just un-hidden (or the panel just became visible), so
+    // Leaflet needs a nudge to notice its real size — same fix as the nav map.
+    setTimeout(() => previewMap.invalidateSize(), 0);
+
+    previewMapLayers.forEach((layer) => previewMap.removeLayer(layer));
+    previewMapLayers = [];
+
+    const allPoints = [];
+    nonEmpty.forEach((seg) => {
+      allPoints.push(...seg.latlngs);
+      // Same white "halo under the line" trick as the nav map, so the route
+      // still reads clearly against building/park fills.
+      previewMapLayers.push(
+        L.polyline(seg.latlngs, { color: '#ffffff', weight: 7, opacity: 0.85 }).addTo(previewMap),
+        L.polyline(seg.latlngs, {
+          color: seg.color || '#2563eb',
+          weight: 4,
+          opacity: 0.95,
+          dashArray: seg.dashed ? '1,8' : null,
+        }).addTo(previewMap)
+      );
+    });
+
+    const startIcon = L.divIcon({ className: 'nav-start-marker', iconSize: [14, 14], iconAnchor: [7, 7] });
+    const destIcon = L.divIcon({ className: 'nav-dest-marker', html: '📍', iconSize: [26, 26], iconAnchor: [13, 26] });
+    previewMapLayers.push(
+      L.marker(allPoints[0], { icon: startIcon }).addTo(previewMap),
+      L.marker(allPoints[allPoints.length - 1], { icon: destIcon }).addTo(previewMap)
+    );
+
+    previewMap.fitBounds(L.latLngBounds(allPoints), { padding: [24, 24] });
+
+    lastPreviewPoints = allPoints;
+    checkRouteHazards(allPoints);
+  } catch (err) {
+    console.error('route preview map failed (route steps/Start Navigation still proceed):', err);
+  }
+}
+
+function hideRoutePreviewMap() {
+  if (els.routePreviewMap) els.routePreviewMap.classList.add('hidden');
+  lastPreviewPoints = null;
+  hideDengueAlert();
+  hideFloodAlert();
+}
+
+// Turns one transit itinerary's legs into preview-map segments — walk legs
+// dashed gray (de-emphasized, matches how the steps list treats them), train
+// legs colored by their real line color (same leg.routeColor used for line
+// badges elsewhere), everything else (bus) a plain blue.
+function transitPreviewSegments(itinerary) {
+  return itinerary.legs.map((leg) => {
+    const isWalk = leg.mode === 'walk';
+    let color = '#2563eb';
+    if (isWalk) color = '#9ca3af';
+    else if (leg.mode === 'train' && leg.routeColor) color = `#${leg.routeColor}`;
+    return { latlngs: decodePolyline(leg.geometry), color, dashed: isWalk };
+  });
 }
 
 function showNavMap(routeCoords) {
   if (typeof L === 'undefined') return; // Leaflet didn't load (e.g. no connection to the CDN) — nav still works via the banner/voice, just no map
   els.navMapOverlay.classList.remove('hidden');
   initNavMap();
-  if (!navMap) return;
-  // The container was just un-hidden, so Leaflet needs a nudge to notice its real size.
-  setTimeout(() => navMap.invalidateSize(), 0);
 
-  if (navMapRouteHalo) { navMap.removeLayer(navMapRouteHalo); navMapRouteHalo = null; }
-  if (navMapRouteLine) { navMap.removeLayer(navMapRouteLine); navMapRouteLine = null; }
-  const latlngs = routeCoords.map(([lon, lat]) => [lat, lon]);
-  // A wider white "halo" drawn underneath the blue line so the route still
-  // reads clearly against busy/light OSM tiles (car parks, building fills,
-  // etc.) instead of a thin line getting lost in the background.
-  navMapRouteHalo = L.polyline(latlngs, { color: '#ffffff', weight: 9, opacity: 0.9 }).addTo(navMap);
-  navMapRouteLine = L.polyline(latlngs, { color: '#2563eb', weight: 5, opacity: 0.95 }).addTo(navMap);
-  navMap.fitBounds(navMapRouteLine.getBounds(), { padding: [40, 40] });
-  drawTrafficOverlays();
-
-  // Start (A) and destination (B) markers — separate from the live puck,
-  // which tracks current position and moves away from the start point as
-  // soon as you set off. Without a destination pin there's nothing on the
-  // map anchoring "this is where you're headed."
-  if (!navMapStartMarker) {
-    const startIcon = L.divIcon({ className: 'nav-start-marker', iconSize: [14, 14], iconAnchor: [7, 7] });
-    navMapStartMarker = L.marker(latlngs[0], { icon: startIcon, zIndexOffset: 900 }).addTo(navMap);
-  } else {
-    navMapStartMarker.setLatLng(latlngs[0]);
-  }
-  const destLatLng = latlngs[latlngs.length - 1];
-  if (!navMapDestMarker) {
-    const destIcon = L.divIcon({ className: 'nav-dest-marker', html: '📍', iconSize: [28, 28], iconAnchor: [14, 28] });
-    navMapDestMarker = L.marker(destLatLng, { icon: destIcon, zIndexOffset: 950 }).addTo(navMap);
-  } else {
-    navMapDestMarker.setLatLng(destLatLng);
-  }
-
-  if (!navMapLiveMarker) {
-    const liveIcon = L.divIcon({
-      className: 'nav-live-puck',
-      html: '<div class="nav-live-puck-arrow"></div>',
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
-    });
-    navMapLiveMarker = L.marker(latlngs[0], { icon: liveIcon, zIndexOffset: 1000 }).addTo(navMap);
-  } else {
-    navMapLiveMarker.setLatLng(latlngs[0]);
-  }
+  // Reveal the rest of the nav chrome (compass, speed badge, ETA sheet) and
+  // reset tracking state BEFORE touching any of the actual route-drawing
+  // below. This must never be gated behind the drawing code succeeding —
+  // exactly the mistake that once let a hazard-overlay bug quietly eat the
+  // "Start Navigation" button/cycling extras: an exception partway through
+  // the map drawing would otherwise abort before these lines ran, and the
+  // nav screen would come up with the tiles visible but no puck, no arrow,
+  // no banner-driven UI, nothing — you're staring at a plain map.
   navFollowing = true;
   els.navSpeedBadge.classList.remove('hidden');
   els.navBottomSheet.classList.remove('hidden');
@@ -1543,6 +1818,62 @@ function showNavMap(routeCoords) {
   navLastFix = null;
   navLastHeadingDeg = null;
   resetMapRotation();
+
+  if (!navMap) return;
+
+  // Everything that actually draws the route line/markers/traffic on the
+  // map, wrapped so a bad coordinate or stale layer reference here can never
+  // take down navigation as a whole — worst case this one draw is skipped,
+  // GPS tracking/voice/banner keep working, and the next position update
+  // gets another chance to place the live puck.
+  try {
+    // The container was just un-hidden, so Leaflet needs a nudge to notice its real size.
+    setTimeout(() => navMap.invalidateSize(), 0);
+
+    if (navMapRouteHalo) { navMap.removeLayer(navMapRouteHalo); navMapRouteHalo = null; }
+    if (navMapRouteLine) { navMap.removeLayer(navMapRouteLine); navMapRouteLine = null; }
+    const latlngs = routeCoords.map(([lon, lat]) => [lat, lon]);
+    if (!latlngs.length) return;
+    // A wider white "halo" drawn underneath the blue line so the route still
+    // reads clearly against busy/light OSM tiles (car parks, building fills,
+    // etc.) instead of a thin line getting lost in the background.
+    navMapRouteHalo = L.polyline(latlngs, { color: '#ffffff', weight: 9, opacity: 0.9 }).addTo(navMap);
+    navMapRouteLine = L.polyline(latlngs, { color: '#2563eb', weight: 5, opacity: 0.95 }).addTo(navMap);
+    navMap.fitBounds(navMapRouteLine.getBounds(), { padding: [40, 40] });
+    drawTrafficOverlays();
+
+    // Start (A) and destination (B) markers — separate from the live puck,
+    // which tracks current position and moves away from the start point as
+    // soon as you set off. Without a destination pin there's nothing on the
+    // map anchoring "this is where you're headed."
+    if (!navMapStartMarker) {
+      const startIcon = L.divIcon({ className: 'nav-start-marker', iconSize: [14, 14], iconAnchor: [7, 7] });
+      navMapStartMarker = L.marker(latlngs[0], { icon: startIcon, zIndexOffset: 900 }).addTo(navMap);
+    } else {
+      navMapStartMarker.setLatLng(latlngs[0]);
+    }
+    const destLatLng = latlngs[latlngs.length - 1];
+    if (!navMapDestMarker) {
+      const destIcon = L.divIcon({ className: 'nav-dest-marker', html: '📍', iconSize: [28, 28], iconAnchor: [14, 28] });
+      navMapDestMarker = L.marker(destLatLng, { icon: destIcon, zIndexOffset: 950 }).addTo(navMap);
+    } else {
+      navMapDestMarker.setLatLng(destLatLng);
+    }
+
+    if (!navMapLiveMarker) {
+      const liveIcon = L.divIcon({
+        className: 'nav-live-puck',
+        html: '<div class="nav-live-puck-arrow"></div>',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      });
+      navMapLiveMarker = L.marker(latlngs[0], { icon: liveIcon, zIndexOffset: 1000 }).addTo(navMap);
+    } else {
+      navMapLiveMarker.setLatLng(latlngs[0]);
+    }
+  } catch (err) {
+    console.error('nav map route drawing failed (banner/GPS/voice guidance still proceed):', err);
+  }
 }
 
 // Rotates the live puck's arrow to face `heading` (degrees, 0 = north,
@@ -1783,10 +2114,20 @@ async function startNavigation() {
   els.navBanner.classList.remove('hidden');
   els.navMuteBtn.textContent = navMuted ? '🔇' : '🔊';
   els.navBannerDistance.textContent = 'Locating…';
-  els.navBannerInstruction.textContent = navStepInstruction(navRouteSteps[navTargetIndex]);
-  els.navBannerIcon.textContent = stepIcon(navRouteSteps[navTargetIndex].maneuver);
-  highlightNavStep(navTargetIndex);
-  speakNav(`Starting navigation. ${navStepInstruction(navRouteSteps[navTargetIndex])}`);
+  // Wrapped: this only formats the first instruction's text/icon from data
+  // we already have in hand (navRouteSteps). It should never be able to
+  // throw, but if some edge-case route ever does trip it up, that must stay
+  // a cosmetic miss on the banner text rather than stopping the geolocation
+  // watch below from ever starting — losing live tracking entirely would be
+  // a far worse outcome than one blank instruction line.
+  try {
+    els.navBannerInstruction.textContent = navStepInstruction(navRouteSteps[navTargetIndex]);
+    els.navBannerIcon.textContent = stepIcon(navRouteSteps[navTargetIndex].maneuver);
+    highlightNavStep(navTargetIndex);
+    speakNav(`Starting navigation. ${navStepInstruction(navRouteSteps[navTargetIndex])}`);
+  } catch (err) {
+    console.error('nav banner instruction setup failed (GPS tracking still starts):', err);
+  }
 
   if ('wakeLock' in navigator) {
     try {
@@ -1898,6 +2239,7 @@ async function getTransitDirections() {
       els.itineraryOptions.classList.add('hidden');
       els.itineraryOptions.innerHTML = '';
       transitItineraries = [];
+      hideRoutePreviewMap();
       return;
     }
 
@@ -2022,6 +2364,7 @@ function selectItinerary(index) {
   hasRoute = true;
   renderTransitSummary(itinerary);
   renderTransitSteps(itinerary);
+  renderRoutePreviewMap(transitPreviewSegments(itinerary));
 }
 
 function formatClockTime(ms) {
@@ -2079,8 +2422,16 @@ function renderTransitSteps(itinerary) {
       const headsign = leg.headsign ? ` towards ${leg.headsign}` : '';
       const fromCode = leg.fromStopCode ? ` (${leg.fromStopCode})` : '';
       const toCode = leg.toStopCode ? ` (${leg.toStopCode})` : '';
+      // The alighting stop (leg.to) is bolded, not the "via X" headsign —
+      // "via Renjong" is just a boarding-direction hint (like a bus's
+      // headsign), not where to get off, but it used to sit right next to
+      // the bold line name while the real stop to alight at (leg.to) was
+      // buried in a plain sentence. That's a real way to get off at the
+      // wrong stop, not just a cosmetic nitpick — confirmed by a user who
+      // did exactly that after boarding "towards SW Loop via Renjong" and
+      // assumed Renjong was the destination.
       text.innerHTML = `<strong>${line}</strong>${headsign}<br>`
-        + `${leg.from}${fromCode} → ${leg.to}${toCode} — ${formatDuration(leg.duration)} (${formatClockTime(leg.startTime)})`;
+        + `${leg.from}${fromCode} → <strong>${leg.to}${toCode}</strong> — ${formatDuration(leg.duration)} (${formatClockTime(leg.startTime)})`;
     }
     row.appendChild(icon);
     row.appendChild(text);
@@ -2164,6 +2515,12 @@ function renderRouteSummary(route) {
   els.routeSummary.classList.remove('hidden');
   els.routeSummary.innerHTML = `<strong>${formatDuration(route.duration)}</strong> &nbsp;·&nbsp; ${formatDistance(route.distance)}`;
   renderRideHailingLinks();
+  const coords = route.geometry && route.geometry.coordinates;
+  if (coords && coords.length) {
+    renderRoutePreviewMap([{ latlngs: coords.map(([lon, lat]) => [lat, lon]), color: '#2563eb' }]);
+  } else {
+    hideRoutePreviewMap();
+  }
 }
 
 // ---- Ride-hailing quick links (Grab / Gojek / Ryde / TADA) ------------------
@@ -3136,12 +3493,13 @@ let weatherWidgetTimer = null;
 
 async function loadWeatherWidget(coords) {
   try {
-    const [wxRes, psiRes] = await Promise.all([
+    const [wxRes, psiRes, uvRes] = await Promise.all([
       fetch(`/api/weather-nearby?lat=${coords.lat}&lon=${coords.lon}`),
-      // PSI is a nice-to-have alongside the weather text — never let a
-      // failure here (or the endpoint being briefly unavailable) block the
-      // weather widget itself.
+      // PSI and UV Index are nice-to-haves alongside the weather text — never
+      // let a failure here (or the endpoint being briefly unavailable) block
+      // the weather widget itself.
       fetch(`/api/psi-nearby?lat=${coords.lat}&lon=${coords.lon}`).catch(() => null),
+      fetch('/api/uv-index').catch(() => null), // island-wide, no lat/lon needed
     ]);
     const data = await wxRes.json();
     if (!wxRes.ok || !data.forecast) {
@@ -3161,7 +3519,22 @@ async function loadWeatherWidget(coords) {
       }
     }
 
-    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}${psiSuffix}`;
+    let uvSuffix = '';
+    delete els.weatherWidget.dataset.uv;
+    if (uvRes && uvRes.ok) {
+      const uvData = await uvRes.json();
+      // A UV value of 0 is a real, common reading (before sunrise/after
+      // sunset) — only skip on a genuine null (fetch/parse failure upstream).
+      if (uvData.value != null) {
+        els.weatherWidget.dataset.uv = uvData.value;
+        els.weatherWidget.dataset.uvCategory = uvData.category || '';
+        // Only worth flagging in the compact widget text once it's actually
+        // enough to matter — Low UV before 8am/after 6pm would just be noise.
+        if (uvData.value >= 3) uvSuffix = ` · ☀️ UV ${uvData.value}`;
+      }
+    }
+
+    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}${psiSuffix}${uvSuffix}`;
     els.weatherWidget.title = `${data.forecast} near ${data.area} — tap for details`;
     els.weatherWidget.dataset.area = data.area;
     els.weatherWidget.dataset.forecast = data.forecast;
@@ -3195,6 +3568,40 @@ function initWeatherWidget() {
 // for today, via NEA's 24-hour forecast) alongside the hyper-local 2-hour
 // condition the widget itself already shows.
 
+// Standard WHO UV Index scale — same bands/colors as uvCategory() in
+// server.js (keep in sync if that ever changes). Shown as a small reference
+// strip in the weather panel so people know what a given number actually
+// means, not just today's raw value. Band NAMES alone ("Moderate", "High")
+// don't tell most people anything actionable, so each band also carries a
+// plain-language "what to actually do" line, shown for today's current
+// value rather than making people learn what the jargon means.
+const UV_BANDS = [
+  { max: 2, range: '0-2', label: 'Low', color: '2E7D32', advice: 'No real precautions needed.' },
+  { max: 5, range: '3-5', label: 'Moderate', color: 'F9A825', advice: 'Seek shade during midday; sunscreen if you\'ll be out a while.' },
+  { max: 7, range: '6-7', label: 'High', color: 'EF6C00', advice: 'Wear sunscreen, a hat and sunglasses; limit midday sun.' },
+  { max: 10, range: '8-10', label: 'Very High', color: 'C62828', advice: 'Unprotected skin can burn in under 30 min — avoid midday sun.' },
+  { max: Infinity, range: '11+', label: 'Extreme', color: '6A1B9A', advice: 'Skin can burn in 10–15 min — avoid sun 11am–3pm if you can.' },
+];
+
+function renderUvScale(value) {
+  let currentBand = null;
+  const bandsHtml = UV_BANDS.map((band, i) => {
+    const prevMax = i === 0 ? -Infinity : UV_BANDS[i - 1].max;
+    const isCurrent = value != null && value > prevMax && value <= band.max;
+    if (isCurrent) currentBand = band;
+    return `<div class="uv-scale-band${isCurrent ? ' current' : ''}" style="background:#${band.color}">`
+      + `<span class="uv-scale-range">${band.range}</span>`
+      + `<span class="uv-scale-label">${band.label}</span>`
+      + '</div>';
+  }).join('');
+  // The advice line is the actual point — what to do right now — not just
+  // which jargon bucket today falls into.
+  const adviceHtml = currentBand
+    ? `<p class="uv-scale-advice">${currentBand.advice}</p>`
+    : '';
+  return `<div class="uv-scale">${bandsHtml}</div>${adviceHtml}`;
+}
+
 function renderWeatherPanel(daily) {
   const area = els.weatherWidget.dataset.area;
   const nowForecast = els.weatherWidget.dataset.forecast;
@@ -3204,6 +3611,10 @@ function renderWeatherPanel(daily) {
   const psi = els.weatherWidget.dataset.psi;
   const psiLine = psi
     ? `<p class="weather-panel-now">😷 PSI (24-hr) in <strong>${els.weatherWidget.dataset.psiRegion}</strong>: <strong>${psi}</strong> — ${els.weatherWidget.dataset.psiCategory}</p>`
+    : '';
+  const uv = els.weatherWidget.dataset.uv;
+  const uvLine = uv
+    ? `<p class="weather-panel-now">☀️ UV Index: <strong>${uv}</strong> — ${els.weatherWidget.dataset.uvCategory}</p>${renderUvScale(Number(uv))}`
     : '';
   const temp = daily.tempLow != null && daily.tempHigh != null ? `${daily.tempLow}–${daily.tempHigh}°C` : '—';
   const humidity = daily.humidityLow != null && daily.humidityHigh != null ? `${daily.humidityLow}–${daily.humidityHigh}%` : '—';
@@ -3216,6 +3627,7 @@ function renderWeatherPanel(daily) {
     <h3 class="weather-panel-headline">${daily.forecast || "Today's outlook"}</h3>
     ${nowLine}
     ${psiLine}
+    ${uvLine}
     <div class="weather-panel-grid">
       <div><span class="weather-panel-label">Temperature</span><span class="weather-panel-value">${temp}</span></div>
       <div><span class="weather-panel-label">Humidity</span><span class="weather-panel-value">${humidity}</span></div>
