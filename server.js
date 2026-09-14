@@ -897,20 +897,17 @@ app.get('/api/transit-plan', async (req, res) => {
         bestByShape.set(shape, itinerary);
       }
     }
-    // MRT/LRT is generally faster and far less affected by road traffic than
-    // a bus, so give rail-inclusive itineraries a modest priority over pure
-    // duration — a route with a train leg only needs to be within 5 minutes
-    // of the fastest bus-only option to rank above it, rather than requiring
-    // it to literally win on raw time. Actual duration (shown to the user
-    // and used for the "Fastest" badge below) is never altered — this only
-    // affects display order.
-    const RAIL_PRIORITY_BONUS_SECONDS = 5 * 60;
-    const rankScore = (it) => {
-      const hasRail = it.legs.some((l) => l.mode === 'train');
-      return hasRail ? it.duration - RAIL_PRIORITY_BONUS_SECONDS : it.duration;
-    };
+    // MRT/LRT options are always shown ahead of bus-only ones — a categorical
+    // priority, not just a scoring nudge: any itinerary with a train leg
+    // ranks above every bus-only itinerary regardless of raw duration, and
+    // within each of those two groups the fastest comes first. (This used to
+    // be a softer "within 5 minutes of the fastest bus" bonus; per explicit
+    // request, rail now always wins the tiebreak, full stop.) Actual duration
+    // (shown to the user and used for the "Fastest" badge in the app) is
+    // never altered — this only affects display order.
+    const railTier = (it) => (it.legs.some((l) => l.mode === 'train') ? 0 : 1);
     const dedupedItineraries = [...bestByShape.values()]
-      .sort((a, b) => rankScore(a) - rankScore(b))
+      .sort((a, b) => railTier(a) - railTier(b) || a.duration - b.duration)
       .slice(0, 6);
 
     res.json({
@@ -1924,6 +1921,295 @@ app.get('/api/psi-nearby', async (req, res) => {
   } catch (err) {
     console.error('psi-nearby error:', err.message);
     res.status(502).json({ error: 'Could not fetch PSI reading.', detail: err.message });
+  }
+});
+
+// ---- Push trigger: PSI reaching Unhealthy ----------------------------------
+// Same shape as the MRT/LRT disruption push trigger above: polls the same
+// cached getPsiReading() proactively so an alert goes out even while nobody
+// has the app open, only fires on the actual OFF->ON transition (not every
+// poll while it stays unhealthy), and the first check after startup only
+// records a baseline so a redeploy during an ongoing haze episode doesn't
+// blast a notification. Unlike the MRT/traffic pushes this isn't tied to a
+// single region — it checks the WORST reading across all 5 regions, since
+// "is the air unhealthy anywhere in Singapore right now" is the useful
+// island-wide signal here (haze episodes are rarely confined to one region
+// for long), and this reuses the same subscriber list as every other push
+// (the one 🔔 toggle in the app), not a separate opt-in.
+
+const PSI_UNHEALTHY_THRESHOLD = 100; // NEA: 0-50 Good, 51-100 Moderate, 101+ Unhealthy
+
+let lastPsiUnhealthy; // undefined until the first successful check
+
+async function checkPsiForPush() {
+  if (!PUSH_ENABLED) return;
+  try {
+    const { regionMetadata, readings } = await getPsiReading();
+    if (!regionMetadata.length) return;
+
+    let worstRegion = null;
+    let worstValue = -Infinity;
+    regionMetadata.forEach((r) => {
+      const v = readings[r.name];
+      if (typeof v === 'number' && v > worstValue) { worstValue = v; worstRegion = r.name; }
+    });
+    if (worstRegion == null) return; // no numeric readings at all — skip this cycle
+
+    const isUnhealthy = worstValue > PSI_UNHEALTHY_THRESHOLD;
+    const hadBaseline = lastPsiUnhealthy !== undefined;
+
+    if (hadBaseline && isUnhealthy !== lastPsiUnhealthy) {
+      if (isUnhealthy) {
+        const category = psiCategory(worstValue);
+        broadcastPush({
+          title: '😷 Haze Alert: PSI Unhealthy',
+          body: `PSI in ${worstRegion} has reached ${worstValue} (${category?.label || 'Unhealthy'}). Consider limiting outdoor activity.`,
+          url: '/',
+        }).catch((err) => console.error('PSI alert push failed:', err.message));
+      } else {
+        broadcastPush({
+          title: '🌤️ Air Quality Back to Normal',
+          body: 'PSI has dropped back to a Moderate or Good level island-wide.',
+          url: '/',
+        }).catch((err) => console.error('PSI alert push failed:', err.message));
+      }
+    }
+    lastPsiUnhealthy = isUnhealthy;
+  } catch (err) {
+    console.error('PSI push check failed:', err.message);
+  }
+}
+
+if (PUSH_ENABLED) {
+  setInterval(checkPsiForPush, PSI_TTL_MS);
+  checkPsiForPush();
+}
+
+// ---- UV Index (NEA data.gov.sg) ---------------------------------------------
+// Unlike PSI/weather, NEA publishes UV Index as a single Singapore-wide value
+// (no regional breakdown), and as an hourly forecast table for the current
+// day (roughly 7am-7pm — outside that window it's night, effectively 0)
+// rather than one live "current" reading. So this picks the most recent
+// hourly entry that's already passed as "now", same idea as picking the
+// current row out of a bus timetable.
+//
+// Bands are the standard WHO UV Index scale (0-2 Low, 3-5 Moderate, 6-7 High,
+// 8-10 Very High, 11+ Extreme) — the same scale NEA's own UV Index page uses.
+
+let uvCache = null; // raw items[0] from the API: { timestamp, updateTimestamp, index: [{value, timestamp}] }
+let uvCacheAt = 0;
+const UV_TTL_MS = 30 * 60 * 1000;
+
+async function getUvReading() {
+  if (uvCache && Date.now() - uvCacheAt < UV_TTL_MS) return uvCache;
+  // Passing an explicit `date` (Singapore's local calendar day — NEA's feed
+  // is SGT-based) turned out to be required, not optional. The "no date"
+  // request (what this used to call) is supposed to return the latest
+  // snapshot, but in practice it got stuck returning the PREVIOUS day's
+  // final snapshot indefinitely instead of rolling over — since that final
+  // snapshot's most recent reading is always 0 (UV is 0 by ~7-8pm), that's
+  // exactly the "stuck showing 0 since yesterday" bug. Scoping to today's
+  // date explicitly sidesteps whatever staleness/caching NEA has on the
+  // undated endpoint and reliably returns live, updating data instead.
+  const todaySG = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date());
+  const res = await fetch(`https://api.data.gov.sg/v1/environment/uv-index?date=${todaySG}`);
+  if (!res.ok) throw new Error(`NEA UV Index API responded ${res.status}`);
+  const data = await res.json();
+  // With an explicit date, NEA returns one item PER HOUR it has published so
+  // far today (chronological order, oldest first) rather than a single
+  // "current" item — items is empty before its first publish of the day
+  // (~7am SGT).
+  uvCache = data.items || [];
+  uvCacheAt = Date.now();
+  return uvCache;
+}
+
+function uvCategory(value) {
+  if (value == null) return null;
+  if (value <= 2) return { label: 'Low', color: '2E7D32' };
+  if (value <= 5) return { label: 'Moderate', color: 'F9A825' };
+  if (value <= 7) return { label: 'High', color: 'EF6C00' };
+  if (value <= 10) return { label: 'Very High', color: 'C62828' };
+  return { label: 'Extreme', color: '6A1B9A' };
+}
+
+app.get('/api/uv-index', async (req, res) => {
+  try {
+    const items = await getUvReading();
+    // Before NEA's first publish of the day (pre-dawn, ~before 7am SGT)
+    // there's no snapshot yet — that genuinely means UV is 0 (it's still
+    // dark out), not "unknown".
+    if (!items.length) {
+      const category = uvCategory(0);
+      return res.json({ value: 0, category: category?.label || null, categoryColor: category?.color || null, timestamp: null });
+    }
+
+    // Last item = most recent hour published today. Within one snapshot,
+    // its own index[] is newest-first, so index[0] is the reading as of
+    // that snapshot's timestamp — i.e. the current value.
+    const latest = items[items.length - 1];
+    const current = latest.index?.[0];
+    const value = current ? current.value : 0;
+    const category = uvCategory(value);
+
+    res.json({
+      value,
+      category: category?.label || null,
+      categoryColor: category?.color || null,
+      timestamp: current ? current.timestamp : latest.timestamp,
+    });
+  } catch (err) {
+    console.error('uv-index error:', err.message);
+    res.json({ value: null, category: null, categoryColor: null, timestamp: null });
+  }
+});
+
+// ---- Dengue cluster zones (NEA) ---------------------------------------
+// Active dengue cluster boundaries — drawn as shaded zones on the map and
+// checked against your route so a walk/cycle through one gets a heads-up.
+// Same "static dataset via poll-download" flow as the ERP gantry geometry
+// above: ask data.gov.sg for a fresh signed download URL, then fetch the
+// actual GeoJSON from there.
+let dengueCache = null;
+let dengueCacheAt = 0;
+const DENGUE_TTL_MS = 6 * 60 * 60 * 1000; // NEA updates this every so often, not live-live
+const DENGUE_DATASET_ID = 'd_dbfabf16158d1b0e1c420627c0819168';
+
+async function getDengueClusters() {
+  if (dengueCache && Date.now() - dengueCacheAt < DENGUE_TTL_MS) return dengueCache;
+
+  const pollRes = await fetch(
+    `https://api-open.data.gov.sg/v1/public/api/datasets/${DENGUE_DATASET_ID}/poll-download`
+  );
+  if (!pollRes.ok) throw new Error(`dengue poll-download responded ${pollRes.status}`);
+  const pollData = await pollRes.json();
+  const url = pollData?.data?.url;
+  if (!url) throw new Error('dengue dataset URL missing from poll-download response');
+
+  const geoRes = await fetch(url);
+  if (!geoRes.ok) throw new Error(`dengue geojson fetch responded ${geoRes.status}`);
+  const geojson = await geoRes.json();
+
+  const clusters = (geojson.features || [])
+    .map((f, i) => {
+      const geom = f.geometry;
+      if (!geom) return null;
+      // GeoJSON stores rings as [lon, lat] — flip to [lat, lon] for Leaflet.
+      // Both Polygon (one ring set) and MultiPolygon (several) show up in
+      // this dataset (a cluster can span disconnected areas).
+      let rings = [];
+      if (geom.type === 'Polygon') {
+        rings = geom.coordinates.map((ring) => ring.map(([lon, lat]) => [lat, lon]));
+      } else if (geom.type === 'MultiPolygon') {
+        rings = geom.coordinates.flat().map((ring) => ring.map(([lon, lat]) => [lat, lon]));
+      } else {
+        return null;
+      }
+      if (!rings.length) return null;
+      const props = f.properties || {};
+      const locality = props.LOCALITY || props.Locality || props.locality || `Cluster ${i + 1}`;
+      const caseSizeRaw = props.CASE_SIZE ?? props.Case_Size ?? props.case_size;
+      const caseSize = caseSizeRaw != null && !Number.isNaN(Number(caseSizeRaw)) ? Number(caseSizeRaw) : null;
+      return { id: props.OBJECTID ?? i, locality, caseSize, rings };
+    })
+    .filter(Boolean);
+
+  // Only replace the cache with a non-empty result — an empty/failed parse
+  // shouldn't wipe out the last known-good clusters.
+  if (clusters.length) {
+    dengueCache = clusters;
+    dengueCacheAt = Date.now();
+  }
+  return dengueCache || [];
+}
+
+app.get('/api/dengue-clusters', async (req, res) => {
+  try {
+    const clusters = await getDengueClusters();
+    res.json({ clusters });
+  } catch (err) {
+    console.error('dengue-clusters error:', err.message);
+    res.json({ clusters: [] });
+  }
+});
+
+// ---- Flash flood alerts (PUB) ------------------------------------------
+// PUB's real-time flood alert feed — locations with an active flood alert
+// right now, shown as markers and checked against your route.
+//
+// This is NOT the same "poll-download" flow as the dengue clusters/ERP
+// gantry static datasets above, even though data.gov.sg lists it on a
+// similar-looking dataset page. Tried that first — it turns out that for
+// this dataset, poll-download just hands back the API's OpenAPI SPEC
+// document (an "openapi": "3.0.0" JSON blob describing the endpoint), not
+// actual alert data. The spec itself names the real endpoint:
+// https://api-open.data.gov.sg/v2/real-time/api/weather/flood-alerts —
+// part of data.gov.sg's newer v2 real-time API family (same family as
+// rainfall/PM2.5), called directly below instead.
+//
+// Shape (confirmed live): { data: { records: [ { datetime, item: { readings:
+// [...], isStationData, type }, updatedTimestamp } ], paginationToken } }.
+// records[0] is the most recent ~2-minute snapshot. `readings` is empty
+// whenever there's no active alert anywhere (the normal state almost all of
+// the time) — a reading's own field names aren't confirmed yet since no
+// live example has been seen, so parsing below tries several common key
+// spellings and logs one raw sample the first time a non-empty reading
+// actually shows up, so the shape can be verified/tightened from real data.
+let floodCache = null;
+let floodCacheAt = 0;
+const FLOOD_TTL_MS = 5 * 60 * 1000; // this one really is event-based/real-time
+let floodSchemaLogged = false;
+
+function firstDefined(obj, keys) {
+  for (const k of keys) {
+    if (obj && obj[k] != null && obj[k] !== '') return obj[k];
+  }
+  return null;
+}
+
+async function getFloodAlerts() {
+  if (floodCache && Date.now() - floodCacheAt < FLOOD_TTL_MS) return floodCache;
+
+  const res = await fetch('https://api-open.data.gov.sg/v2/real-time/api/weather/flood-alerts');
+  if (!res.ok) throw new Error(`flood-alerts API responded ${res.status}`);
+  const data = await res.json();
+  if (data.code !== 0) throw new Error(`flood-alerts API error: ${data.errorMsg || 'unknown'}`);
+  const readings = data?.data?.records?.[0]?.item?.readings || [];
+
+  if (readings.length && !floodSchemaLogged) {
+    console.log('flood alerts raw reading sample:', JSON.stringify(readings[0]).slice(0, 600));
+    floodSchemaLogged = true;
+  }
+
+  const alerts = readings
+    .map((item, i) => {
+      const loc = item.location || item.Location || {};
+      let lat = firstDefined(item, ['latitude', 'Latitude', 'LAT', 'lat', 'Lat'])
+        ?? firstDefined(loc, ['latitude', 'Latitude', 'LAT', 'lat', 'Lat']);
+      let lon = firstDefined(item, ['longitude', 'Longitude', 'LON', 'LNG', 'lng', 'lon', 'Lon'])
+        ?? firstDefined(loc, ['longitude', 'Longitude', 'LON', 'LNG', 'lng', 'lon', 'Lon']);
+      if (lat == null || lon == null || Number.isNaN(Number(lat)) || Number.isNaN(Number(lon))) return null;
+      const name = firstDefined(item, ['name', 'Name', 'NAME', 'location', 'Location', 'LOCATION', 'description', 'Description', 'area', 'Area']) || `Flood alert ${i + 1}`;
+      const status = firstDefined(item, ['status', 'Status', 'STATUS', 'alert', 'Alert', 'severity', 'Severity', 'value', 'Value']);
+      return { id: item.id ?? item.ID ?? item.stationId ?? i, name, status, lat: Number(lat), lon: Number(lon) };
+    })
+    .filter(Boolean);
+
+  // Unlike dengue clusters, an empty result here is expected and correct
+  // most of the time (no active flood alerts right now) — so an empty
+  // array from a successful fetch DOES overwrite the cache.
+  floodCache = alerts;
+  floodCacheAt = Date.now();
+  return floodCache;
+}
+
+app.get('/api/flood-alerts', async (req, res) => {
+  try {
+    const alerts = await getFloodAlerts();
+    res.json({ alerts });
+  } catch (err) {
+    console.error('flood-alerts error:', err.message);
+    res.json({ alerts: [] });
   }
 });
 

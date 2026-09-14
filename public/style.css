@@ -240,6 +240,39 @@ html, body {
 .weather-panel-value { font-size: 13px; font-weight: 700; }
 
 .weather-panel-note { margin: 0; font-size: 11px; color: var(--muted); }
+
+/* UV Index reference scale — a small colored strip (WHO's 5 bands) shown
+   under today's UV reading, with a marker on today's band and a short
+   plain-language "what to do" line, since a bare label like "Moderate"
+   doesn't tell most people anything actionable on its own. */
+.uv-scale {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin: 2px 0 6px;
+  padding-top: 6px; /* headroom for the current band's "lift" below */
+}
+.uv-scale-band {
+  flex: 1;
+  padding: 5px 2px 4px;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+  border-radius: 5px;
+}
+.uv-scale-band:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+.uv-scale-band:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+/* "You are here" — lifted above the row with a white ring and a drop
+   shadow, rather than a marker glyph poking outside the strip (that got
+   clipped when the strip had overflow:hidden for its own rounded corners). */
+.uv-scale-band.current {
+  transform: translateY(-4px);
+  box-shadow: inset 0 0 0 2px #fff, 0 2px 6px rgba(0,0,0,0.3);
+  padding-top: 7px;
+}
+.uv-scale-range { display: block; font-size: 9.5px; font-weight: 700; line-height: 1.3; }
+.uv-scale-label { display: block; font-size: 7.5px; line-height: 1.2; opacity: 0.95; }
+.uv-scale-advice { margin: 0 0 14px; font-size: 11.5px; color: var(--muted); text-align: left; }
 .weather-panel-loading { padding: 20px 0; color: var(--muted); font-size: 13px; }
 
 #body {
@@ -607,6 +640,25 @@ html, body {
 .route-summary.hidden { display: none; }
 .route-summary strong { font-size: 17px; }
 
+/* Route preview map — a small inline Leaflet map on the Directions results
+   panel showing the route/itinerary before "Start Navigation" is tapped
+   (mirrors Google Maps/Waze/Petal Maps). Distinct from #navMap (the
+   full-screen overlay used during live turn-by-turn nav). Leaflet needs an
+   explicit height on its container or it renders as a blank 0px box. */
+.route-preview-map {
+  height: 220px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--panel-bg);
+}
+.route-preview-map.hidden { display: none; }
+/* Same tile-mute treatment as .nav-map, for visual consistency between the
+   preview map and the live nav map (see the comment above .nav-map .leaflet-tile-pane). */
+.route-preview-map .leaflet-tile-pane {
+  filter: grayscale(25%) saturate(1.2) brightness(1.08) contrast(0.92);
+}
+
 .ride-hailing-links.hidden { display: none; }
 .ride-hailing-label {
   font-size: 11px;
@@ -650,6 +702,32 @@ html, body {
   margin-top: 8px;
 }
 .rain-banner.hidden { display: none; }
+
+.dengue-banner {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.dengue-banner.hidden { display: none; }
+
+.flood-banner {
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  color: #155e75;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.flood-banner.hidden { display: none; }
+
+.flood-alert-marker { font-size: 20px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
 
 .route-steps {
   list-style: none;
