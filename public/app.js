@@ -1000,6 +1000,28 @@ async function checkRainAlert(from, to) {
   }
 }
 
+// Same idea as checkRainAlert above, but re-checked against your LIVE
+// position while you're actually navigating on foot, so rain that develops
+// mid-walk (not just what was forecast at your start/end points before you
+// left) still gets surfaced. See NAV_RAIN_RECHECK_MS/navRainWarned above for
+// why this is throttled and only fires once per navigation session.
+async function checkNavRainProactive(lat, lon) {
+  if (navRainWarned) return;
+  if (selectedMode !== 'walking' && selectedMode !== 'transit') return;
+  const now = Date.now();
+  if (now - navLastRainCheckAt < NAV_RAIN_RECHECK_MS) return;
+  navLastRainCheckAt = now;
+  try {
+    const wx = await fetch(`/api/weather-nearby?lat=${lat}&lon=${lon}`).then((r) => (r.ok ? r.json() : null));
+    if (wx && wx.isRainy) {
+      navRainWarned = true;
+      showToast(`☔ ${wx.forecast} near ${wx.area} — you may want to find shelter.`, 7000);
+    }
+  } catch (err) {
+    console.error('proactive nav rain check failed:', err);
+  }
+}
+
 const runFromSearch = debounce(async (q) => {
   const results = await geocode(q);
   renderResultList(els.fromResults, results, (r) => {
@@ -1398,6 +1420,17 @@ let navTargetIndex = 1; // index into navRouteSteps we're currently heading towa
 let navMuted = false;
 let navLastOffRouteWarnAt = 0;
 let navLastFix = null; // { lat, lon, t } — previous GPS fix, used to derive speed/heading when the browser doesn't report them directly
+
+// The pre-trip rain banner (checkRainAlert, below the Directions form) only
+// checks once, at your fixed start/end points, before you've even left — it
+// never re-checks once you're actually walking. That misses the "it was fine
+// when I left, but it started raining 20 minutes into the walk" case. This
+// covers that: re-checks the same NEA 2-hour forecast, but against your
+// LIVE position, periodically while navigating on foot, and surfaces a toast
+// (visible even over the fullscreen nav map) the first time it turns rainy.
+const NAV_RAIN_RECHECK_MS = 5 * 60 * 1000; // matches the server's own NEA cache TTL — no point checking more often than the data itself changes
+let navLastRainCheckAt = 0;
+let navRainWarned = false; // only warn once per navigation session, not on every recheck
 let navMapRotationDeg = 0; // current course-up rotation applied to the map container (0 = north-up)
 let navLastHeadingDeg = null; // most recent known heading, so "recenter" can re-apply rotation immediately instead of waiting for the next GPS fix
 let navCompassHeadingDeg = null; // live reading from the phone's own compass/magnetometer, when available
@@ -2151,6 +2184,7 @@ function handleNavPosition(pos) {
   updateEtaSheet(distToTarget, target);
   highlightNavStep(navTargetIndex);
   navLastFix = { lat, lon, t: pos.timestamp };
+  checkNavRainProactive(lat, lon);
 
   const offRoute = distanceToRouteLine(lat, lon) > NAV_OFFROUTE_THRESHOLD_M;
   if (offRoute && Date.now() - navLastOffRouteWarnAt > NAV_OFFROUTE_COOLDOWN_MS) {
@@ -2188,6 +2222,8 @@ async function startNavigation() {
 
   navTargetIndex = navRouteSteps.length > 1 ? 1 : 0;
   navLastOffRouteWarnAt = 0;
+  navLastRainCheckAt = 0;
+  navRainWarned = false;
 
   // Must be called synchronously, directly from this click handler — iOS
   // only shows the compass permission prompt when requested straight from
