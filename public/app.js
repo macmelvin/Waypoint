@@ -3531,7 +3531,7 @@ function renderSosConfirm(contact) {
   els.sosModalBody.innerHTML = `
     <div class="weather-panel-icon">🆘</div>
     <h3 class="weather-panel-headline">Send HELP to ${escapeHtml(contact.name)}?</h3>
-    <p class="weather-panel-now">Opens WhatsApp with the message below and a link that keeps updating with your live location for up to 1 hour (or until you tap "Stop sharing"). You tap Send in WhatsApp to actually deliver it.</p>
+    <p class="weather-panel-now">Opens WhatsApp with the message below, your exact coordinates, and a link that keeps updating with your live location for up to 1 hour (or until you tap "Stop sharing"). You tap Send in WhatsApp to actually deliver it.</p>
     <div class="sos-form">
       <label class="sos-form-label" for="sosMessageInput">Message</label>
       <input id="sosMessageInput" class="sos-form-input" type="text" value="${escapeHtml(loadSosMessage())}" />
@@ -3566,6 +3566,16 @@ function postSosPosition(sessionId, lat, lon) {
   }).catch((err) => console.error('SOS position update failed:', err));
 }
 
+// Plain-text coordinates for the SOS message body, so the recipient has an
+// exact location even if they can't or don't tap the tracking link (no
+// signal, link expired, etc). 4 decimal places is ~11m precision — plenty
+// for this purpose without implying false precision.
+function formatLatLon(lat, lon) {
+  const latDir = lat >= 0 ? 'N' : 'S';
+  const lonDir = lon >= 0 ? 'E' : 'W';
+  return `${Math.abs(lat).toFixed(4)}°${latDir}, ${Math.abs(lon).toFixed(4)}°${lonDir}`;
+}
+
 function triggerSos(contact, message) {
   const sendBtn = document.getElementById('sosSendBtn');
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Getting your location…'; }
@@ -3598,7 +3608,8 @@ function triggerSos(contact, message) {
       postSosPosition(sessionId, latitude, longitude);
       startSosLiveTracking(sessionId, contact.name);
       const trackLink = `${window.location.origin}/track/${sessionId}`;
-      openWhatsapp(`\nTrack my live location (updates for up to 1hr): ${trackLink}`);
+      const coordsLine = `\nLocation: ${formatLatLon(latitude, longitude)}`;
+      openWhatsapp(`${coordsLine}\nTrack my live location (updates for up to 1hr): ${trackLink}`);
     },
     (err) => {
       console.error('SOS geolocation error:', err);
