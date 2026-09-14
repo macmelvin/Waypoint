@@ -22,6 +22,18 @@ This script reinserts the missing stations into each line's existing trips:
     between the nearest real stops that already exist in that specific
     trip, so trips that don't run the full line (short workings) are left
     alone rather than corrupted.
+  - Beyond that mid-trip interpolation, this also EXTENDS a trip's leading
+    and/or trailing edge out to the line's true canonical terminus when
+    NO trip running in that direction ever reaches it (confirmed: NE line
+    trips all stop at Clarke Quay NE5, 3 stations short of the real western
+    terminus HarbourFront NE1; NS/DT/CC have similar single- or
+    double-ended shortfalls). That "no trip reaches it" condition is the
+    signal that the raw feed is missing real terminal stop_times outright,
+    as opposed to a genuine short working -- a direction where *some*
+    trips reach further than others keeps those shorter trips untouched,
+    consistent with the interpolation behaviour above. Extended stops get
+    times extrapolated from that trip's own average inter-station timing,
+    walking outward from its first/last real stop.
   - Bus data (routes, trips, stop_times, stops) is left completely
     untouched; only the 6 MRT routes' trips are modified, and 3 LRT routes
     (Bukit Panjang / Sengkang / Punggol) are left as-is since they have no
@@ -430,19 +442,45 @@ def main():
     patched_trip_count = 0
     inserted_row_count = 0
 
+    extended_report = defaultdict(list)
+
     for line, stations in LINES.items():
         route_id = line
         canon_codes = [c for c, k, n in stations]
-        canon_key_by_code = {c: k for c, k, n in stations}
         canon_index = {c: i for i, c in enumerate(canon_codes)}
+        n_stations = len(canon_codes)
 
+        # Precompute the output stop_id for every canonical station on this
+        # line, once, so build_trip_stops never has to guess: real
+        # interchanges always go through the shared minted id; a
+        # non-interchange station that already has its own native stop
+        # record (just not referenced by every trip's stop_times) keeps
+        # that native code rather than requiring a mint that only happens
+        # for genuinely-missing stops; only a genuinely-missing,
+        # non-interchange station falls back to its minted id (or None, if
+        # even that failed to find coordinates).
+        code_to_output_id = {}
+        for code, key, name in stations:
+            if key in interchange_keys:
+                code_to_output_id[code] = resolved_stop_id.get(key)
+            elif code in existing_stop_ids:
+                code_to_output_id[code] = code
+            else:
+                code_to_output_id[code] = resolved_stop_id.get(key)
+
+        # First pass: work out each trip's real (unextended) coverage and
+        # direction, without touching stop_times yet. We need every trip's
+        # numbers up front to tell "no trip in this direction reaches the
+        # true terminus" (a feed-wide gap -> safe to extend) apart from "this
+        # particular trip stops short while others don't" (a genuine short
+        # working -> leave it alone, matching the interpolation behaviour's
+        # own philosophy).
+        trip_info = {}
         for trip_id in trips_by_route.get(route_id, []):
             existing_rows = stop_times_by_trip.get(trip_id, [])
             if not existing_rows:
                 continue
 
-            # Map of canonical code -> (arrival_seconds, departure_seconds) for
-            # stops this trip actually already serves.
             served = {}
             for row in existing_rows:
                 code = row["stop_id"]
@@ -451,32 +489,68 @@ def main():
                         hms_to_seconds(row["arrival_time"]),
                         hms_to_seconds(row["departure_time"]),
                     )
-
             if len(served) < 2:
-                # Trip doesn't clearly run on this canonical line shape; leave untouched.
-                for row in existing_rows:
-                    new_stop_times.append(row)
                 continue
 
             served_indices = sorted(canon_index[c] for c in served)
             lo_idx, hi_idx = served_indices[0], served_indices[-1]
-            direction_forward = True
             first_code = [c for c in canon_codes if canon_index[c] == lo_idx][0]
             last_code = [c for c in canon_codes if canon_index[c] == hi_idx][0]
-            if served[first_code][0] > served[last_code][0]:
-                direction_forward = False
+            direction_forward = served[first_code][0] <= served[last_code][0]
+            trip_info[trip_id] = {
+                "served": served, "lo_idx": lo_idx, "hi_idx": hi_idx,
+                "direction_forward": direction_forward,
+            }
+
+        # Per direction, find the best (lowest lo_idx / highest hi_idx) any
+        # trip actually achieves. If that best case still falls short of the
+        # line's true terminus, every trip that already reaches that best
+        # case gets extended the rest of the way -- trips that fall short of
+        # even that get left alone, since a shortfall that ONLY some trips
+        # share looks like a genuine short working rather than a feed gap.
+        dir_bounds = {}
+        for direction_forward in (True, False):
+            dir_trip_ids = [tid for tid, info in trip_info.items() if info["direction_forward"] == direction_forward]
+            if not dir_trip_ids:
+                continue
+            dir_bounds[direction_forward] = {
+                "min_lo": min(trip_info[tid]["lo_idx"] for tid in dir_trip_ids),
+                "max_hi": max(trip_info[tid]["hi_idx"] for tid in dir_trip_ids),
+            }
+
+        for direction_forward, bounds in dir_bounds.items():
+            gap_lo = bounds["min_lo"]  # > 0 means NO trip this direction reaches index 0
+            gap_hi = bounds["max_hi"]  # < n_stations-1 means none reach the last index
+            if gap_lo > 0:
+                lead_names = [n for c, k, n in stations[:gap_lo]]
+                extended_report[line].append(
+                    f"{'fwd' if direction_forward else 'rev'}: extending leading edge to include {lead_names}"
+                )
+            if gap_hi < n_stations - 1:
+                trail_names = [n for c, k, n in stations[gap_hi + 1:]]
+                extended_report[line].append(
+                    f"{'fwd' if direction_forward else 'rev'}: extending trailing edge to include {trail_names}"
+                )
+
+        for trip_id, info in trip_info.items():
+            served = info["served"]
+            direction_forward = info["direction_forward"]
+            bounds = dir_bounds[direction_forward]
+            lo_idx, hi_idx = info["lo_idx"], info["hi_idx"]
+            extend_lo = lo_idx == bounds["min_lo"] and bounds["min_lo"] > 0
+            extend_hi = hi_idx == bounds["max_hi"] and bounds["max_hi"] < n_stations - 1
+            eff_lo = 0 if extend_lo else lo_idx
+            eff_hi = (n_stations - 1) if extend_hi else hi_idx
 
             ordered_positions = (
-                range(lo_idx, hi_idx + 1) if direction_forward
-                else range(hi_idx, lo_idx - 1, -1)
+                range(eff_lo, eff_hi + 1) if direction_forward
+                else range(eff_hi, eff_lo - 1, -1)
             )
             positions_list = list(ordered_positions)
 
-            rebuilt = build_trip_stops(
-                positions_list, canon_codes, served, resolved_stop_id, canon_key_by_code, interchange_keys
-            )
+            rebuilt = build_trip_stops(positions_list, canon_codes, served, code_to_output_id)
             if rebuilt is None or len(rebuilt) < 2:
-                for row in existing_rows:
+                for row in stop_times_by_trip.get(trip_id, []):
                     new_stop_times.append(row)
                 continue
 
@@ -491,6 +565,18 @@ def main():
                 if is_new:
                     inserted_row_count += 1
             patched_trip_count += 1
+
+        # Trips that were skipped entirely in the first pass (fewer than 2
+        # canonical stops served -- doesn't clearly run this line's shape)
+        # still need their original rows carried through untouched.
+        for trip_id in trips_by_route.get(route_id, []):
+            if trip_id not in trip_info and stop_times_by_trip.get(trip_id):
+                for row in stop_times_by_trip[trip_id]:
+                    new_stop_times.append(row)
+
+    for line, notes in extended_report.items():
+        for note in notes:
+            print(f"Line {line}: {note}")
 
     # Any stop_times rows for trips we never touched (buses, and any rail
     # trip that fell through the "len(served) < 2" branch above and was
@@ -521,13 +607,21 @@ def main():
     print(f"Wrote {out_path}")
 
 
-def build_trip_stops(positions_list, canon_codes, served, resolved_stop_id, canon_key_by_code, interchange_keys):
-    """Walk positions_list (already in this trip's direction order) and
-    return a list of (stop_id, arrival_s, departure_s, is_newly_inserted)."""
+def build_trip_stops(positions_list, canon_codes, served, code_to_output_id):
+    """Walk positions_list (already in this trip's direction order -- this
+    may now run past this trip's own first/last real stop, out to the
+    line's true canonical terminus, when the caller determined that
+    extension is warranted) and return a list of
+    (stop_id, arrival_s, departure_s, is_newly_inserted).
+
+    `code_to_output_id` maps each canonical station code to the stop_id it
+    should be emitted as (a shared interchange id, its own native code, a
+    minted synthetic id, or None if genuinely unresolvable) -- precomputed
+    once per line by the caller."""
     # First pass: collect served entries with their walk-order index. (Kept
     # keyed by the line's own native code -- interchange stop_id unification
     # below only swaps the *output* stop_id, not the real schedule times used
-    # for interpolation here.)
+    # for interpolation/extrapolation here.)
     served_walk = []
     for i, pos in enumerate(positions_list):
         code = canon_codes[pos]
@@ -536,23 +630,27 @@ def build_trip_stops(positions_list, canon_codes, served, resolved_stop_id, cano
     if len(served_walk) < 2:
         return None
 
+    # Average seconds-per-station across this trip's own real segments, used
+    # to extrapolate times for stations beyond the first/last real stop (the
+    # leading/trailing line-extension case) -- there's no bracketing real
+    # stop on the outside to interpolate between there, so we walk outward
+    # from the nearest real stop at this trip's own typical pace instead.
+    first_i, _, first_arr, _ = served_walk[0]
+    last_i, _, _, last_dep = served_walk[-1]
+    real_steps = last_i - first_i
+    avg_gap = (last_dep - first_arr) / real_steps if real_steps > 0 else 120
+
     result = []
     for i, pos in enumerate(positions_list):
         code = canon_codes[pos]
-        key = canon_key_by_code[code]
-        # Real interchanges always route through the shared stop_id, even if
-        # this line's own native code for the station already exists --
-        # otherwise two lines can each faithfully serve "the same" station
-        # under two different stop_ids that OTP never links with a transfer.
-        shared_stop_id = resolved_stop_id.get(key) if key in interchange_keys else None
 
         if code in served:
             arr, dep = served[code]
-            out_id = shared_stop_id or code
+            out_id = code_to_output_id.get(code, code)
             result.append((out_id, arr, dep, out_id != code))
             continue
 
-        stop_id = shared_stop_id or resolved_stop_id.get(key)
+        stop_id = code_to_output_id.get(code)
         if stop_id is None:
             continue
         # find bracketing served entries by walk-order index i
@@ -563,11 +661,29 @@ def build_trip_stops(positions_list, canon_codes, served, resolved_stop_id, cano
                 prev_sw = sw
             elif sw[0] > i and next_sw is None:
                 next_sw = sw
-        if prev_sw is None or next_sw is None:
-            continue  # outside this trip's actual coverage; skip
-        frac = (i - prev_sw[0]) / (next_sw[0] - prev_sw[0])
-        arr = prev_sw[2] + frac * (next_sw[2] - prev_sw[2])
-        dep = arr
+
+        if prev_sw is not None and next_sw is not None:
+            frac = (i - prev_sw[0]) / (next_sw[0] - prev_sw[0])
+            arr = prev_sw[2] + frac * (next_sw[2] - prev_sw[2])
+            dep = arr
+        elif next_sw is not None:
+            # Leading extension: i falls before every real stop this trip
+            # serves at all (the caller only reaches this when NO trip on
+            # this route+direction serves anything earlier), so there's
+            # nothing to interpolate between -- walk backward from the
+            # first real stop at this trip's own average pace instead.
+            steps_before = next_sw[0] - i
+            arr = next_sw[2] - steps_before * avg_gap
+            dep = arr
+        elif prev_sw is not None:
+            # Trailing extension: mirror of the leading case, walking
+            # forward from the last real stop.
+            steps_after = i - prev_sw[0]
+            arr = prev_sw[3] + steps_after * avg_gap
+            dep = arr
+        else:
+            continue
+
         result.append((stop_id, arr, dep, True))
 
     return result
