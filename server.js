@@ -2004,6 +2004,81 @@ app.get('/api/psi-nearby', async (req, res) => {
   }
 });
 
+// ---- Air quality (NEA PM2.5 one-hour reading, data.gov.sg) -----------------
+// PSI above is a 24-hour rolling average, which can lag a fast-changing haze
+// situation by hours. PM2.5's own one-hour reading is NEA's more responsive
+// complement to it — same 5-region shape as the PSI dataset, so this reuses
+// the exact same nearest-region approach, just against pm25_one_hourly
+// instead of psi_twenty_four_hourly.
+
+let pm25Cache = null; // { regionMetadata, readings, timestamp }
+let pm25CacheAt = 0;
+const PM25_TTL_MS = 15 * 60 * 1000; // updates hourly upstream; poll a bit more often since it's the "fast" reading
+
+async function getPm25Reading() {
+  if (pm25Cache && Date.now() - pm25CacheAt < PM25_TTL_MS) return pm25Cache;
+  const res = await fetch('https://api.data.gov.sg/v1/environment/pm25');
+  if (!res.ok) throw new Error(`NEA PM2.5 API responded ${res.status}`);
+  const data = await res.json();
+  const item = data.items?.[0];
+  if (!item) throw new Error('No PM2.5 data returned');
+  pm25Cache = {
+    regionMetadata: data.region_metadata || [],
+    readings: item.readings?.pm25_one_hourly || {},
+    timestamp: item.timestamp || null,
+  };
+  pm25CacheAt = Date.now();
+  return pm25Cache;
+}
+
+// NEA's own published PM2.5 one-hour bands (µg/m³) — introduced 2016,
+// unchanged since: https://www.nea.gov.sg and haze.gov.sg both still cite
+// these exact cutoffs. Separate scale from PSI's bands above; a given
+// number means something different on each.
+function pm25Category(value) {
+  if (value == null) return null;
+  if (value <= 55) return { label: 'Normal', color: '2E7D32' };
+  if (value <= 150) return { label: 'Elevated', color: 'F9A825' };
+  if (value <= 250) return { label: 'High', color: 'EF6C00' };
+  return { label: 'Very High', color: 'C62828' };
+}
+
+app.get('/api/pm25-nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+
+  try {
+    const { regionMetadata, readings, timestamp } = await getPm25Reading();
+    if (!regionMetadata.length) {
+      return res.status(502).json({ error: 'No PM2.5 regions available.' });
+    }
+
+    let nearest = null;
+    let nearestDist = Infinity;
+    regionMetadata.forEach((r) => {
+      const d = haversineMeters(lat, lon, r.label_location.latitude, r.label_location.longitude);
+      if (d < nearestDist) { nearestDist = d; nearest = r; }
+    });
+
+    const pm25 = readings[nearest.name] ?? null;
+    const category = pm25Category(pm25);
+
+    res.json({
+      region: nearest.name,
+      pm25,
+      category: category?.label || null,
+      categoryColor: category?.color || null,
+      timestamp,
+    });
+  } catch (err) {
+    console.error('pm25-nearby error:', err.message);
+    res.status(502).json({ error: 'Could not fetch PM2.5 reading.', detail: err.message });
+  }
+});
+
 // ---- SOS live location tracking --------------------------------------------
 // Backs the SOS button's "keep updating live in the message" mode: the
 // sender's phone posts its position here every so often while the SOS

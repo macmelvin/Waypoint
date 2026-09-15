@@ -3923,12 +3923,13 @@ let weatherWidgetTimer = null;
 
 async function loadWeatherWidget(coords) {
   try {
-    const [wxRes, psiRes, uvRes] = await Promise.all([
+    const [wxRes, psiRes, pm25Res, uvRes] = await Promise.all([
       fetch(`/api/weather-nearby?lat=${coords.lat}&lon=${coords.lon}`),
-      // PSI and UV Index are nice-to-haves alongside the weather text — never
-      // let a failure here (or the endpoint being briefly unavailable) block
-      // the weather widget itself.
+      // PSI, PM2.5 and UV Index are nice-to-haves alongside the weather text
+      // — never let a failure here (or the endpoint being briefly
+      // unavailable) block the weather widget itself.
       fetch(`/api/psi-nearby?lat=${coords.lat}&lon=${coords.lon}`).catch(() => null),
+      fetch(`/api/pm25-nearby?lat=${coords.lat}&lon=${coords.lon}`).catch(() => null),
       fetch('/api/uv-index').catch(() => null), // island-wide, no lat/lon needed
     ]);
     const data = await wxRes.json();
@@ -3950,6 +3951,20 @@ async function loadWeatherWidget(coords) {
       }
     }
 
+    let pm25Suffix = '';
+    delete els.weatherWidget.dataset.pm25;
+    if (pm25Res && pm25Res.ok) {
+      const pm25Data = await pm25Res.json();
+      if (pm25Data.pm25 != null) {
+        els.weatherWidget.dataset.pm25 = pm25Data.pm25;
+        els.weatherWidget.dataset.pm25Category = pm25Data.category || '';
+        els.weatherWidget.dataset.pm25Region = pm25Data.region || '';
+        // Only worth surfacing in the compact widget once it's past Normal —
+        // same "don't clutter the common case" rule as UV's threshold below.
+        if (pm25Data.pm25 > 55) pm25Suffix = ` · 🌫️ PM2.5 ${pm25Data.pm25}`;
+      }
+    }
+
     let uvSuffix = '';
     delete els.weatherWidget.dataset.uv;
     if (uvRes && uvRes.ok) {
@@ -3965,7 +3980,7 @@ async function loadWeatherWidget(coords) {
       }
     }
 
-    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}${psiSuffix}${uvSuffix}`;
+    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}${psiSuffix}${pm25Suffix}${uvSuffix}`;
     els.weatherWidget.title = `${data.forecast} near ${data.area} — tap for details`;
     els.weatherWidget.dataset.area = data.area;
     els.weatherWidget.dataset.forecast = data.forecast;
@@ -4066,6 +4081,38 @@ function renderPsiScale(value) {
   return `<div class="uv-scale">${bandsHtml}</div>${adviceHtml}`;
 }
 
+// Official NEA PM2.5 one-hour bands (µg/m³) — same bands/colors as
+// pm25Category() in server.js. PM2.5 is a faster-moving complement to the
+// 24-hour PSI above it: it updates hourly and reacts to a worsening haze
+// well before the 24-hour PSI average catches up, so it's shown as its own
+// line + scale rather than folded into the PSI one. Band descriptions here
+// are plain descriptions of what the number means, not new health/mask
+// directives — those stay only in the PSI section above, which is what
+// MOH's actual mask guidance is threshold-matched to.
+const PM25_BANDS = [
+  { max: 55, range: '0-55', label: 'Normal', color: '2E7D32', advice: 'Air is clear — no impact on visibility.' },
+  { max: 150, range: '56-150', label: 'Elevated', color: 'F9A825', advice: 'Noticeably hazier than a clear day.' },
+  { max: 250, range: '151-250', label: 'High', color: 'EF6C00', advice: 'Haze is heavy, with reduced visibility.' },
+  { max: Infinity, range: '251+', label: 'Very High', color: 'C62828', advice: 'Haze is severe — the worst band NEA tracks for PM2.5.' },
+];
+
+function renderPm25Scale(value) {
+  let currentBand = null;
+  const bandsHtml = PM25_BANDS.map((band, i) => {
+    const prevMax = i === 0 ? -Infinity : PM25_BANDS[i - 1].max;
+    const isCurrent = value != null && value > prevMax && value <= band.max;
+    if (isCurrent) currentBand = band;
+    return `<div class="uv-scale-band${isCurrent ? ' current' : ''}" style="background:#${band.color}">`
+      + `<span class="uv-scale-range">${band.range}</span>`
+      + `<span class="uv-scale-label">${band.label}</span>`
+      + '</div>';
+  }).join('');
+  const adviceHtml = currentBand
+    ? `<p class="uv-scale-advice">${currentBand.advice}</p>`
+    : '';
+  return `<div class="uv-scale">${bandsHtml}</div>${adviceHtml}`;
+}
+
 function renderWeatherPanel(daily) {
   const area = els.weatherWidget.dataset.area;
   const nowForecast = els.weatherWidget.dataset.forecast;
@@ -4083,6 +4130,14 @@ function renderWeatherPanel(daily) {
   const psiLine = psi
     ? `<p class="weather-panel-now">😷 PSI (24-hr) in <strong>${els.weatherWidget.dataset.psiRegion}</strong>: <strong>${psi}</strong> — ${els.weatherWidget.dataset.psiCategory}${psiMaskAdvice ? `<br><span class="weather-panel-mask-advice">${psiMaskAdvice}</span>` : ''}</p>${renderPsiScale(Number(psi))}`
     : '';
+  const pm25 = els.weatherWidget.dataset.pm25;
+  // Shown as its own reading rather than merged into the PSI line above —
+  // different unit (µg/m³ vs an index number), different averaging window
+  // (1-hr vs 24-hr), and a separate 4-band NEA scale, so treating it as
+  // "the same thing as PSI" would misrepresent both numbers.
+  const pm25Line = pm25
+    ? `<p class="weather-panel-now">🌫️ PM2.5 (1-hr) in <strong>${els.weatherWidget.dataset.pm25Region}</strong>: <strong>${pm25}</strong> µg/m³ — ${els.weatherWidget.dataset.pm25Category}</p>${renderPm25Scale(Number(pm25))}`
+    : '';
   const uv = els.weatherWidget.dataset.uv;
   const uvLine = uv
     ? `<p class="weather-panel-now">☀️ UV Index: <strong>${uv}</strong> — ${els.weatherWidget.dataset.uvCategory}</p>${renderUvScale(Number(uv))}`
@@ -4098,6 +4153,7 @@ function renderWeatherPanel(daily) {
     <h3 class="weather-panel-headline">${daily.forecast || "Today's outlook"}</h3>
     ${nowLine}
     ${psiLine}
+    ${pm25Line}
     ${uvLine}
     <div class="weather-panel-grid">
       <div><span class="weather-panel-label">Temperature</span><span class="weather-panel-value">${temp}</span></div>
