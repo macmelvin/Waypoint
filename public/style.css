@@ -558,6 +558,31 @@ html, body {
 .place-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .place-card-actions-secondary { margin-top: 8px; }
 
+/* ---- Attraction info (nearest MRT/LRT + nearby attractions) ---- */
+.attraction-info { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.attraction-info.hidden { display: none; }
+.attraction-loading { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.attraction-station { display: flex; align-items: flex-start; gap: 10px; }
+.attraction-station-icon { font-size: 20px; line-height: 1.3; }
+.attraction-station-text { display: flex; flex-direction: column; gap: 2px; }
+.attraction-station-text strong { font-size: 13.5px; }
+.attraction-station-text span { font-size: 12px; color: var(--muted); }
+.attraction-station-none { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.attraction-nearby { margin-top: 12px; }
+.attraction-nearby h4 { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.02em; }
+.attraction-nearby-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.attraction-nearby-chip {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.attraction-nearby-chip:hover { border-color: var(--accent); color: var(--accent); background: #eff4ff; }
+
 .pill-btn {
   border: 1px solid var(--border);
   background: var(--bg);

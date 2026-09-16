@@ -1856,6 +1856,91 @@ app.get('/api/bus-arrivals-nearby', async (req, res) => {
   }
 });
 
+// ---- Nearest MRT/LRT station (attraction detail view) ----------------------
+// Powers "nearest MRT" on the attraction info card. LTA's BusStops feed (used
+// above for bus stops) doesn't include rail stations at all, but the transit
+// graph OTP already has loaded for /api/transit-plan does — so this queries
+// that same graph's stopsByRadius index instead of maintaining a second,
+// separately-sourced list of ~150 MRT/LRT station coordinates that would
+// just go stale. vehicleMode SUBWAY/TRAM is this codebase's existing
+// MRT/LRT split (see otpModeToLabel above and the rail-only fallback query in
+// /api/transit-plan) — filtered here rather than at the query level since
+// stopsByRadius has no mode argument.
+app.get('/api/nearest-station', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+
+  const query = `
+    query Nearest($lat: Float!, $lon: Float!, $radius: Int!) {
+      stopsByRadius(lat: $lat, lon: $lon, radius: $radius) {
+        edges {
+          node {
+            distance
+            stop { gtfsId name lat lon vehicleMode }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    // Same cold-start reality as /api/transit-plan (transit-router sleeps
+    // when idle) — a shorter, lighter retry since this is a much smaller
+    // query than a full itinerary plan.
+    const MAX_ATTEMPTS = 2;
+    let otpRes, lastErr;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        otpRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, variables: { lat, lon, radius: 3000 } }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (otpRes.ok) { lastErr = null; break; }
+        lastErr = new Error(`transit router responded ${otpRes.status}`);
+      } catch (err) {
+        clearTimeout(timeout);
+        lastErr = err;
+      }
+      if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 2000));
+    }
+    if (lastErr) throw lastErr;
+
+    const body = await otpRes.json();
+    if (body.errors) throw new Error(body.errors.map((e) => e.message).join('; '));
+
+    const edges = body.data?.stopsByRadius?.edges || [];
+    const stations = edges
+      .map((e) => e.node)
+      .filter((n) => n.stop && (n.stop.vehicleMode === 'SUBWAY' || n.stop.vehicleMode === 'TRAM'))
+      .map((n) => ({
+        name: n.stop.name,
+        mode: n.stop.vehicleMode === 'TRAM' ? 'LRT' : 'MRT',
+        lat: n.stop.lat,
+        lon: n.stop.lon,
+        distance: Math.round(n.distance),
+      }))
+      // The same physical station can show up as several separate platform
+      // stops on the graph (one per line/direction) at ~identical
+      // coordinates — dedupe by name so "Dhoby Ghaut" doesn't appear 3 times.
+      .filter((s, i, arr) => arr.findIndex((o) => o.name === s.name) === i)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 3);
+
+    res.json({ stations });
+  } catch (err) {
+    console.error('nearest-station error:', err.message);
+    res.status(502).json({ error: 'Could not find nearby MRT/LRT stations.', detail: err.message });
+  }
+});
+
 app.get('/api/stop-search', async (req, res) => {
   const q = (req.query.q || '').trim().toLowerCase();
   if (q.length < 1) return res.json({ results: [] });

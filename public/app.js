@@ -28,6 +28,7 @@ const els = {
   placeCard: document.getElementById('placeCard'),
   placeName: document.getElementById('placeName'),
   placeAddress: document.getElementById('placeAddress'),
+  attractionInfo: document.getElementById('attractionInfo'),
   dirFromHere: document.getElementById('dirFromHere'),
   dirToHere: document.getElementById('dirToHere'),
   setHomeBtn: document.getElementById('setHomeBtn'),
@@ -240,6 +241,8 @@ els.searchClear.addEventListener('click', () => {
   els.searchClear.classList.remove('visible');
   els.searchResults.innerHTML = '';
   els.placeCard.classList.add('hidden');
+  els.attractionInfo.classList.add('hidden');
+  els.attractionInfo.innerHTML = '';
 });
 
 function renderResultList(listEl, results, onPick) {
@@ -267,6 +270,138 @@ function selectSearchResult(r) {
   els.placeName.textContent = shortLabel(r);
   els.placeAddress.textContent = addressText(r);
   els.placeCard.classList.remove('hidden');
+  loadAttractionInfo(r);
+}
+
+// ---------- Attraction info (nearest MRT/LRT + nearby attractions) ---------
+// Shown on the place card only for Waypoint's own curated LANDMARKS — a
+// random street address or bus stop from OneMap search doesn't have a
+// meaningful "nearby attractions" list, but the ~30 tourist spots we already
+// know about do. Reuses infrastructure that already exists elsewhere in the
+// app rather than adding anything new-and-parallel: haversine for distances
+// (client-side copy — server.js has its own, but nothing here talks to it
+// for this), OSRM's foot profile for an accurate walk time (same host/profile
+// getDirections() already uses for walking mode), and the new
+// /api/nearest-station endpoint for MRT/LRT (LTA's bus stop feed has no rail
+// stations at all).
+
+const ATTRACTION_MATCH_RADIUS_M = 150; // "is this search result actually one of our landmarks"
+const NEARBY_ATTRACTIONS_RADIUS_M = 2000;
+const NEARBY_ATTRACTIONS_LIMIT = 4;
+
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Matches a selected search result back to a LANDMARKS entry even when it
+// came from free-text search (OneMap's own coordinates for "Gardens by the
+// Bay" won't be byte-identical to ours) rather than a category chip tap.
+function findLandmarkMatch(r) {
+  if (!r || typeof r.lat !== 'number' || typeof r.lon !== 'number') return null;
+  let best = null;
+  for (const [key, entry] of Object.entries(LANDMARKS)) {
+    const d = haversineMeters(r.lat, r.lon, entry.lat, entry.lon);
+    if (d <= ATTRACTION_MATCH_RADIUS_M && (!best || d < best.distance)) best = { key, entry, distance: d };
+  }
+  return best;
+}
+
+function nearbyAttractions(matchedKey, lat, lon) {
+  return Object.entries(LANDMARKS)
+    .filter(([key]) => key !== matchedKey)
+    .map(([key, entry]) => ({ key, entry, distance: haversineMeters(lat, lon, entry.lat, entry.lon) }))
+    .filter((a) => a.distance <= NEARBY_ATTRACTIONS_RADIUS_M)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, NEARBY_ATTRACTIONS_LIMIT);
+}
+
+// Straight-line distance always understates an actual walking route (roads/
+// paths aren't a straight line) — asking OSRM for the real foot-profile route
+// gives a genuine walk time instead of a guess, same host this app already
+// trusts for turn-by-turn walking directions.
+async function walkingRouteTo(fromLat, fromLon, toLat, toLon) {
+  const { host, profile } = OSRM_ENDPOINTS.walking;
+  try {
+    const res = await fetch(`${host}/route/v1/${profile}/${fromLon},${fromLat};${toLon},${toLat}?overview=false`);
+    if (!res.ok) throw new Error(`OSRM responded ${res.status}`);
+    const data = await res.json();
+    const route = data.routes && data.routes[0];
+    if (!route) throw new Error('no route');
+    return { distance: route.distance, duration: route.duration };
+  } catch (err) {
+    // Fall back to straight-line distance at a typical walking pace (5km/h)
+    // if OSRM is unreachable — still useful, just labelled as an estimate.
+    const distance = haversineMeters(fromLat, fromLon, toLat, toLon);
+    return { distance, duration: (distance / 1000 / 5) * 3600, estimated: true };
+  }
+}
+
+let attractionInfoToken = 0; // guards against a slow lookup overwriting a newer selection
+
+async function loadAttractionInfo(r) {
+  const match = findLandmarkMatch(r);
+  if (!match) {
+    els.attractionInfo.classList.add('hidden');
+    els.attractionInfo.innerHTML = '';
+    return;
+  }
+
+  const token = ++attractionInfoToken;
+  const { key, entry } = match;
+  els.attractionInfo.classList.remove('hidden');
+  els.attractionInfo.innerHTML = `<p class="attraction-loading">${t('attraction_loading')}</p>`;
+
+  const nearby = nearbyAttractions(key, entry.lat, entry.lon);
+
+  let stationHtml = '';
+  try {
+    const res = await fetch(`/api/nearest-station?lat=${entry.lat}&lon=${entry.lon}`);
+    const data = await res.json().catch(() => ({}));
+    if (token !== attractionInfoToken) return; // a newer attraction was selected meanwhile
+    const nearest = res.ok && data.stations && data.stations[0];
+    if (nearest) {
+      const walk = await walkingRouteTo(entry.lat, entry.lon, nearest.lat, nearest.lon);
+      if (token !== attractionInfoToken) return;
+      stationHtml = `
+        <div class="attraction-station">
+          <span class="attraction-station-icon">🚇</span>
+          <div class="attraction-station-text">
+            <strong>${escapeHtml(nearest.name)} ${nearest.mode}</strong>
+            <span>${t('attraction_walk_prefix')} ${formatDistance(walk.distance)} · ${formatDuration(walk.duration)}${walk.estimated ? ` (${t('attraction_estimated')})` : ''}</span>
+          </div>
+        </div>`;
+    } else {
+      stationHtml = `<p class="attraction-station-none">${t('attraction_no_station')}</p>`;
+    }
+  } catch (err) {
+    console.error('nearest-station lookup failed:', err);
+    if (token !== attractionInfoToken) return;
+    stationHtml = `<p class="attraction-station-none">${t('attraction_no_station')}</p>`;
+  }
+
+  const nearbyHtml = nearby.length
+    ? `
+      <div class="attraction-nearby">
+        <h4>${t('attraction_nearby_title')}</h4>
+        <div class="attraction-nearby-list">
+          ${nearby.map((a) => `<button type="button" class="attraction-nearby-chip" data-landmark="${a.key}">${escapeHtml(a.entry.label)} · ${formatDistance(a.distance)}</button>`).join('')}
+        </div>
+      </div>`
+    : '';
+
+  if (token !== attractionInfoToken) return;
+  els.attractionInfo.innerHTML = `${stationHtml}${nearbyHtml}`;
+  els.attractionInfo.querySelectorAll('.attraction-nearby-chip').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const landmark = LANDMARKS[btn.dataset.landmark];
+      if (landmark) selectSearchResult(landmark);
+    });
+  });
 }
 
 // ---------- Category quick search (Waze-style "Categories" row) ----------
@@ -445,6 +580,8 @@ function searchNearbyCategory(category) {
   const isStale = () => myToken !== categorySearchToken;
 
   els.placeCard.classList.add('hidden');
+  els.attractionInfo.classList.add('hidden');
+  els.attractionInfo.innerHTML = '';
   els.searchResults.innerHTML = '<li class="r-loading">Finding your location…</li>';
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
@@ -600,6 +737,8 @@ const I18N = {
     nearby_arrivals_title: 'Nearby',
     nearby_arrivals_hint: 'Turn on location to see live bus arrivals for stops near you.',
     fav_section_divider: 'Or save a specific stop to check anytime',
+    attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
+    attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
@@ -624,6 +763,8 @@ const I18N = {
     nearby_arrivals_title: '附近',
     nearby_arrivals_hint: '开启定位以查看附近车站的实时到站时间。',
     fav_section_divider: '或保存特定车站以随时查看',
+    attraction_loading: '正在加载附近信息…', attraction_walk_prefix: '步行', attraction_estimated: '预计',
+    attraction_no_station: '附近没有地铁/轻轨站。', attraction_nearby_title: '附近景点',
     fav_search_placeholder: '添加巴士车站 — 输入编号或名称…',
     fav_empty_hint: '在上方搜索巴士车站并添加，即可随时查看实时到站时间 — 无需先规划行程。',
     share_footer: '💙 如果觉得好用，欢迎分享给朋友', support_footer: '☕ 请我喝杯咖啡 — 支持 Waypoint 持续运作',
@@ -648,6 +789,8 @@ const I18N = {
     nearby_arrivals_title: 'Berdekatan',
     nearby_arrivals_hint: 'Hidupkan lokasi untuk melihat ketibaan bas langsung bagi perhentian berdekatan.',
     fav_section_divider: 'Atau simpan perhentian tertentu untuk disemak bila-bila masa',
+    attraction_loading: 'Memuatkan maklumat berdekatan…', attraction_walk_prefix: 'Berjalan kaki', attraction_estimated: 'anggaran',
+    attraction_no_station: 'Tiada stesen MRT/LRT berdekatan.', attraction_nearby_title: 'Tempat menarik berdekatan',
     fav_search_placeholder: 'Tambah perhentian bas — kod atau nama…',
     fav_empty_hint: 'Cari perhentian bas di atas dan tambahkannya untuk semak ketibaan langsung di sini bila-bila masa — tidak perlu rancang perjalanan dahulu.',
     share_footer: '💙 Kongsikan aplikasi ini jika berguna', support_footer: '☕ Belanja saya kopi — bantu kekalkan Waypoint berjalan',
@@ -672,6 +815,8 @@ const I18N = {
     nearby_arrivals_title: 'அருகில்',
     nearby_arrivals_hint: 'அருகிலுள்ள நிறுத்தங்களுக்கான நேரலை பேருந்து வருகைகளைக் காண இருப்பிடத்தை இயக்கவும்.',
     fav_section_divider: 'அல்லது எந்த நேரத்திலும் சரிபார்க்க ஒரு குறிப்பிட்ட நிறுத்தத்தைச் சேமிக்கவும்',
+    attraction_loading: 'அருகிலுள்ள தகவல் ஏற்றப்படுகிறது…', attraction_walk_prefix: 'நடை தூரம்', attraction_estimated: 'மதிப்பீடு',
+    attraction_no_station: 'அருகில் எம்ஆர்டி/எல்ஆர்டி நிலையம் இல்லை.', attraction_nearby_title: 'அருகிலுள்ள சுற்றுலா தளங்கள்',
     fav_search_placeholder: 'பேருந்து நிறுத்தத்தைச் சேர் — குறியீடு அல்லது பெயர்…',
     fav_empty_hint: 'மேலே ஒரு பேருந்து நிறுத்தத்தைத் தேடி சேர்த்து, எப்போது வேண்டுமானாலும் நேரலை வருகையைச் சரிபார்க்கலாம் — முதலில் பயணத்தைத் திட்டமிட வேண்டியதில்லை.',
     share_footer: '💙 இது பயனுள்ளதாக இருந்தால் இந்த ஆப்பைப் பகிரவும்', support_footer: '☕ எனக்கு ஒரு காபி வாங்கிக் கொடுங்கள் — Waypoint செயல்பட உதவுங்கள்',
@@ -696,6 +841,8 @@ const I18N = {
     nearby_arrivals_title: '近く',
     nearby_arrivals_hint: '近くの停留所のリアルタイムのバス到着状況を見るには位置情報をオンにしてください。',
     fav_section_divider: 'または特定のバス停を保存していつでも確認',
+    attraction_loading: '近くの情報を読み込み中…', attraction_walk_prefix: '徒歩', attraction_estimated: '概算',
+    attraction_no_station: '近くにMRT/LRT駅はありません。', attraction_nearby_title: '近くの観光スポット',
     fav_search_placeholder: 'バス停を追加 — 番号または名前…',
     fav_empty_hint: '上でバス停を検索して追加すると、いつでもリアルタイムの到着時刻を確認できます — 先にルートを計画する必要はありません。',
     share_footer: '💙 便利だと思ったらこのアプリをシェアしてください', support_footer: '☕ コーヒーをおごる — Waypointの運営を支援',
@@ -720,6 +867,8 @@ const I18N = {
     nearby_arrivals_title: '근처',
     nearby_arrivals_hint: '근처 정류장의 실시간 버스 도착 정보를 보려면 위치 서비스를 켜세요.',
     fav_section_divider: '또는 특정 정류장을 저장해 언제든지 확인하세요',
+    attraction_loading: '주변 정보를 불러오는 중…', attraction_walk_prefix: '도보', attraction_estimated: '예상',
+    attraction_no_station: '근처에 MRT/LRT 역이 없습니다.', attraction_nearby_title: '주변 관광명소',
     fav_search_placeholder: '버스 정류장 추가 — 번호 또는 이름…',
     fav_empty_hint: '위에서 버스 정류장을 검색해 추가하면 언제든지 실시간 도착 정보를 확인할 수 있습니다 — 먼저 경로를 계획할 필요가 없습니다.',
     share_footer: '💙 유용하다면 이 앱을 공유해 주세요', support_footer: '☕ 커피 한 잔 사주세요 — Waypoint 운영에 도움이 됩니다',
@@ -3623,6 +3772,7 @@ els.locateBtn.addEventListener('click', () => {
         els.placeName.textContent = shortLabel({ display_name: displayName });
         els.placeAddress.textContent = displayName;
         els.placeCard.classList.remove('hidden');
+        loadAttractionInfo({ lat: latitude, lon: longitude });
         document.querySelector('.tab-btn[data-tab="search"]').click();
       } catch (err) {
         console.error(err);
