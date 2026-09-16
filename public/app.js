@@ -4309,7 +4309,7 @@ async function loadWeatherWidget(coords) {
         els.weatherWidget.dataset.psiCategory = psiData.category || '';
         els.weatherWidget.dataset.psiRegion = psiData.region || '';
         els.weatherWidget.dataset.psiMaskAdvice = psiData.maskAdvice || '';
-        psiSuffix = ` · 😷 PSI ${psiData.psi}`;
+        psiSuffix = ' 😷'; // icon only — the actual PSI number is in the detail panel this button opens
       }
     }
 
@@ -4323,7 +4323,7 @@ async function loadWeatherWidget(coords) {
         els.weatherWidget.dataset.pm25Region = pm25Data.region || '';
         // Only worth surfacing in the compact widget once it's past Normal —
         // same "don't clutter the common case" rule as UV's threshold below.
-        if (pm25Data.pm25 > 55) pm25Suffix = ` · 🌫️ PM2.5 ${pm25Data.pm25}`;
+        if (pm25Data.pm25 > 55) pm25Suffix = ' 🌫️'; // icon only, same as PSI/UV below
       }
     }
 
@@ -4338,7 +4338,7 @@ async function loadWeatherWidget(coords) {
         els.weatherWidget.dataset.uvCategory = uvData.category || '';
         // Only worth flagging in the compact widget text once it's actually
         // enough to matter — Low UV before 8am/after 6pm would just be noise.
-        if (uvData.value >= 3) uvSuffix = ` · ☀️ UV ${uvData.value}`;
+        if (uvData.value >= 3) uvSuffix = ' ☀️'; // icon only, same as PSI/PM2.5 above
       }
     }
 

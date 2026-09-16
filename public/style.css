@@ -232,15 +232,11 @@ html, body {
   text-decoration: underline;
 }
 
+/* Icon-only now (text label removed) — falls back to the same plain round
+   .icon-btn shape as the notify/SOS buttons next to it instead of the wide
+   text-pill shape this used when it showed "Where am I" as well. */
 .locate-btn {
-  width: auto;
-  border-radius: 999px;
-  padding: 0 12px 0 10px;
-  gap: 5px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-  white-space: nowrap;
+  font-size: 16px;
 }
 
 .lang-btn {
