@@ -1,7 +1,7 @@
 {
-  "name": "Waypoint",
-  "short_name": "Waypoint",
-  "description": "A clean, ad-free maps & directions app for Singapore.",
+  "name": "Singapore Tourist Map",
+  "short_name": "Tourist Map",
+  "description": "Your Singapore travel companion — maps, transit directions, weather & more, ad-free.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
