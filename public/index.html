@@ -228,6 +228,14 @@
       </section>
 
       <section id="panel-favourites" class="panel">
+        <div id="nearbyArrivalsSection" class="nearby-arrivals-section">
+          <div class="nearby-arrivals-heading">
+            <span data-i18n="nearby_arrivals_title">Nearby</span>
+            <button id="nearbyArrivalsRefreshBtn" class="nearby-arrivals-refresh" type="button" title="Refresh" aria-label="Refresh nearby stops">↻</button>
+          </div>
+          <div id="nearbyArrivalsList" class="nearby-arrivals-list"></div>
+          <p id="nearbyArrivalsHint" class="hint hidden" data-i18n="nearby_arrivals_hint">Turn on location to see live bus arrivals for stops near you.</p>
+        </div>
         <div id="parkedCarCard" class="parked-car-card hidden">
           <div class="parked-car-info">
             <span class="parked-car-icon">🅿️</span>
@@ -242,6 +250,7 @@
           </div>
         </div>
         <button id="saveParkingBtn" class="pill-btn nearby-btn" type="button" data-i18n="save_parking">🅿️ Save my parking spot</button>
+        <p class="fav-section-divider" data-i18n="fav_section_divider">Or save a specific stop to check anytime</p>
         <button id="nearbyStopsBtn" class="pill-btn nearby-btn" type="button" data-i18n="nearby_stops">📍 Stops near me</button>
         <div class="search-box">
           <input id="favSearchInput" type="text" placeholder="Add a bus stop — code or name…" data-i18n-placeholder="fav_search_placeholder" autocomplete="off" />

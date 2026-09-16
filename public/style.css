@@ -611,6 +611,124 @@ html, body {
 }
 .nearby-btn:disabled { opacity: 0.6; cursor: default; }
 
+/* ---------- Nearby stops with live arrivals (Bus Arrival Time tab default) ----------
+   Deliberately closer to a reference "nearby stops, live times already
+   showing" bus-app layout (light blue ground, white cards, green service
+   numbers, bold blue arrival time) than to Waypoint's usual white/grey
+   panel styling elsewhere — the point of this section is to read at a
+   glance, fast, like a transit-specific app rather than a general map app. */
+.nearby-arrivals-section {
+  background: #eaf2ff;
+  border-radius: 14px;
+  padding: 12px 12px 4px;
+  margin-bottom: 4px;
+}
+.nearby-arrivals-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 0 2px 8px;
+}
+.nearby-arrivals-refresh {
+  border: none;
+  background: none;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 50%;
+}
+.nearby-arrivals-refresh:hover { background: rgba(37, 99, 235, 0.12); }
+.nearby-arrivals-list .hint { padding: 4px 2px 10px; }
+
+.nearby-stop-group { margin-bottom: 10px; }
+.nearby-stop-header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 4px;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+.nearby-stop-icon { font-size: 13px; }
+.nearby-stop-name { font-weight: 700; color: var(--ink); }
+.nearby-stop-code { color: var(--muted); font-size: 12px; }
+.nearby-stop-distance { margin-left: auto; color: var(--muted); font-size: 12px; }
+.nearby-stop-chevron { color: var(--muted); }
+
+.nearby-stop-card {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+}
+.nearby-service-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+}
+.nearby-service-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.nearby-service-no {
+  color: #16a34a;
+  font-weight: 800;
+  font-size: 16px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+.nearby-service-info { flex: 1; min-width: 0; }
+.nearby-service-dest {
+  color: var(--ink);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.nearby-service-times { text-align: right; flex-shrink: 0; }
+.nearby-service-primary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.nearby-live-icon { font-size: 12px; }
+.nearby-service-secondary {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.nearby-service-pill {
+  display: inline-block;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 4px 4px 0 0;
+}
+.nearby-service-error {
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 4px 0;
+}
+
+.fav-section-divider {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 8px 2px 0;
+}
+
 .parked-car-card {
   border: 1px solid var(--border);
   background: var(--bg);

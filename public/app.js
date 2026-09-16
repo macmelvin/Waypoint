@@ -111,6 +111,9 @@ const els = {
   installBtn: document.getElementById('installBtn'),
   installDismissBtn: document.getElementById('installDismissBtn'),
   nearbyStopsBtn: document.getElementById('nearbyStopsBtn'),
+  nearbyArrivalsList: document.getElementById('nearbyArrivalsList'),
+  nearbyArrivalsHint: document.getElementById('nearbyArrivalsHint'),
+  nearbyArrivalsRefreshBtn: document.getElementById('nearbyArrivalsRefreshBtn'),
   favSearchInput: document.getElementById('favSearchInput'),
   favSearchResults: document.getElementById('favSearchResults'),
   favList: document.getElementById('favList'),
@@ -202,7 +205,12 @@ els.tabs.forEach(btn => {
     const target = btn.dataset.tab;
     els.panels.forEach(p => p.classList.remove('active'));
     document.getElementById(`panel-${target}`).classList.add('active');
-    if (target === 'favourites') renderParkedCar();
+    if (target === 'favourites') {
+      renderParkedCar();
+      loadNearbyArrivals();
+    } else {
+      stopNearbyArrivalsRefresh();
+    }
   });
 });
 
@@ -589,6 +597,9 @@ const I18N = {
     get_directions: 'Get Directions', start_navigation: '▶️ Start Navigation',
     car_parked: 'Car parked', tap_to_walk_back: 'Tap below to walk back to it', walk_to_car: 'Walk to my car',
     save_parking: '🅿️ Save my parking spot', nearby_stops: '📍 Stops near me',
+    nearby_arrivals_title: 'Nearby',
+    nearby_arrivals_hint: 'Turn on location to see live bus arrivals for stops near you.',
+    fav_section_divider: 'Or save a specific stop to check anytime',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
@@ -610,6 +621,9 @@ const I18N = {
     get_directions: '获取路线', start_navigation: '▶️ 开始导航',
     car_parked: '停车时间', tap_to_walk_back: '点击下方步行返回车辆位置', walk_to_car: '步行回到我的车',
     save_parking: '🅿️ 保存停车位置', nearby_stops: '📍 附近车站',
+    nearby_arrivals_title: '附近',
+    nearby_arrivals_hint: '开启定位以查看附近车站的实时到站时间。',
+    fav_section_divider: '或保存特定车站以随时查看',
     fav_search_placeholder: '添加巴士车站 — 输入编号或名称…',
     fav_empty_hint: '在上方搜索巴士车站并添加，即可随时查看实时到站时间 — 无需先规划行程。',
     share_footer: '💙 如果觉得好用，欢迎分享给朋友', support_footer: '☕ 请我喝杯咖啡 — 支持 Waypoint 持续运作',
@@ -631,6 +645,9 @@ const I18N = {
     get_directions: 'Dapatkan Arah', start_navigation: '▶️ Mula Navigasi',
     car_parked: 'Kereta diletak', tap_to_walk_back: 'Ketik di bawah untuk berjalan kembali ke sana', walk_to_car: 'Berjalan ke kereta saya',
     save_parking: '🅿️ Simpan lokasi tempat letak kereta saya', nearby_stops: '📍 Perhentian berdekatan',
+    nearby_arrivals_title: 'Berdekatan',
+    nearby_arrivals_hint: 'Hidupkan lokasi untuk melihat ketibaan bas langsung bagi perhentian berdekatan.',
+    fav_section_divider: 'Atau simpan perhentian tertentu untuk disemak bila-bila masa',
     fav_search_placeholder: 'Tambah perhentian bas — kod atau nama…',
     fav_empty_hint: 'Cari perhentian bas di atas dan tambahkannya untuk semak ketibaan langsung di sini bila-bila masa — tidak perlu rancang perjalanan dahulu.',
     share_footer: '💙 Kongsikan aplikasi ini jika berguna', support_footer: '☕ Belanja saya kopi — bantu kekalkan Waypoint berjalan',
@@ -652,6 +669,9 @@ const I18N = {
     get_directions: 'வழிகளைப் பெறுக', start_navigation: '▶️ வழிகாட்டலைத் தொடங்கு',
     car_parked: 'கார் நிறுத்தப்பட்டது', tap_to_walk_back: 'அங்கு நடந்து செல்ல கீழே தட்டவும்', walk_to_car: 'எனது காருக்கு நடந்து செல்',
     save_parking: '🅿️ எனது பார்க்கிங் இடத்தைச் சேமி', nearby_stops: '📍 அருகிலுள்ள நிறுத்தங்கள்',
+    nearby_arrivals_title: 'அருகில்',
+    nearby_arrivals_hint: 'அருகிலுள்ள நிறுத்தங்களுக்கான நேரலை பேருந்து வருகைகளைக் காண இருப்பிடத்தை இயக்கவும்.',
+    fav_section_divider: 'அல்லது எந்த நேரத்திலும் சரிபார்க்க ஒரு குறிப்பிட்ட நிறுத்தத்தைச் சேமிக்கவும்',
     fav_search_placeholder: 'பேருந்து நிறுத்தத்தைச் சேர் — குறியீடு அல்லது பெயர்…',
     fav_empty_hint: 'மேலே ஒரு பேருந்து நிறுத்தத்தைத் தேடி சேர்த்து, எப்போது வேண்டுமானாலும் நேரலை வருகையைச் சரிபார்க்கலாம் — முதலில் பயணத்தைத் திட்டமிட வேண்டியதில்லை.',
     share_footer: '💙 இது பயனுள்ளதாக இருந்தால் இந்த ஆப்பைப் பகிரவும்', support_footer: '☕ எனக்கு ஒரு காபி வாங்கிக் கொடுங்கள் — Waypoint செயல்பட உதவுங்கள்',
@@ -673,6 +693,9 @@ const I18N = {
     get_directions: 'ルートを取得', start_navigation: '▶️ ナビ開始',
     car_parked: '駐車済み', tap_to_walk_back: '下をタップして車まで歩いて戻る', walk_to_car: '車まで歩く',
     save_parking: '🅿️ 駐車位置を保存', nearby_stops: '📍 近くのバス停',
+    nearby_arrivals_title: '近く',
+    nearby_arrivals_hint: '近くの停留所のリアルタイムのバス到着状況を見るには位置情報をオンにしてください。',
+    fav_section_divider: 'または特定のバス停を保存していつでも確認',
     fav_search_placeholder: 'バス停を追加 — 番号または名前…',
     fav_empty_hint: '上でバス停を検索して追加すると、いつでもリアルタイムの到着時刻を確認できます — 先にルートを計画する必要はありません。',
     share_footer: '💙 便利だと思ったらこのアプリをシェアしてください', support_footer: '☕ コーヒーをおごる — Waypointの運営を支援',
@@ -694,6 +717,9 @@ const I18N = {
     get_directions: '경로 가져오기', start_navigation: '▶️ 내비게이션 시작',
     car_parked: '주차됨', tap_to_walk_back: '아래를 탭하여 차로 걸어서 돌아가기', walk_to_car: '내 차로 걸어가기',
     save_parking: '🅿️ 주차 위치 저장', nearby_stops: '📍 근처 정류장',
+    nearby_arrivals_title: '근처',
+    nearby_arrivals_hint: '근처 정류장의 실시간 버스 도착 정보를 보려면 위치 서비스를 켜세요.',
+    fav_section_divider: '또는 특정 정류장을 저장해 언제든지 확인하세요',
     fav_search_placeholder: '버스 정류장 추가 — 번호 또는 이름…',
     fav_empty_hint: '위에서 버스 정류장을 검색해 추가하면 언제든지 실시간 도착 정보를 확인할 수 있습니다 — 먼저 경로를 계획할 필요가 없습니다.',
     share_footer: '💙 유용하다면 이 앱을 공유해 주세요', support_footer: '☕ 커피 한 잔 사주세요 — Waypoint 운영에 도움이 됩니다',
@@ -3205,6 +3231,192 @@ function toggleArrivalsPanel(busStopCode, btnEl, panel) {
   panel._refreshInterval = setInterval(() => fetchAndRenderArrivals(busStopCode, panel), ARRIVALS_REFRESH_MS);
   panel._tickInterval = setInterval(() => updateArrivalsMeta(panel), 1000);
 }
+
+// ---------- Nearby stops with live arrivals (Bus Arrival Time tab default) ----------
+// Auto-geolocates the moment this tab opens and shows the closest stops with
+// live bus times already visible, instead of the old search-then-favourite-
+// then-tap-to-expand flow just to see what's coming right now. The search
+// box and saved Favourites further down still work exactly as before, for a
+// stop worth checking regardless of current location (e.g. one near home).
+
+const NEARBY_ARRIVALS_REFRESH_MS = 20000;
+let nearbyArrivalsTimer = null;
+let nearbyArrivalsCoords = null;
+let nearbyArrivalsLoading = false;
+
+function formatNearbyArrival(iso) {
+  if (!iso) return null;
+  const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+  return mins <= 0 ? 'Arr' : `${mins} min`;
+}
+
+function renderNearbyArrivals(stops) {
+  els.nearbyArrivalsList.innerHTML = '';
+  if (!stops || !stops.length) {
+    els.nearbyArrivalsList.innerHTML = '<p class="hint">No bus stops found near you.</p>';
+    return;
+  }
+
+  stops.forEach((stop) => {
+    const group = document.createElement('div');
+    group.className = 'nearby-stop-group';
+
+    const header = document.createElement('div');
+    header.className = 'nearby-stop-header';
+    header.innerHTML = `
+      <span class="nearby-stop-icon">🚏</span>
+      <span class="nearby-stop-name">${escapeHtml(stop.name)}</span>
+      <span class="nearby-stop-code">(${escapeHtml(stop.code)})</span>
+      <span class="nearby-stop-distance">${formatDistance(stop.distance)}</span>
+      <span class="nearby-stop-chevron">›</span>
+    `;
+    // Tapping the header saves it to Favourites (same as picking a search
+    // result) — a quick way to pin a stop that keeps showing up nearby.
+    header.addEventListener('click', () => {
+      if (isFavourite(stop.code)) {
+        showToast(`${stop.name} is already in your Favourites.`);
+        return;
+      }
+      favourites.push({ code: stop.code, name: stop.name });
+      saveFavourites();
+      renderFavourites();
+      showToast(`Added ${stop.name} to Favourites.`);
+    });
+    group.appendChild(header);
+
+    const card = document.createElement('div');
+    card.className = 'nearby-stop-card';
+
+    if (stop.error) {
+      card.innerHTML = `<div class="nearby-service-error">${escapeHtml(stop.error)}</div>`;
+    } else if (!stop.services || !stop.services.length) {
+      card.innerHTML = '<div class="nearby-service-error">No services listed for this stop.</div>';
+    } else {
+      stop.services.forEach((svc) => {
+        const validArrivals = (svc.nextArrivals || []).filter((a) => formatNearbyArrival(a.estimatedArrival));
+        if (!validArrivals.length) {
+          // Nothing due right now — a bare pill instead of a row with no
+          // useful time in it (mirrors how real-world SG bus apps show a
+          // service that's in the schedule but has no live estimate).
+          const pill = document.createElement('span');
+          pill.className = 'nearby-service-pill';
+          pill.textContent = svc.serviceNo;
+          card.appendChild(pill);
+          return;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'nearby-service-row';
+
+        const no = document.createElement('span');
+        no.className = 'nearby-service-no';
+        no.textContent = svc.serviceNo;
+
+        const info = document.createElement('div');
+        info.className = 'nearby-service-info';
+        const destText = svc.destinationName
+          ? `To ${svc.destinationName}${svc.destinationCode ? ` (${svc.destinationCode})` : ''}`
+          : 'Destination unknown';
+        info.innerHTML = `<div class="nearby-service-dest">${escapeHtml(destText)}</div>`;
+
+        const times = document.createElement('div');
+        times.className = 'nearby-service-times';
+        const [first, ...rest] = validArrivals;
+        const primary = document.createElement('div');
+        primary.className = 'nearby-service-primary';
+        // Live in the sense that matters here: every number LTA returns is
+        // a real-time prediction, not a fixed timetable slot — there's no
+        // separate "scheduled, not tracked" mode to distinguish it from.
+        primary.innerHTML = `<span class="nearby-live-icon">📶</span>${formatNearbyArrival(first.estimatedArrival)}`;
+        times.appendChild(primary);
+        if (rest.length) {
+          const secondary = document.createElement('div');
+          secondary.className = 'nearby-service-secondary';
+          secondary.textContent = rest.map((a) => formatNearbyArrival(a.estimatedArrival)).join(', ');
+          times.appendChild(secondary);
+        }
+
+        row.appendChild(no);
+        row.appendChild(info);
+        row.appendChild(times);
+        card.appendChild(row);
+      });
+    }
+
+    group.appendChild(card);
+    els.nearbyArrivalsList.appendChild(group);
+  });
+}
+
+async function fetchNearbyArrivals(coords) {
+  if (nearbyArrivalsLoading) return;
+  nearbyArrivalsLoading = true;
+  try {
+    const res = await fetch(`/api/bus-arrivals-nearby?lat=${coords.lat}&lon=${coords.lon}`);
+    const data = await res.json();
+    if (!res.ok) {
+      els.nearbyArrivalsList.innerHTML = `<p class="hint">${escapeHtml(data.error || 'Live arrivals unavailable right now.')}</p>`;
+      return;
+    }
+    renderNearbyArrivals(data.stops || []);
+  } catch (err) {
+    console.error('nearby-arrivals fetch failed:', err);
+    els.nearbyArrivalsList.innerHTML = '<p class="hint">Could not load nearby bus arrivals.</p>';
+  } finally {
+    nearbyArrivalsLoading = false;
+  }
+}
+
+function startNearbyArrivalsRefresh() {
+  if (nearbyArrivalsTimer) clearInterval(nearbyArrivalsTimer);
+  nearbyArrivalsTimer = setInterval(() => {
+    if (nearbyArrivalsCoords) fetchNearbyArrivals(nearbyArrivalsCoords);
+  }, NEARBY_ARRIVALS_REFRESH_MS);
+}
+
+function stopNearbyArrivalsRefresh() {
+  if (nearbyArrivalsTimer) {
+    clearInterval(nearbyArrivalsTimer);
+    nearbyArrivalsTimer = null;
+  }
+}
+
+function loadNearbyArrivals() {
+  if (!navigator.geolocation) {
+    els.nearbyArrivalsHint.classList.remove('hidden');
+    els.nearbyArrivalsHint.textContent = 'Geolocation is not supported by your browser.';
+    return;
+  }
+  // Already have a fix and a running refresh loop from earlier in this
+  // session — just let the interval's next tick handle it.
+  if (nearbyArrivalsCoords && nearbyArrivalsTimer) return;
+
+  els.nearbyArrivalsHint.classList.add('hidden');
+  els.nearbyArrivalsList.innerHTML = '<p class="hint">Finding stops near you…</p>';
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      nearbyArrivalsCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      fetchNearbyArrivals(nearbyArrivalsCoords);
+      startNearbyArrivalsRefresh();
+    },
+    (err) => {
+      console.error('nearby-arrivals geolocation error:', err);
+      els.nearbyArrivalsList.innerHTML = '';
+      els.nearbyArrivalsHint.classList.remove('hidden');
+      els.nearbyArrivalsHint.textContent = geoErrorMessage(err);
+    },
+    GEO_OPTIONS
+  );
+}
+
+els.nearbyArrivalsRefreshBtn.addEventListener('click', () => {
+  if (nearbyArrivalsCoords) {
+    fetchNearbyArrivals(nearbyArrivalsCoords);
+  } else {
+    loadNearbyArrivals();
+  }
+});
 
 // ---------- Favourites — saved bus stops with live arrivals on demand ----------
 // Stored locally in this browser (not synced anywhere); reuses the same

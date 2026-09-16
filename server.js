@@ -1754,6 +1754,108 @@ app.get('/api/stop-search-nearby', async (req, res) => {
   }
 });
 
+// "Nearby, with live times already showing" — the Bus Arrival Time tab's
+// default view: open the tab and see the closest stops with live bus
+// arrivals right there, no search-then-favourite-then-expand dance. Combines
+// the same nearest-stop logic as /api/stop-search-nearby above with a live
+// /BusArrival fetch per stop (run in parallel, not sequentially — LTA has no
+// bulk "arrivals for stop list X" endpoint, so this is N calls no matter
+// what, but concurrent keeps the total wait to ~1 request's latency instead
+// of N of them stacked up).
+const NEARBY_ARRIVALS_STOP_LIMIT = 6;
+
+app.get('/api/bus-arrivals-nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+  if (!LTA_ACCOUNT_KEY) {
+    return res.status(503).json({ error: 'Live bus arrivals aren\'t set up yet — needs an LTA DataMall API key.' });
+  }
+
+  try {
+    const stops = await getBusStops();
+    if (!stops.length) {
+      return res.status(502).json({ error: 'Bus stop directory is unavailable right now.' });
+    }
+
+    // Destination codes on each arrival only give a stop CODE (e.g.
+    // "75009") — resolving it to a name ("Tampines Int") needs this same
+    // directory, so build the lookup once per request rather than per stop.
+    const nameByCode = new Map(stops.map((s) => [s.BusStopCode, s.Description]));
+
+    const nearest = stops
+      .map((s) => ({
+        code: s.BusStopCode,
+        name: s.Description,
+        road: s.RoadName,
+        distance: haversineMeters(lat, lon, s.Latitude, s.Longitude),
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, NEARBY_ARRIVALS_STOP_LIMIT);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const settled = await Promise.allSettled(
+      nearest.map((stop) =>
+        fetch(
+          `https://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival?BusStopCode=${encodeURIComponent(stop.code)}`,
+          { headers: { AccountKey: LTA_ACCOUNT_KEY, accept: 'application/json' }, signal: controller.signal }
+        ).then((r) => {
+          if (!r.ok) throw new Error(`LTA DataMall responded ${r.status}`);
+          return r.json();
+        })
+      )
+    );
+    clearTimeout(timeout);
+
+    const stopsOut = nearest.map((stop, i) => {
+      const outcome = settled[i];
+      const data = outcome.status === 'fulfilled' ? outcome.value : null;
+
+      const services = (data?.Services || [])
+        .map((s) => {
+          const nextArrivals = [s.NextBus, s.NextBus2, s.NextBus3].filter((b) => b && b.EstimatedArrival);
+          // Same destination for all 3 (they're just the next 3 buses on the
+          // same route past this stop), so the first one tells us the rest.
+          const destinationCode = nextArrivals[0]?.DestinationCode || null;
+          return {
+            serviceNo: s.ServiceNo,
+            destinationCode,
+            destinationName: destinationCode ? (nameByCode.get(destinationCode) || null) : null,
+            nextArrivals: nextArrivals.map((b) => ({
+              estimatedArrival: b.EstimatedArrival,
+              load: b.Load || null,
+              type: b.Type || null,
+              wheelchairAccessible: b.Feature === 'WAB',
+            })),
+          };
+        })
+        .sort((a, b) => {
+          const [an, as_] = busNumberSortKey(a.serviceNo);
+          const [bn, bs] = busNumberSortKey(b.serviceNo);
+          return an - bn || as_.localeCompare(bs);
+        });
+
+      return {
+        code: stop.code,
+        name: stop.name,
+        road: stop.road,
+        distance: Math.round(stop.distance),
+        services,
+        error: outcome.status === 'rejected' ? 'Live arrivals unavailable for this stop right now.' : null,
+      };
+    });
+
+    res.json({ stops: stopsOut, fetchedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error('bus-arrivals-nearby error:', err.message);
+    res.status(502).json({ error: 'Could not load nearby bus arrivals.', detail: err.message });
+  }
+});
+
 app.get('/api/stop-search', async (req, res) => {
   const q = (req.query.q || '').trim().toLowerCase();
   if (q.length < 1) return res.json({ results: [] });
