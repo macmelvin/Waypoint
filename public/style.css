@@ -122,8 +122,11 @@ html, body {
   gap: 8px;
   font-weight: 700;
   font-size: 18px;
-  min-width: 0;   /* lets this flex item actually shrink instead of forcing overflow */
-  flex: 1 1 auto; /* claims only the space left over after the topbar action buttons */
+  min-width: 26px; /* always keep enough room for the flag mark itself — see overflow: hidden below */
+  flex: 1 1 auto;  /* claims only the space left over after the topbar action buttons */
+  overflow: hidden; /* on a narrow phone, clip the shrinking name/tagline INSIDE this box instead of
+                        letting the flag mark spill out and get painted over by the topbar-actions
+                        buttons that follow it in the DOM (that overlap was the actual reported bug) */
 }
 
 .brand-mark { font-size: 20px; flex-shrink: 0; }
@@ -263,6 +266,15 @@ html, body {
   align-items: center;
   gap: 5px;
   margin-right: 8px;
+  /* Its text (icon + forecast + PSI/PM2.5/UV suffixes) has no natural
+     wrap/shrink point of its own, so without this it was refusing to give up
+     an inch of width — starving the brand flag/name next to it down to
+     nothing on a narrow phone. min-width: 0 lets it actually participate in
+     flex-shrinking instead of always claiming its full text width. */
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .weather-widget:hover { background: #f2f4f7; }
 .weather-widget.hidden { display: none; }
@@ -1677,4 +1689,8 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   .whatsapp-float { right: 16px; bottom: 16px; width: 50px; height: 50px; }
   .whatsapp-float svg { width: 25px; height: 25px; }
   .brand-tagline { display: none; }
+  /* Cap the weather pill on phones so it can't eat the whole topbar row —
+     the 5 icon/lang buttons after it don't shrink, so without a cap here
+     the flag+name next to it got squeezed to nothing (see .brand above). */
+  .weather-widget { max-width: 34vw; }
 }

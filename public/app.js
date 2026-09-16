@@ -4342,7 +4342,12 @@ async function loadWeatherWidget(coords) {
       }
     }
 
-    els.weatherWidget.textContent = `${data.icon || '🌤️'} ${data.forecast}${psiSuffix}${pm25Suffix}${uvSuffix}`;
+    // Just the icon, not the forecast word ("Partly Cloudy (Day)") — that text
+    // was the single biggest reason this pill kept forcing the brand flag/name
+    // next to it into overlapping the topbar buttons on a narrow phone. The
+    // full forecast is still one tap/long-press away via the title tooltip
+    // and the actual weather detail panel this button opens.
+    els.weatherWidget.textContent = `${data.icon || '🌤️'}${psiSuffix}${pm25Suffix}${uvSuffix}`;
     els.weatherWidget.title = `${data.forecast} near ${data.area} — tap for details`;
     els.weatherWidget.dataset.area = data.area;
     els.weatherWidget.dataset.forecast = data.forecast;
