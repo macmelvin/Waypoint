@@ -875,7 +875,7 @@ const I18N = {
     fav_section_divider: 'Or save a specific stop to check anytime',
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
-    attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: '🍽️ Explore Singapore Melting Pot', attraction_try: 'Try:',
+    attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
