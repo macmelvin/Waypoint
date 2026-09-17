@@ -1085,7 +1085,7 @@ const CHIP_I18N = {
   ferries: { en: 'Ferries', zh: '渡轮', ms: 'Feri', ta: 'படகுகள்', ja: 'フェリー', ko: '페리' },
   airporttransfer: { en: 'Airport Transfer', zh: '机场接送', ms: 'Pemindahan Lapangan Terbang', ta: 'விமான நிலைய போக்குவரத்து', ja: '空港送迎', ko: '공항 이동 서비스' },
   accommodation: { en: 'Accommodation', zh: '住宿', ms: 'Penginapan', ta: 'தங்குமிடம்', ja: '宿泊', ko: '숙박' },
-  simcards: { en: 'Wi-Fi & SIM Cards', zh: 'Wi-Fi与SIM卡', ms: 'Wi-Fi & Kad SIM', ta: 'வைஃபை & சிம் கார்டுகள்', ja: 'Wi-Fi＆SIMカード', ko: '와이파이 & 유심' },
+  simcards: { en: 'SIM & eSIM', zh: 'Wi-Fi与SIM卡', ms: 'Wi-Fi & Kad SIM', ta: 'வைஃபை & சிம் கார்டுகள்', ja: 'Wi-Fi＆SIMカード', ko: '와이파이 & 유심' },
 };
 
 function t(key) {
