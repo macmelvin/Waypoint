@@ -761,6 +761,24 @@ const TICKET_LINKS = {
   sgflyer: kkdayTicketLink('Singapore Flyer', 'sgflyer'),
 };
 
+// "Book Online" — KKday's own top-level categories (real affiliate links
+// supplied directly, one per category, each already carrying its own ud1
+// tracking tag), not tied to any Singapore landmark. These chips don't do a
+// place search at all — see the .category-chip click handler below, which
+// opens data-link straight away for any chip that has one. "Transport" and
+// "Souvenirs" from KKday's own category list aren't included — no link was
+// given for those yet.
+const BOOK_ONLINE_LINKS = {
+  attractiontickets: 'https://www.kkday.com/en-sg/category/sg-singapore/attraction-tickets/list?cid=26927&ud1=AttractionTickets',
+  daytours: 'https://www.kkday.com/en-sg/category/sg-singapore/day-tours/list?cid=26927&ud1=DayTours',
+  toursexperiences: 'https://www.kkday.com/en-sg/category/sg-singapore/experiences/list?cid=26927&ud1=ToursExperiences',
+  cruisevacation: 'https://www.kkday.com/en-sg/category/sg-singapore/cruise-vacation/list?cid=26927&ud1=CruiseVacation',
+  ferries: 'https://www.kkday.com/en-sg/category/sg-singapore/ferries/list?cid=26927&ud1=Ferries',
+  airporttransfer: 'https://www.kkday.com/en-sg/category/sg-singapore/airport-transfers/list?cid=26927&ud1=AirportTransfer',
+  accommodation: 'https://www.kkday.com/en-sg/category/sg-singapore/accommodation/list?cid=26927&ud1=Accomodation',
+  simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
+};
+
 // Category rows switched via tabs (Nearby / More Places / Tickets & Tours /
 // Gourmet Food) instead of stacking all four rows at once — with four
 // categories now, showing every row simultaneously pushed the actual search
@@ -780,7 +798,13 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
 document.querySelectorAll('.category-chip').forEach((btn) => {
   btn.addEventListener('click', () => {
     const category = btn.dataset.category;
-    if (LANDMARKS[category]) {
+    // Book Online chips aren't places at all (Wi-Fi & SIM Cards, Cruise
+    // Vacation, etc.) — they just open their KKday category page directly,
+    // skipping the place-card/GPS-search flow entirely.
+    const bookOnlineUrl = BOOK_ONLINE_LINKS[category];
+    if (bookOnlineUrl) {
+      window.open(bookOnlineUrl, '_blank', 'noopener,noreferrer');
+    } else if (LANDMARKS[category]) {
       selectSearchResult(LANDMARKS[category]);
     } else {
       searchNearbyCategory(category);
@@ -812,7 +836,7 @@ const I18N = {
     notify_title: 'Turn on train/traffic/haze alerts', where_am_i: 'Where am I',
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
-    category_nearby: 'Nearby', category_attractions: 'More Places', category_tickets: 'Tickets & Tours', category_gourmet: 'Gourmet Food',
+    category_nearby: 'Nearby', category_attractions: 'More Places', category_tickets: 'Tickets & Tours', category_gourmet: 'Gourmet Food', category_bookonline: 'Book Online',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
     hint_search: 'Try searching for a landmark, street, or postal code.',
@@ -839,7 +863,7 @@ const I18N = {
     notify_title: '开启地铁/交通/雾霾提醒', where_am_i: '我的位置',
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
-    category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食',
+    category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_bookonline: '在线预订',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
     set_home: '🏠 设为住家', set_work: '💼 设为公司',
     hint_search: '试试搜索地标、街道或邮区编号。',
@@ -866,7 +890,7 @@ const I18N = {
     notify_title: 'Hidupkan makluman keretapi/trafik/jerebu', where_am_i: 'Di Mana Saya',
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
-    category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet',
+    category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_bookonline: 'Tempah Dalam Talian',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
     set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
@@ -893,7 +917,7 @@ const I18N = {
     notify_title: 'ரயில்/போக்குவரத்து/புகைமூட்ட எச்சரிக்கைகளை இயக்கு', where_am_i: 'நான் எங்கே',
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
-    category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு',
+    category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
     set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
@@ -920,7 +944,7 @@ const I18N = {
     notify_title: '電車・交通・ヘイズ情報の通知をオンにする', where_am_i: '現在地',
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
-    category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ',
+    category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_bookonline: 'オンライン予約',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
     set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
@@ -947,7 +971,7 @@ const I18N = {
     notify_title: '열차/교통/실안개 알림 켜기', where_am_i: '내 위치',
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
-    category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집',
+    category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_bookonline: '온라인 예약',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
     set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
@@ -1031,6 +1055,14 @@ const CHIP_I18N = {
   tiongbahrumarket: { en: 'Tiong Bahru Market', zh: '中峇鲁市场', ms: 'Pasar Tiong Bahru', ta: 'டியோங் பாரு மார்க்கெட்', ja: 'ティオンバル・マーケット', ko: '티옹바루 마켓' },
   eastcoastlagoon: { en: 'East Coast Lagoon Food Village', zh: '东海岸潟湖美食村', ms: 'Kampung Makanan East Coast Lagoon', ta: 'ஈஸ்ட் கோஸ்ட் லகூன் ஃபுட் வில்லேஜ்', ja: 'イーストコースト・ラグーン・フードビレッジ', ko: '이스트코스트 라군 푸드빌리지' },
   amoystreet: { en: 'Amoy Street Food Centre', zh: '厦门街熟食中心', ms: 'Pusat Penjaja Amoy Street', ta: 'அமோய் ஸ்ட்ரீட் ஃபுட் சென்டர்', ja: 'アモイストリート・フードセンター', ko: '아모이 스트리트 푸드센터' },
+  attractiontickets: { en: 'Attraction Tickets', zh: '景点门票', ms: 'Tiket Tempat Menarik', ta: 'சுற்றுலா டிக்கெட்டுகள்', ja: 'アトラクションチケット', ko: '명소 티켓' },
+  daytours: { en: 'Half/Full-day Tours', zh: '半日/全日游', ms: 'Lawatan Separuh/Sehari', ta: 'அரை நாள்/முழு நாள் சுற்றுலா', ja: '半日/日帰りツアー', ko: '반나절/종일 투어' },
+  toursexperiences: { en: 'Tours & Experiences', zh: '旅游体验', ms: 'Lawatan & Pengalaman', ta: 'சுற்றுலா & அனுபவங்கள்', ja: 'ツアー＆体験', ko: '투어 & 체험' },
+  cruisevacation: { en: 'Cruise Vacation', zh: '邮轮假期', ms: 'Percutian Pelayaran', ta: 'கப்பல் பயண விடுமுறை', ja: 'クルーズ休暇', ko: '크루즈 여행' },
+  ferries: { en: 'Ferries', zh: '渡轮', ms: 'Feri', ta: 'படகுகள்', ja: 'フェリー', ko: '페리' },
+  airporttransfer: { en: 'Airport Transfer', zh: '机场接送', ms: 'Pemindahan Lapangan Terbang', ta: 'விமான நிலைய போக்குவரத்து', ja: '空港送迎', ko: '공항 이동 서비스' },
+  accommodation: { en: 'Accommodation', zh: '住宿', ms: 'Penginapan', ta: 'தங்குமிடம்', ja: '宿泊', ko: '숙박' },
+  simcards: { en: 'Wi-Fi & SIM Cards', zh: 'Wi-Fi与SIM卡', ms: 'Wi-Fi & Kad SIM', ta: 'வைஃபை & சிம் கார்டுகள்', ja: 'Wi-Fi＆SIMカード', ko: '와이파이 & 유심' },
 };
 
 function t(key) {
