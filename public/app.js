@@ -698,20 +698,26 @@ const LANDMARKS = {
 
 // Tickets & Tours — affiliate booking links for landmarks that are actually
 // paid, ticketed attractions (vs. free spots like Merlion Park or a park
-// connector). Placeholder search-result URLs for now (no affiliate account
-// set up yet) — swap each one for a real Klook/KKday/Pelago affiliate deep
-// link (with tracking ID) once those partner accounts exist. Keyed by the
-// same LANDMARKS key so this drops straight into the existing attraction
-// info panel with no new place-matching logic needed.
+// connector). Real KKday affiliate links (cid=26927), one search per
+// attraction so each "Book Tickets" tap lands on relevant results instead of
+// a generic list — ud1 is set per-attraction so KKday's own reporting can
+// show which chip in the app is driving clicks. Keyed by the same LANDMARKS
+// key so this drops straight into the existing attraction info panel with no
+// new place-matching logic needed.
+const KKDAY_AFFILIATE_CID = '26927';
+const KKDAY_TAB_KEY = 'CATEGORY_001,CATEGORY_018';
+function kkdayTicketLink(query, trackingTag) {
+  return `https://www.kkday.com/en-sg/product/productlist/${encodeURIComponent(query)}?tab_key=${KKDAY_TAB_KEY}&cid=${KKDAY_AFFILIATE_CID}&ud1=Waypoint_${trackingTag}`;
+}
 const TICKET_LINKS = {
-  mbs: 'https://www.klook.com/en-SG/search-result/?query=Marina%20Bay%20Sands%20SkyPark',
-  uss: 'https://www.klook.com/en-SG/search-result/?query=Universal%20Studios%20Singapore',
-  gardensbythebay: 'https://www.klook.com/en-SG/search-result/?query=Gardens%20by%20the%20Bay',
-  sgzoo: 'https://www.klook.com/en-SG/search-result/?query=Singapore%20Zoo',
-  nightsafari: 'https://www.klook.com/en-SG/search-result/?query=Night%20Safari%20Singapore',
-  seaaquarium: 'https://www.klook.com/en-SG/search-result/?query=S.E.A.%20Aquarium',
-  riverwonders: 'https://www.klook.com/en-SG/search-result/?query=River%20Wonders%20Singapore',
-  sgflyer: 'https://www.klook.com/en-SG/search-result/?query=Singapore%20Flyer',
+  mbs: kkdayTicketLink('Marina Bay Sands SkyPark', 'mbs'),
+  uss: kkdayTicketLink('Universal Studios Singapore', 'uss'),
+  gardensbythebay: kkdayTicketLink('Gardens by the Bay', 'gardensbythebay'),
+  sgzoo: kkdayTicketLink('Singapore Zoo', 'sgzoo'),
+  nightsafari: kkdayTicketLink('Night Safari Singapore', 'nightsafari'),
+  seaaquarium: kkdayTicketLink('S.E.A. Aquarium', 'seaaquarium'),
+  riverwonders: kkdayTicketLink('River Wonders Singapore', 'riverwonders'),
+  sgflyer: kkdayTicketLink('Singapore Flyer', 'sgflyer'),
 };
 
 document.querySelectorAll('.category-chip').forEach((btn) => {
