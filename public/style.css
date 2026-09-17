@@ -632,6 +632,37 @@ html, body {
 }
 .attraction-food-tip strong { font-weight: 700; }
 
+/* ---- 5 Singapore Must-Eats ---- */
+.must-eats-section { margin: 4px 0 14px; }
+.must-eats-title { margin: 0 0 8px; font-size: 14px; font-weight: 800; }
+.must-eat-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.must-eat-icon { font-size: 24px; line-height: 1; flex: 0 0 auto; }
+.must-eat-text { flex: 1 1 auto; min-width: 0; }
+.must-eat-name { font-size: 13.5px; font-weight: 700; }
+.must-eat-tagline { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.must-eat-find-btn {
+  flex: 0 0 auto;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.must-eat-find-btn:hover { background: var(--accent-dark); }
+
 .pill-btn {
   border: 1px solid var(--border);
   background: var(--bg);
