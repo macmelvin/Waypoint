@@ -408,8 +408,16 @@ async function loadAttractionInfo(r) {
     ? `<a class="attraction-ticket-btn" href="${foodUrl}" target="_blank" rel="noopener noreferrer sponsored">${t('attraction_explore_food')}</a>`
     : '';
 
+  // "What to actually order here" — only shown alongside the Gourmet Food
+  // link above, since a tourist has no way to know which stall/dish a hawker
+  // centre is actually known for otherwise.
+  const foodHighlight = FOOD_HIGHLIGHTS[key];
+  const foodHighlightHtml = foodHighlight
+    ? `<p class="attraction-food-tip">🍴 ${t('attraction_try')} <strong>${escapeHtml(foodHighlight)}</strong></p>`
+    : '';
+
   if (token !== attractionInfoToken) return;
-  els.attractionInfo.innerHTML = `${stationHtml}${nearbyHtml}${ticketHtml}${foodHtml}`;
+  els.attractionInfo.innerHTML = `${stationHtml}${nearbyHtml}${ticketHtml}${foodHighlightHtml}${foodHtml}`;
   els.attractionInfo.querySelectorAll('.attraction-nearby-chip').forEach((btn) => {
     btn.addEventListener('click', () => {
       const landmark = LANDMARKS[btn.dataset.landmark];
@@ -746,6 +754,20 @@ const FOOD_LINKS = {
   amoystreet: kkdayFoodLink('amoystreet'),
 };
 
+// What to actually order at each Gourmet Food landmark — tourists (unlike
+// locals) don't already know which stall/dish a hawker centre is famous for,
+// so this turns "here's a hawker centre" into an actual recommendation.
+const FOOD_HIGHLIGHTS = {
+  laupasat: 'Satay — the outdoor "Satay Street" fires up every evening',
+  maxwellfood: 'Tian Tian Hainanese Chicken Rice',
+  chinatownfoodcentre: "Liao Fan Hawker Chan's Michelin-starred soya sauce chicken rice",
+  newtonfoodcentre: 'Satay and BBQ seafood — Singapore\'s most famous night hawker scene',
+  oldairportroad: 'Char kway teow and Hokkien mee, local favourites away from the tourist crowds',
+  tiongbahrumarket: 'Chwee kueh (steamed rice cakes) and classic local breakfast fare',
+  eastcoastlagoon: 'BBQ seafood and stingray, eaten right by the beach',
+  amoystreet: 'Budget-friendly rice and noodle stalls popular with the lunchtime office crowd',
+};
+
 // Real, Singapore-scoped search URLs — copied directly from KKday's own site
 // search (each carries a "destination=D-SG-xxxx" filter, which is what
 // actually locks results to Singapore). The earlier version of this map was
@@ -853,7 +875,7 @@ const I18N = {
     fav_section_divider: 'Or save a specific stop to check anytime',
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
-    attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: '🍽️ Explore Singapore Melting Pot',
+    attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: '🍽️ Explore Singapore Melting Pot', attraction_try: 'Try:',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
@@ -880,7 +902,7 @@ const I18N = {
     fav_section_divider: '或保存特定车站以随时查看',
     attraction_loading: '正在加载附近信息…', attraction_walk_prefix: '步行', attraction_estimated: '预计',
     attraction_no_station: '附近没有地铁/轻轨站。', attraction_nearby_title: '附近景点',
-    attraction_book_tickets: '🎟️ 预订门票', attraction_explore_food: '🍽️ 探索美食体验',
+    attraction_book_tickets: '🎟️ 预订门票', attraction_explore_food: '🍽️ 探索美食体验', attraction_try: '推荐：',
     fav_search_placeholder: '添加巴士车站 — 输入编号或名称…',
     fav_empty_hint: '在上方搜索巴士车站并添加，即可随时查看实时到站时间 — 无需先规划行程。',
     share_footer: '💙 如果觉得好用，欢迎分享给朋友', support_footer: '☕ 请我喝杯咖啡 — 支持 Waypoint 持续运作',
@@ -907,7 +929,7 @@ const I18N = {
     fav_section_divider: 'Atau simpan perhentian tertentu untuk disemak bila-bila masa',
     attraction_loading: 'Memuatkan maklumat berdekatan…', attraction_walk_prefix: 'Berjalan kaki', attraction_estimated: 'anggaran',
     attraction_no_station: 'Tiada stesen MRT/LRT berdekatan.', attraction_nearby_title: 'Tempat menarik berdekatan',
-    attraction_book_tickets: '🎟️ Tempah Tiket', attraction_explore_food: '🍽️ Terokai Pengalaman Makanan',
+    attraction_book_tickets: '🎟️ Tempah Tiket', attraction_explore_food: '🍽️ Terokai Pengalaman Makanan', attraction_try: 'Cuba:',
     fav_search_placeholder: 'Tambah perhentian bas — kod atau nama…',
     fav_empty_hint: 'Cari perhentian bas di atas dan tambahkannya untuk semak ketibaan langsung di sini bila-bila masa — tidak perlu rancang perjalanan dahulu.',
     share_footer: '💙 Kongsikan aplikasi ini jika berguna', support_footer: '☕ Belanja saya kopi — bantu kekalkan Waypoint berjalan',
@@ -934,7 +956,7 @@ const I18N = {
     fav_section_divider: 'அல்லது எந்த நேரத்திலும் சரிபார்க்க ஒரு குறிப்பிட்ட நிறுத்தத்தைச் சேமிக்கவும்',
     attraction_loading: 'அருகிலுள்ள தகவல் ஏற்றப்படுகிறது…', attraction_walk_prefix: 'நடை தூரம்', attraction_estimated: 'மதிப்பீடு',
     attraction_no_station: 'அருகில் எம்ஆர்டி/எல்ஆர்டி நிலையம் இல்லை.', attraction_nearby_title: 'அருகிலுள்ள சுற்றுலா தளங்கள்',
-    attraction_book_tickets: '🎟️ டிக்கெட் முன்பதிவு செய்யுங்கள்', attraction_explore_food: '🍽️ உணவு அனுபவங்களைக் காணுங்கள்',
+    attraction_book_tickets: '🎟️ டிக்கெட் முன்பதிவு செய்யுங்கள்', attraction_explore_food: '🍽️ உணவு அனுபவங்களைக் காணுங்கள்', attraction_try: 'சுவைக்க வேண்டியது:',
     fav_search_placeholder: 'பேருந்து நிறுத்தத்தைச் சேர் — குறியீடு அல்லது பெயர்…',
     fav_empty_hint: 'மேலே ஒரு பேருந்து நிறுத்தத்தைத் தேடி சேர்த்து, எப்போது வேண்டுமானாலும் நேரலை வருகையைச் சரிபார்க்கலாம் — முதலில் பயணத்தைத் திட்டமிட வேண்டியதில்லை.',
     share_footer: '💙 இது பயனுள்ளதாக இருந்தால் இந்த ஆப்பைப் பகிரவும்', support_footer: '☕ எனக்கு ஒரு காபி வாங்கிக் கொடுங்கள் — Waypoint செயல்பட உதவுங்கள்',
@@ -961,7 +983,7 @@ const I18N = {
     fav_section_divider: 'または特定のバス停を保存していつでも確認',
     attraction_loading: '近くの情報を読み込み中…', attraction_walk_prefix: '徒歩', attraction_estimated: '概算',
     attraction_no_station: '近くにMRT/LRT駅はありません。', attraction_nearby_title: '近くの観光スポット',
-    attraction_book_tickets: '🎟️ チケットを予約', attraction_explore_food: '🍽️ グルメ体験を探す',
+    attraction_book_tickets: '🎟️ チケットを予約', attraction_explore_food: '🍽️ グルメ体験を探す', attraction_try: 'おすすめ:',
     fav_search_placeholder: 'バス停を追加 — 番号または名前…',
     fav_empty_hint: '上でバス停を検索して追加すると、いつでもリアルタイムの到着時刻を確認できます — 先にルートを計画する必要はありません。',
     share_footer: '💙 便利だと思ったらこのアプリをシェアしてください', support_footer: '☕ コーヒーをおごる — Waypointの運営を支援',
@@ -988,7 +1010,7 @@ const I18N = {
     fav_section_divider: '또는 특정 정류장을 저장해 언제든지 확인하세요',
     attraction_loading: '주변 정보를 불러오는 중…', attraction_walk_prefix: '도보', attraction_estimated: '예상',
     attraction_no_station: '근처에 MRT/LRT 역이 없습니다.', attraction_nearby_title: '주변 관광명소',
-    attraction_book_tickets: '🎟️ 티켓 예매', attraction_explore_food: '🍽️ 맛집 체험 둘러보기',
+    attraction_book_tickets: '🎟️ 티켓 예매', attraction_explore_food: '🍽️ 맛집 체험 둘러보기', attraction_try: '추천 메뉴:',
     fav_search_placeholder: '버스 정류장 추가 — 번호 또는 이름…',
     fav_empty_hint: '위에서 버스 정류장을 검색해 추가하면 언제든지 실시간 도착 정보를 확인할 수 있습니다 — 먼저 경로를 계획할 필요가 없습니다.',
     share_footer: '💙 유용하다면 이 앱을 공유해 주세요', support_footer: '☕ 커피 한 잔 사주세요 — Waypoint 운영에 도움이 됩니다',
