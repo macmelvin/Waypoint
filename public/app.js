@@ -771,7 +771,6 @@ const TICKET_LINKS = {
 const BOOK_ONLINE_LINKS = {
   attractiontickets: 'https://www.kkday.com/en-sg/category/sg-singapore/attraction-tickets/list?cid=26927&ud1=AttractionTickets',
   daytours: 'https://www.kkday.com/en-sg/category/sg-singapore/day-tours/list?cid=26927&ud1=DayTours',
-  toursexperiences: 'https://www.kkday.com/en-sg/category/sg-singapore/experiences/list?cid=26927&ud1=ToursExperiences',
   cruisevacation: 'https://www.kkday.com/en-sg/category/sg-singapore/cruise-vacation/list?cid=26927&ud1=CruiseVacation',
   ferries: 'https://www.kkday.com/en-sg/category/sg-singapore/ferries/list?cid=26927&ud1=Ferries',
   airporttransfer: 'https://www.kkday.com/en-sg/category/sg-singapore/airport-transfers/list?cid=26927&ud1=AirportTransfer',
@@ -1057,7 +1056,6 @@ const CHIP_I18N = {
   amoystreet: { en: 'Amoy Street Food Centre', zh: '厦门街熟食中心', ms: 'Pusat Penjaja Amoy Street', ta: 'அமோய் ஸ்ட்ரீட் ஃபுட் சென்டர்', ja: 'アモイストリート・フードセンター', ko: '아모이 스트리트 푸드센터' },
   attractiontickets: { en: 'Attraction Tickets', zh: '景点门票', ms: 'Tiket Tempat Menarik', ta: 'சுற்றுலா டிக்கெட்டுகள்', ja: 'アトラクションチケット', ko: '명소 티켓' },
   daytours: { en: 'Half/Full-day Tours', zh: '半日/全日游', ms: 'Lawatan Separuh/Sehari', ta: 'அரை நாள்/முழு நாள் சுற்றுலா', ja: '半日/日帰りツアー', ko: '반나절/종일 투어' },
-  toursexperiences: { en: 'Tours & Experiences', zh: '旅游体验', ms: 'Lawatan & Pengalaman', ta: 'சுற்றுலா & அனுபவங்கள்', ja: 'ツアー＆体験', ko: '투어 & 체험' },
   cruisevacation: { en: 'Cruise Vacation', zh: '邮轮假期', ms: 'Percutian Pelayaran', ta: 'கப்பல் பயண விடுமுறை', ja: 'クルーズ休暇', ko: '크루즈 여행' },
   ferries: { en: 'Ferries', zh: '渡轮', ms: 'Feri', ta: 'படகுகள்', ja: 'フェリー', ko: '페리' },
   airporttransfer: { en: 'Airport Transfer', zh: '机场接送', ms: 'Pemindahan Lapangan Terbang', ta: 'விமான நிலைய போக்குவரத்து', ja: '空港送迎', ko: '공항 이동 서비스' },
