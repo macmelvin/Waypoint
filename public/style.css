@@ -591,6 +591,20 @@ html, body {
 }
 .attraction-nearby-chip:hover { border-color: var(--accent); color: var(--accent); background: #eff4ff; }
 
+.attraction-ticket-btn {
+  display: block;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.attraction-ticket-btn:hover { background: var(--accent-dark); }
+
 .pill-btn {
   border: 1px solid var(--border);
   background: var(--bg);

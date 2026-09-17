@@ -394,8 +394,15 @@ async function loadAttractionInfo(r) {
       </div>`
     : '';
 
+  // Only rendered for landmarks that are actually paid/ticketed attractions
+  // (see TICKET_LINKS) — a free spot like Merlion Park has nothing to book.
+  const ticketUrl = TICKET_LINKS[key];
+  const ticketHtml = ticketUrl
+    ? `<a class="attraction-ticket-btn" href="${ticketUrl}" target="_blank" rel="noopener noreferrer sponsored">${t('attraction_book_tickets')}</a>`
+    : '';
+
   if (token !== attractionInfoToken) return;
-  els.attractionInfo.innerHTML = `${stationHtml}${nearbyHtml}`;
+  els.attractionInfo.innerHTML = `${stationHtml}${nearbyHtml}${ticketHtml}`;
   els.attractionInfo.querySelectorAll('.attraction-nearby-chip').forEach((btn) => {
     btn.addEventListener('click', () => {
       const landmark = LANDMARKS[btn.dataset.landmark];
@@ -689,6 +696,24 @@ const LANDMARKS = {
   bedokreservoir: { label: 'Bedok Reservoir', address: 'Bedok Reservoir Park, Singapore', lat: 1.33620, lon: 103.93190 },
 };
 
+// Tickets & Tours — affiliate booking links for landmarks that are actually
+// paid, ticketed attractions (vs. free spots like Merlion Park or a park
+// connector). Placeholder search-result URLs for now (no affiliate account
+// set up yet) — swap each one for a real Klook/KKday/Pelago affiliate deep
+// link (with tracking ID) once those partner accounts exist. Keyed by the
+// same LANDMARKS key so this drops straight into the existing attraction
+// info panel with no new place-matching logic needed.
+const TICKET_LINKS = {
+  mbs: 'https://www.klook.com/en-SG/search-result/?query=Marina%20Bay%20Sands%20SkyPark',
+  uss: 'https://www.klook.com/en-SG/search-result/?query=Universal%20Studios%20Singapore',
+  gardensbythebay: 'https://www.klook.com/en-SG/search-result/?query=Gardens%20by%20the%20Bay',
+  sgzoo: 'https://www.klook.com/en-SG/search-result/?query=Singapore%20Zoo',
+  nightsafari: 'https://www.klook.com/en-SG/search-result/?query=Night%20Safari%20Singapore',
+  seaaquarium: 'https://www.klook.com/en-SG/search-result/?query=S.E.A.%20Aquarium',
+  riverwonders: 'https://www.klook.com/en-SG/search-result/?query=River%20Wonders%20Singapore',
+  sgflyer: 'https://www.klook.com/en-SG/search-result/?query=Singapore%20Flyer',
+};
+
 document.querySelectorAll('.category-chip').forEach((btn) => {
   btn.addEventListener('click', () => {
     const category = btn.dataset.category;
@@ -724,7 +749,7 @@ const I18N = {
     notify_title: 'Turn on train/traffic/haze alerts', where_am_i: 'Where am I',
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
-    category_nearby: 'Nearby', category_attractions: 'Attractions',
+    category_nearby: 'Nearby', category_attractions: 'Attractions', category_tickets: 'Tickets & Tours',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
     hint_search: 'Try searching for a landmark, street, or postal code.',
@@ -739,6 +764,7 @@ const I18N = {
     fav_section_divider: 'Or save a specific stop to check anytime',
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
+    attraction_book_tickets: '🎟️ Book Tickets',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
@@ -750,7 +776,7 @@ const I18N = {
     notify_title: '开启地铁/交通/雾霾提醒', where_am_i: '我的位置',
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
-    category_nearby: '附近', category_attractions: '景点',
+    category_nearby: '附近', category_attractions: '景点', category_tickets: '门票与观光团',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
     set_home: '🏠 设为住家', set_work: '💼 设为公司',
     hint_search: '试试搜索地标、街道或邮区编号。',
@@ -765,6 +791,7 @@ const I18N = {
     fav_section_divider: '或保存特定车站以随时查看',
     attraction_loading: '正在加载附近信息…', attraction_walk_prefix: '步行', attraction_estimated: '预计',
     attraction_no_station: '附近没有地铁/轻轨站。', attraction_nearby_title: '附近景点',
+    attraction_book_tickets: '🎟️ 预订门票',
     fav_search_placeholder: '添加巴士车站 — 输入编号或名称…',
     fav_empty_hint: '在上方搜索巴士车站并添加，即可随时查看实时到站时间 — 无需先规划行程。',
     share_footer: '💙 如果觉得好用，欢迎分享给朋友', support_footer: '☕ 请我喝杯咖啡 — 支持 Waypoint 持续运作',
@@ -776,7 +803,7 @@ const I18N = {
     notify_title: 'Hidupkan makluman keretapi/trafik/jerebu', where_am_i: 'Di Mana Saya',
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
-    category_nearby: 'Berdekatan', category_attractions: 'Tempat Menarik',
+    category_nearby: 'Berdekatan', category_attractions: 'Tempat Menarik', category_tickets: 'Tiket & Lawatan',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
     set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
@@ -791,6 +818,7 @@ const I18N = {
     fav_section_divider: 'Atau simpan perhentian tertentu untuk disemak bila-bila masa',
     attraction_loading: 'Memuatkan maklumat berdekatan…', attraction_walk_prefix: 'Berjalan kaki', attraction_estimated: 'anggaran',
     attraction_no_station: 'Tiada stesen MRT/LRT berdekatan.', attraction_nearby_title: 'Tempat menarik berdekatan',
+    attraction_book_tickets: '🎟️ Tempah Tiket',
     fav_search_placeholder: 'Tambah perhentian bas — kod atau nama…',
     fav_empty_hint: 'Cari perhentian bas di atas dan tambahkannya untuk semak ketibaan langsung di sini bila-bila masa — tidak perlu rancang perjalanan dahulu.',
     share_footer: '💙 Kongsikan aplikasi ini jika berguna', support_footer: '☕ Belanja saya kopi — bantu kekalkan Waypoint berjalan',
@@ -802,7 +830,7 @@ const I18N = {
     notify_title: 'ரயில்/போக்குவரத்து/புகைமூட்ட எச்சரிக்கைகளை இயக்கு', where_am_i: 'நான் எங்கே',
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
-    category_nearby: 'அருகில்', category_attractions: 'சுற்றுலா தளங்கள்',
+    category_nearby: 'அருகில்', category_attractions: 'சுற்றுலா தளங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
     set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
@@ -817,6 +845,7 @@ const I18N = {
     fav_section_divider: 'அல்லது எந்த நேரத்திலும் சரிபார்க்க ஒரு குறிப்பிட்ட நிறுத்தத்தைச் சேமிக்கவும்',
     attraction_loading: 'அருகிலுள்ள தகவல் ஏற்றப்படுகிறது…', attraction_walk_prefix: 'நடை தூரம்', attraction_estimated: 'மதிப்பீடு',
     attraction_no_station: 'அருகில் எம்ஆர்டி/எல்ஆர்டி நிலையம் இல்லை.', attraction_nearby_title: 'அருகிலுள்ள சுற்றுலா தளங்கள்',
+    attraction_book_tickets: '🎟️ டிக்கெட் முன்பதிவு செய்யுங்கள்',
     fav_search_placeholder: 'பேருந்து நிறுத்தத்தைச் சேர் — குறியீடு அல்லது பெயர்…',
     fav_empty_hint: 'மேலே ஒரு பேருந்து நிறுத்தத்தைத் தேடி சேர்த்து, எப்போது வேண்டுமானாலும் நேரலை வருகையைச் சரிபார்க்கலாம் — முதலில் பயணத்தைத் திட்டமிட வேண்டியதில்லை.',
     share_footer: '💙 இது பயனுள்ளதாக இருந்தால் இந்த ஆப்பைப் பகிரவும்', support_footer: '☕ எனக்கு ஒரு காபி வாங்கிக் கொடுங்கள் — Waypoint செயல்பட உதவுங்கள்',
@@ -828,7 +857,7 @@ const I18N = {
     notify_title: '電車・交通・ヘイズ情報の通知をオンにする', where_am_i: '現在地',
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
-    category_nearby: '近く', category_attractions: '観光スポット',
+    category_nearby: '近く', category_attractions: '観光スポット', category_tickets: 'チケット＆ツアー',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
     set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
@@ -843,6 +872,7 @@ const I18N = {
     fav_section_divider: 'または特定のバス停を保存していつでも確認',
     attraction_loading: '近くの情報を読み込み中…', attraction_walk_prefix: '徒歩', attraction_estimated: '概算',
     attraction_no_station: '近くにMRT/LRT駅はありません。', attraction_nearby_title: '近くの観光スポット',
+    attraction_book_tickets: '🎟️ チケットを予約',
     fav_search_placeholder: 'バス停を追加 — 番号または名前…',
     fav_empty_hint: '上でバス停を検索して追加すると、いつでもリアルタイムの到着時刻を確認できます — 先にルートを計画する必要はありません。',
     share_footer: '💙 便利だと思ったらこのアプリをシェアしてください', support_footer: '☕ コーヒーをおごる — Waypointの運営を支援',
@@ -854,7 +884,7 @@ const I18N = {
     notify_title: '열차/교통/실안개 알림 켜기', where_am_i: '내 위치',
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
-    category_nearby: '주변', category_attractions: '관광명소',
+    category_nearby: '주변', category_attractions: '관광명소', category_tickets: '티켓 & 투어',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
     set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
@@ -869,6 +899,7 @@ const I18N = {
     fav_section_divider: '또는 특정 정류장을 저장해 언제든지 확인하세요',
     attraction_loading: '주변 정보를 불러오는 중…', attraction_walk_prefix: '도보', attraction_estimated: '예상',
     attraction_no_station: '근처에 MRT/LRT 역이 없습니다.', attraction_nearby_title: '주변 관광명소',
+    attraction_book_tickets: '🎟️ 티켓 예매',
     fav_search_placeholder: '버스 정류장 추가 — 번호 또는 이름…',
     fav_empty_hint: '위에서 버스 정류장을 검색해 추가하면 언제든지 실시간 도착 정보를 확인할 수 있습니다 — 먼저 경로를 계획할 필요가 없습니다.',
     share_footer: '💙 유용하다면 이 앱을 공유해 주세요', support_footer: '☕ 커피 한 잔 사주세요 — Waypoint 운영에 도움이 됩니다',
