@@ -726,10 +726,6 @@ const LANDMARKS = {
 // key so this drops straight into the existing attraction info panel with no
 // new place-matching logic needed.
 const KKDAY_AFFILIATE_CID = '26927';
-const KKDAY_TAB_KEY = 'CATEGORY_001,CATEGORY_018';
-function kkdayTicketLink(query, trackingTag) {
-  return `https://www.kkday.com/en-sg/product/productlist/${encodeURIComponent(query)}?tab_key=${KKDAY_TAB_KEY}&cid=${KKDAY_AFFILIATE_CID}&ud1=Waypoint_${trackingTag}`;
-}
 // Gourmet Food landmarks link out to KKday's general Singapore restaurants/
 // food-experiences listing rather than a per-hawker-centre search — hawker
 // centres are free public places, not individually bookable KKday products,
@@ -750,15 +746,22 @@ const FOOD_LINKS = {
   amoystreet: kkdayFoodLink('amoystreet'),
 };
 
+// Real, Singapore-scoped search URLs — copied directly from KKday's own site
+// search (each carries a "destination=D-SG-xxxx" filter, which is what
+// actually locks results to Singapore). The earlier version of this map was
+// built by guessing at a URL pattern with only a category filter (tab_key)
+// and no destination filter at all, which let unrelated results from other
+// countries (Korea, Japan) slip in — this replaces every entry with a
+// manually verified link.
 const TICKET_LINKS = {
-  mbs: kkdayTicketLink('Marina Bay Sands SkyPark', 'mbs'),
-  uss: kkdayTicketLink('Universal Studios Singapore', 'uss'),
-  gardensbythebay: kkdayTicketLink('Gardens by the Bay', 'gardensbythebay'),
-  sgzoo: kkdayTicketLink('Singapore Zoo', 'sgzoo'),
-  nightsafari: kkdayTicketLink('Night Safari Singapore', 'nightsafari'),
-  seaaquarium: kkdayTicketLink('S.E.A. Aquarium', 'seaaquarium'),
-  riverwonders: kkdayTicketLink('River Wonders Singapore', 'riverwonders'),
-  sgflyer: kkdayTicketLink('Singapore Flyer', 'sgflyer'),
+  mbs: 'https://www.kkday.com/en-sg/product/productlist/Marina%20Bay%20Sands%20SkyPark?destination=D-SG-4608&keyword=Marina%20Bay%20Sands%20SkyPark&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=MarinaBaySands',
+  uss: 'https://www.kkday.com/en-sg/product/productlist/Universal%20Studios%20Singapore?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Universal%20Studios%20Singapore&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=UniversalStudios',
+  gardensbythebay: 'https://www.kkday.com/en-sg/product/productlist/Gardens%20by%20the%20Bay?destination=D-SG-4608,D-SG-6801&keyword=Gardens%20by%20the%20Bay&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=GardensByThebay',
+  sgzoo: 'https://www.kkday.com/en-sg/product/productlist/Singapore%20Zoo?destination=D-SG-4608,D-SG-4612,D-SG-6801,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Singapore%20Zoo&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=SingaporeZoo',
+  nightsafari: 'https://www.kkday.com/en-sg/product/productlist/Night%20Safari%20Singapore?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Night%20Safari%20Singapore&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=NightSafari',
+  seaaquarium: 'https://www.kkday.com/en-sg/product/productlist/S.E.A.%20Aquarium?destination=D-SG-4610,D-SG-8491,D-SG-4612,D-SG-6801,D-SG-4609&keyword=S.E.A.%20Aquarium&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=SingaporeOceanarium',
+  riverwonders: 'https://www.kkday.com/en-sg/product/productlist/River%20Wonders%20Singapore?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=River%20Wonders%20Singapore&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=RiverWonders',
+  sgflyer: 'https://www.kkday.com/en-sg/product/productlist/Singapore%20Flyer?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Singapore%20Flyer&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=SingaporeFlyers',
 };
 
 // "Book Online" — KKday's own top-level categories (real affiliate links
