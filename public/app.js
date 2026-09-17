@@ -799,7 +799,7 @@ const BOOK_ONLINE_LINKS = {
   cruisevacation: 'https://www.kkday.com/en-sg/category/sg-singapore/cruise-vacation/list?cid=26927&ud1=CruiseVacation',
   ferries: 'https://www.kkday.com/en-sg/category/sg-singapore/ferries/list?cid=26927&ud1=Ferries',
   airporttransfer: 'https://www.kkday.com/en-sg/category/sg-singapore/airport-transfers/list?cid=26927&ud1=AirportTransfer',
-  accommodation: 'https://www.kkday.com/en-sg/category/sg-singapore/accommodation/list?cid=26927&ud1=Accommodation',
+  accommodation: 'https://www.trip.com/t/RqV5cn2vNW2',
   simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
 };
 
