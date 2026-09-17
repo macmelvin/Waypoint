@@ -98,8 +98,13 @@
           <button id="searchClear" class="clear-btn" title="Clear" aria-label="Clear search" data-i18n-title="clear" data-i18n-aria="clear">✕</button>
         </div>
         <div id="categoryRow">
-          <div class="category-row-label" data-i18n="category_nearby">Nearby</div>
-          <div class="category-row">
+          <div class="category-group-tabs">
+            <button class="category-group-tab active" type="button" data-group="nearby" data-i18n="category_nearby">Nearby</button>
+            <button class="category-group-tab" type="button" data-group="places" data-i18n="category_attractions">More Places</button>
+            <button class="category-group-tab" type="button" data-group="tickets" data-i18n="category_tickets">Tickets &amp; Tours</button>
+            <button class="category-group-tab" type="button" data-group="gourmet" data-i18n="category_gourmet">Gourmet Food</button>
+          </div>
+          <div class="category-row" data-group="nearby">
             <button class="category-chip" type="button" data-category="carpark"><span class="category-chip-icon">🅿️</span>Carpark</button>
             <button class="category-chip" type="button" data-category="towtruck"><span class="category-chip-icon">🛻</span>Tow Truck</button>
             <button class="category-chip" type="button" data-category="hospital"><span class="category-chip-icon">🏥</span>Hospital</button>
@@ -117,8 +122,7 @@
             <button class="category-chip" type="button" data-category="library"><span class="category-chip-icon">📚</span>Library</button>
             <button class="category-chip" type="button" data-category="dogpark"><span class="category-chip-icon">🐕</span>Dog Park</button>
           </div>
-          <div class="category-row-label" data-i18n="category_attractions">More Places</div>
-          <div class="category-row">
+          <div class="category-row hidden" data-group="places">
             <button class="category-chip" type="button" data-category="sentosa"><span class="category-chip-icon">🏝️</span>Sentosa Island</button>
             <button class="category-chip" type="button" data-category="jewelchangi"><span class="category-chip-icon">💧</span>Jewel Changi</button>
             <button class="category-chip" type="button" data-category="changiairport"><span class="category-chip-icon">✈️</span>Changi Airport</button>
@@ -144,8 +148,7 @@
             <button class="category-chip" type="button" data-category="upperseletar"><span class="category-chip-icon">🦢</span>Upper Seletar Reservoir</button>
             <button class="category-chip" type="button" data-category="bedokreservoir"><span class="category-chip-icon">🚣</span>Bedok Reservoir</button>
           </div>
-          <div class="category-row-label" data-i18n="category_tickets">Tickets &amp; Tours</div>
-          <div class="category-row">
+          <div class="category-row hidden" data-group="tickets">
             <button class="category-chip" type="button" data-category="mbs"><span class="category-chip-icon">🎰</span>Marina Bay Sands</button>
             <button class="category-chip" type="button" data-category="uss"><span class="category-chip-icon">🎢</span>Universal Studios</button>
             <button class="category-chip" type="button" data-category="gardensbythebay"><span class="category-chip-icon">🌺</span>Gardens by the Bay</button>
@@ -155,8 +158,7 @@
             <button class="category-chip" type="button" data-category="riverwonders"><span class="category-chip-icon">🐼</span>River Wonders</button>
             <button class="category-chip" type="button" data-category="sgflyer"><span class="category-chip-icon">🎡</span>Singapore Flyer</button>
           </div>
-          <div class="category-row-label" data-i18n="category_gourmet">Gourmet Food</div>
-          <div class="category-row">
+          <div class="category-row hidden" data-group="gourmet">
             <button class="category-chip" type="button" data-category="laupasat"><span class="category-chip-icon">🍜</span>Lau Pa Sat</button>
             <button class="category-chip" type="button" data-category="maxwellfood"><span class="category-chip-icon">🍗</span>Maxwell Food Centre</button>
             <button class="category-chip" type="button" data-category="chinatownfoodcentre"><span class="category-chip-icon">⭐</span>Chinatown Complex Food Centre</button>

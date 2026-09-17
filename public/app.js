@@ -761,6 +761,22 @@ const TICKET_LINKS = {
   sgflyer: kkdayTicketLink('Singapore Flyer', 'sgflyer'),
 };
 
+// Category rows switched via tabs (Nearby / More Places / Tickets & Tours /
+// Gourmet Food) instead of stacking all four rows at once — with four
+// categories now, showing every row simultaneously pushed the actual search
+// box/results down and felt cluttered. Only one row's chips show at a time;
+// switching tabs never touches which chip was last tapped.
+document.querySelectorAll('.category-group-tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.category-group-tab').forEach((b) => b.classList.remove('active'));
+    tab.classList.add('active');
+    const group = tab.dataset.group;
+    document.querySelectorAll('#categoryRow .category-row').forEach((row) => {
+      row.classList.toggle('hidden', row.dataset.group !== group);
+    });
+  });
+});
+
 document.querySelectorAll('.category-chip').forEach((btn) => {
   btn.addEventListener('click', () => {
     const category = btn.dataset.category;

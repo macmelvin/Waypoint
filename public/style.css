@@ -517,15 +517,30 @@ html, body {
 .result-list li.r-loading { cursor: default; color: var(--muted); }
 .result-list li.r-loading:hover { background: none; }
 
-.category-row-label {
-  font-weight: 700;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-  margin: 10px 0 4px;
+/* Segmented tabs that switch which single category-row is visible — replaces
+   the old stacked layout (a labelled row per category, all shown at once),
+   which got cluttered once a 4th category (Gourmet Food) was added. */
+.category-group-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
 }
-.category-row-label:first-child { margin-top: 4px; }
+.category-group-tab {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.category-group-tab.active { border-color: var(--accent); background: var(--accent); color: #fff; }
 .category-row {
   display: flex;
   gap: 8px;
@@ -534,6 +549,7 @@ html, body {
   -webkit-overflow-scrolling: touch;
   padding-bottom: 2px;
 }
+.category-row.hidden { display: none; }
 .category-chip {
   flex: 0 0 auto;
   min-width: 62px;
