@@ -775,7 +775,7 @@ const BOOK_ONLINE_LINKS = {
   cruisevacation: 'https://www.kkday.com/en-sg/category/sg-singapore/cruise-vacation/list?cid=26927&ud1=CruiseVacation',
   ferries: 'https://www.kkday.com/en-sg/category/sg-singapore/ferries/list?cid=26927&ud1=Ferries',
   airporttransfer: 'https://www.kkday.com/en-sg/category/sg-singapore/airport-transfers/list?cid=26927&ud1=AirportTransfer',
-  accommodation: 'https://www.kkday.com/en-sg/category/sg-singapore/accommodation/list?cid=26927&ud1=Accomodation',
+  accommodation: 'https://www.kkday.com/en-sg/category/sg-singapore/accommodation/list?cid=26927&ud1=Accommodation',
   simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
 };
 
@@ -836,7 +836,7 @@ const I18N = {
     notify_title: 'Turn on train/traffic/haze alerts', where_am_i: 'Where am I',
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
-    category_nearby: 'Nearby', category_attractions: 'More Places', category_tickets: 'Tickets & Tours', category_gourmet: 'Gourmet Food', category_bookonline: 'Book Online',
+    category_nearby: 'Nearby', category_attractions: 'More Places', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_bookonline: 'Book Online',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
     hint_search: 'Try searching for a landmark, street, or postal code.',
