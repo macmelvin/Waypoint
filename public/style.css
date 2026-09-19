@@ -634,6 +634,7 @@ html, body {
 
 /* ---- 5 Singapore Must-Eats ---- */
 .must-eats-section { margin: 4px 0 14px; }
+.must-eats-section.hidden { display: none; }
 .must-eats-title { margin: 0 0 8px; font-size: 14px; font-weight: 800; }
 .must-eat-card {
   display: flex;
