@@ -84,6 +84,19 @@
     <div class="card">
       <div id="list"><div class="empty">Loading…</div></div>
     </div>
+
+    <h1 style="margin-top:36px">Travel agency partners</h1>
+    <p class="sub">Give each travel agency their own link/QR code. Every tourist who opens it gets tagged for the rest of their trip — every affiliate link they tap afterward carries that agency's tag, so KKday's own reporting can show which agency is actually driving bookings. This never blocks anyone — unlike invites, it's tracking only.</p>
+    <div class="card">
+      <div class="row">
+        <input type="text" id="partnerNameInput" placeholder="Agency name (e.g. ABC Travel)" style="margin-bottom:0">
+        <button onclick="createPartner()">Add</button>
+      </div>
+      <div id="partnerCreateStatus" style="color:#f87171;font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <div id="partnerList"><div class="empty">Loading…</div></div>
+    </div>
   </div>
 </div>
 
@@ -116,8 +129,82 @@ async function loadInvites() {
     document.getElementById('gate').style.display = 'none';
     document.getElementById('panel').style.display = 'block';
     render(invites);
+    loadPartners();
   } catch (err) {
     statusEl.textContent = err.message;
+  }
+}
+
+async function loadPartners() {
+  try {
+    const { partners } = await api('/api/admin/partners');
+    renderPartners(partners);
+  } catch (err) {
+    document.getElementById('partnerList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderPartners(partners) {
+  const list = document.getElementById('partnerList');
+  if (!partners.length) {
+    list.innerHTML = '<div class="empty">No partners yet — add a travel agency above.</div>';
+    return;
+  }
+  const sorted = [...partners].sort((a, b) => (b.totalVisits || 0) - (a.totalVisits || 0));
+  list.innerHTML = sorted.map((p) => {
+    const link = `${location.origin}/?ref=${p.slug}`;
+    const seen = p.lastSeenAt ? `last visit ${new Date(p.lastSeenAt).toLocaleString()}` : 'no visits yet';
+    const stats = `${p.uniqueVisitors || 0} unique · ${p.totalVisits || 0} total visits`;
+    return `
+      <div class="invite">
+        <div style="flex:1;min-width:0">
+          <div class="invite-name">${escapeHtml(p.name)}</div>
+          <div class="invite-meta ${p.active ? '' : 'revoked'}">${p.active ? `${stats} · ${seen}` : 'disabled'}</div>
+          <div class="link-box" title="Click to copy" onclick="copyLink(this, '${link}')">${link}</div>
+        </div>
+        <div class="invite-actions">
+          <button class="secondary" onclick="togglePartner('${p.id}')">${p.active ? 'Disable' : 'Enable'}</button>
+          <button class="danger" onclick="deletePartner('${p.id}')">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function createPartner() {
+  const nameInput = document.getElementById('partnerNameInput');
+  const name = nameInput.value.trim();
+  const statusEl = document.getElementById('partnerCreateStatus');
+  statusEl.textContent = '';
+  if (!name) return;
+  try {
+    await api('/api/admin/partners', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    nameInput.value = '';
+    loadPartners();
+  } catch (err) {
+    statusEl.textContent = err.message;
+  }
+}
+
+async function togglePartner(id) {
+  try {
+    await api(`/api/admin/partners/${id}/toggle`, { method: 'POST' });
+    loadPartners();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function deletePartner(id) {
+  if (!confirm('Delete this partner permanently? Their link will stop being tracked. This cannot be undone.')) return;
+  try {
+    await api(`/api/admin/partners/${id}`, { method: 'DELETE' });
+    loadPartners();
+  } catch (err) {
+    alert(err.message);
   }
 }
 

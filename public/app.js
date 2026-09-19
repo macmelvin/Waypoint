@@ -396,14 +396,14 @@ async function loadAttractionInfo(r) {
 
   // Only rendered for landmarks that are actually paid/ticketed attractions
   // (see TICKET_LINKS) — a free spot like Merlion Park has nothing to book.
-  const ticketUrl = TICKET_LINKS[key];
+  const ticketUrl = tagAffiliateUrl(TICKET_LINKS[key]);
   const ticketHtml = ticketUrl
     ? `<a class="attraction-ticket-btn" href="${ticketUrl}" target="_blank" rel="noopener noreferrer sponsored">${t('attraction_book_tickets')}</a>`
     : '';
 
   // Only rendered for Gourmet Food landmarks (see FOOD_LINKS) — links to a
   // general food-experiences listing rather than the specific hawker centre.
-  const foodUrl = FOOD_LINKS[key];
+  const foodUrl = tagAffiliateUrl(FOOD_LINKS[key]);
   const foodHtml = foodUrl
     ? `<a class="attraction-ticket-btn" href="${foodUrl}" target="_blank" rel="noopener noreferrer sponsored">${t('attraction_explore_food')}</a>`
     : '';
@@ -810,6 +810,40 @@ const BOOK_ONLINE_LINKS = {
   simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
 };
 
+// ---- Travel-agency / distribution-partner referral tagging -------------------
+// A partner (e.g. a travel agency) hands tourists a link like
+// /?ref=some-agency (as a QR code, printed in a welcome pack, etc). The
+// server sets a long-lived, JS-readable "waypoint_ref" cookie on that first
+// visit — see partnerRefTracking() in server.js — attributing the rest of the
+// trip to that partner. From then on, every affiliate link tapped gets that
+// partner's slug folded into KKday's own "ud1" free-text tracking param
+// (rather than a brand-new query param KKday wouldn't recognize or report
+// on), so partner performance shows up in KKday's own dashboard, filterable
+// by ud1 — not just as a private visit counter in Waypoint's admin panel.
+// Links with no ud1 param at all (the Trip.com accommodation shortlink) are
+// returned unchanged — there's nothing to tag them with.
+function getPartnerRefTag() {
+  const match = document.cookie.match(/(?:^|; )waypoint_ref=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function tagAffiliateUrl(url) {
+  if (!url) return url;
+  const ref = getPartnerRefTag();
+  if (!ref) return url;
+  try {
+    const parsed = new URL(url);
+    const ud1 = parsed.searchParams.get('ud1');
+    if (!ud1) return url;
+    const safeTag = ref.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!safeTag) return url;
+    parsed.searchParams.set('ud1', `${ud1}_${safeTag}`);
+    return parsed.toString();
+  } catch (err) {
+    return url; // malformed URL — fail safe rather than break the link
+  }
+}
+
 // Category rows switched via tabs (Nearby / More Places / Tickets & Tours /
 // Gourmet Food) instead of stacking all four rows at once — with four
 // categories now, showing every row simultaneously pushed the actual search
@@ -837,7 +871,7 @@ document.querySelectorAll('.category-chip').forEach((btn) => {
     // Book Online chips aren't places at all (Wi-Fi & SIM Cards, Cruise
     // Vacation, etc.) — they just open their KKday category page directly,
     // skipping the place-card/GPS-search flow entirely.
-    const bookOnlineUrl = BOOK_ONLINE_LINKS[category];
+    const bookOnlineUrl = tagAffiliateUrl(BOOK_ONLINE_LINKS[category]);
     if (bookOnlineUrl) {
       window.open(bookOnlineUrl, '_blank', 'noopener,noreferrer');
     } else if (LANDMARKS[category]) {

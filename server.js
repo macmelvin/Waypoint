@@ -138,6 +138,85 @@ function findInviteByToken(token) {
   return invites.find((inv) => inv.token === token);
 }
 
+// ---- Travel-agency / distribution-partner referral tracking -----------------
+// Separate from the invite gate above — this never blocks anyone. A partner
+// (e.g. a travel agency) gets a link like /?ref=some-agency to hand to their
+// tourists (as a QR code, in a welcome pack, etc). The first visit sets a
+// long-lived cookie attributing the rest of that trip to the partner, and
+// every affiliate link the tourist later taps (KKday, etc.) gets tagged with
+// the partner's slug via the "ud1" tracking param the client already sets per
+// link — see tagAffiliateUrl() in app.js — so partner performance is visible
+// in KKday's own reporting, not just a private counter here.
+const PARTNERS_FILE = process.env.PARTNERS_FILE || '/data/partners.json';
+const PARTNER_REF_COOKIE = 'waypoint_ref';
+
+function loadPartners() {
+  try {
+    return JSON.parse(fs.readFileSync(PARTNERS_FILE, 'utf8'));
+  } catch (err) {
+    return [];
+  }
+}
+
+function savePartners() {
+  try {
+    fs.mkdirSync(path.dirname(PARTNERS_FILE), { recursive: true });
+    fs.writeFileSync(PARTNERS_FILE, JSON.stringify(partners, null, 2));
+  } catch (err) {
+    console.error('failed to persist partners:', err.message);
+  }
+}
+
+let partners = loadPartners();
+
+function slugify(name) {
+  return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+// Counts a "visit" toward a partner: totalVisits on every app-shell load
+// (rough proxy for "opened the app during their trip"), uniqueVisitors only
+// the first time (no existing cookie yet, or cookie names a different/no
+// partner). Deliberately not counted per-API-call — this is a single-page
+// app, so the shell only reloads when someone actually (re)opens it, not on
+// every search/directions request.
+function trackPartnerVisit(partner, alreadyAttributed) {
+  partner.totalVisits = (partner.totalVisits || 0) + 1;
+  if (!alreadyAttributed) partner.uniqueVisitors = (partner.uniqueVisitors || 0) + 1;
+  partner.lastSeenAt = new Date().toISOString();
+  savePartners();
+}
+
+function partnerRefTracking(req, res, next) {
+  const isAppShellRequest = req.method === 'GET' && req.accepts('html') && !req.path.startsWith('/api/');
+  const cookieRef = parseCookies(req)[PARTNER_REF_COOKIE] || null;
+  const refParam = typeof req.query.ref === 'string' ? slugify(req.query.ref) : null;
+
+  if (refParam) {
+    const partner = partners.find((p) => p.slug === refParam && p.active);
+    if (partner) {
+      trackPartnerVisit(partner, cookieRef === refParam);
+      res.cookie(PARTNER_REF_COOKIE, refParam, {
+        httpOnly: false, // app.js reads this to tag affiliate links client-side
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 24 * 60 * 60 * 1000, // 60 days — covers a trip plus buffer
+      });
+      if (isAppShellRequest) {
+        const cleanQuery = Object.entries(req.query).filter(([k]) => k !== 'ref');
+        const qs = cleanQuery.length
+          ? '?' + cleanQuery.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
+          : '';
+        return res.redirect((req.path === '/' ? '' : req.path) + qs || '/');
+      }
+    }
+  } else if (isAppShellRequest && cookieRef) {
+    const partner = partners.find((p) => p.slug === cookieRef && p.active);
+    if (partner) trackPartnerVisit(partner, true);
+  }
+
+  next();
+}
+
 function timingSafeEqual(a, b) {
   const bufA = Buffer.from(String(a));
   const bufB = Buffer.from(String(b));
@@ -241,6 +320,48 @@ ${whatsappButton}
 }
 
 app.use(inviteGate);
+app.use(partnerRefTracking);
+
+app.get('/api/admin/partners', requireAdmin, (req, res) => {
+  res.json({ partners });
+});
+
+app.post('/api/admin/partners', requireAdmin, (req, res) => {
+  const name = (req.body?.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  const requestedSlug = (req.body?.slug || '').trim();
+  const slug = slugify(requestedSlug || name);
+  if (!slug) return res.status(400).json({ error: 'could not derive a link slug from that name — provide one explicitly' });
+  if (partners.some((p) => p.slug === slug)) return res.status(409).json({ error: `"${slug}" is already in use by another partner` });
+  const partner = {
+    id: crypto.randomUUID(),
+    name,
+    slug,
+    active: true,
+    createdAt: new Date().toISOString(),
+    lastSeenAt: null,
+    uniqueVisitors: 0,
+    totalVisits: 0,
+  };
+  partners.push(partner);
+  savePartners();
+  res.json({ partner });
+});
+
+app.post('/api/admin/partners/:id/toggle', requireAdmin, (req, res) => {
+  const p = partners.find((x) => x.id === req.params.id);
+  if (!p) return res.status(404).json({ error: 'not found' });
+  p.active = !p.active;
+  savePartners();
+  res.json({ partner: p });
+});
+
+app.delete('/api/admin/partners/:id', requireAdmin, (req, res) => {
+  const before = partners.length;
+  partners = partners.filter((x) => x.id !== req.params.id);
+  if (partners.length !== before) savePartners();
+  res.json({ ok: true });
+});
 
 app.get('/api/admin/invites', requireAdmin, (req, res) => {
   res.json({ invites });
