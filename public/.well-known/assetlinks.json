@@ -5,7 +5,10 @@
       "namespace": "android_app",
       "package_name": "com.waypoint.sg",
       "sha256_cert_fingerprints": [
-        "0F:2B:F8:62:F3:23:E0:8F:60:B9:B7:8B:FB:40:D1:AC:D9:B4:6A:C7:9F:EA:00:97:FF:FD:96:6B:53:96:EE:37"
+        "0F:2B:F8:62:F3:23:E0:8F:60:B9:B7:8B:FB:40:D1:AC:D9:B4:6A:C7:9F:EA:00:97:FF:FD:96:6B:53:96:EE:37",
+        "2C:F7:5F:8F:B7:5B:33:F0:F9:54:36:2A:5E:C9:43:BE:E2:E8:A7:1A:7C:E6:0D:BB:51:11:18:5F:47:88:42:89",
+        "7E:9C:F1:87:28:03:CD:E1:8D:BC:68:65:4A:0B:29:50:AA:A3:75:40:83:BA:A2:BE:D0:85:73:26:B6:42:9B:59",
+        "72:E1:F4:61:8B:E9:D8:64:FC:0F:CC:AC:AF:09:94:DE:5E:54:32:80:07:9F:0F:29:37:F1:DB:0F:F9:47:C8:00"
       ]
     }
   }
