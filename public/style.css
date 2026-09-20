@@ -288,13 +288,18 @@ a:active {
 }
 
 .icon-btn {
+  /* Kept at the original 38px (not bumped to the ~44px touch-target
+     guideline) — the topbar is already tight on a narrow phone (see the
+     .brand / .weather-widget comments below about squeezing), and this row
+     can hold up to 6 of these side by side. The visual refinements (softer
+     border, elevation, frosted-adjacent surface) apply at the same size. */
   border: 1px solid var(--separator);
   background: var(--surface-elevated);
   color: var(--label-primary);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -302,10 +307,10 @@ a:active {
   justify-content: center;
   box-shadow: var(--shadow-1);
 }
-.icon-btn svg { width: 18px; height: 18px; display: block; flex-shrink: 0; }
+.icon-btn svg { width: 17px; height: 17px; display: block; flex-shrink: 0; }
 .icon-btn:hover { background: var(--gray-100); }
-.icon-btn.small { width: 34px; height: 34px; min-width: 34px; font-size: 14px; }
-.icon-btn.small svg { width: 15px; height: 15px; }
+.icon-btn.small { width: 32px; height: 32px; min-width: 32px; font-size: 14px; }
+.icon-btn.small svg { width: 14px; height: 14px; }
 .icon-btn.active {
   background: var(--accent);
   border-color: var(--accent);
