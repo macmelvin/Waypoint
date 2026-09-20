@@ -19,8 +19,19 @@ const OSRM_ENDPOINTS = {
   walking: { host: 'https://routing.openstreetmap.de/routed-foot', profile: 'foot' },
 };
 
+// Small inline-SVG icon set for the handful of chrome controls whose icon
+// is swapped at runtime (everything else lives as static markup in
+// index.html). Kept dependency-free — no icon font/library — matching the
+// rest of the app.
+const ICONS = {
+  locate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><path d="M12 2.3v3M12 18.7v3M2.3 12h3M18.7 12h3"/></svg>',
+  volumeOn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
+  volumeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4z"/><path d="M16 9l4.5 6M20.5 9L16 15"/></svg>',
+};
+
 const els = {
   langBtn: document.getElementById('langBtn'),
+  langBtnText: document.getElementById('langBtnText'),
   searchInput: document.getElementById('searchInput'),
   searchClear: document.getElementById('searchClear'),
   searchResults: document.getElementById('searchResults'),
@@ -1219,7 +1230,7 @@ function applyTranslations() {
     if (iconEl) btn.appendChild(iconEl);
     btn.appendChild(document.createTextNode(label));
   });
-  if (els.langBtn) els.langBtn.textContent = `🌐 ${LANG_SHORT[currentLang]}`;
+  if (els.langBtnText) els.langBtnText.textContent = LANG_SHORT[currentLang];
   document.documentElement.lang = LANG_HTML_TAG[currentLang] || 'en';
 }
 
@@ -2709,7 +2720,7 @@ async function startNavigation() {
 
   showNavMap(navRouteCoords);
   els.navBanner.classList.remove('hidden');
-  els.navMuteBtn.textContent = navMuted ? '🔇' : '🔊';
+  els.navMuteBtn.innerHTML = navMuted ? ICONS.volumeOff : ICONS.volumeOn;
   els.navBannerDistance.textContent = 'Locating…';
   // Wrapped: this only formats the first instruction's text/icon from data
   // we already have in hand (navRouteSteps). It should never be able to
@@ -2766,7 +2777,7 @@ els.startNavBtn.addEventListener('click', startNavigation);
 els.navStopBtn.addEventListener('click', () => stopNavigation(true));
 els.navMuteBtn.addEventListener('click', () => {
   navMuted = !navMuted;
-  els.navMuteBtn.textContent = navMuted ? '🔇' : '🔊';
+  els.navMuteBtn.innerHTML = navMuted ? ICONS.volumeOff : ICONS.volumeOn;
   if (navMuted && 'speechSynthesis' in window) window.speechSynthesis.cancel();
 });
 
@@ -4047,13 +4058,13 @@ els.locateBtn.addEventListener('click', () => {
         console.error(err);
         showToast('Could not determine your address.');
       } finally {
-        els.locateBtnIcon.textContent = '🎯';
+        els.locateBtnIcon.innerHTML = ICONS.locate;
       }
     },
     (err) => {
       console.error('locate-me geolocation error:', err);
       showToast(geoErrorMessage(err));
-      els.locateBtnIcon.textContent = '🎯';
+      els.locateBtnIcon.innerHTML = ICONS.locate;
     },
     GEO_OPTIONS
   );
