@@ -100,6 +100,15 @@ const els = {
   weatherPanel: document.getElementById('weatherPanel'),
   weatherPanelBody: document.getElementById('weatherPanelBody'),
   weatherPanelClose: document.getElementById('weatherPanelClose'),
+  mrtMapBtn: document.getElementById('mrtMapBtn'),
+  mrtMapOverlay: document.getElementById('mrtMapOverlay'),
+  mrtMapCloseBtn: document.getElementById('mrtMapCloseBtn'),
+  mrtMapViewport: document.getElementById('mrtMapViewport'),
+  mrtMapCanvas: document.getElementById('mrtMapCanvas'),
+  mrtMapStatus: document.getElementById('mrtMapStatus'),
+  mrtMapZoomInBtn: document.getElementById('mrtMapZoomInBtn'),
+  mrtMapZoomOutBtn: document.getElementById('mrtMapZoomOutBtn'),
+  mrtMapResetBtn: document.getElementById('mrtMapResetBtn'),
   toast: document.getElementById('toast'),
   tabs: document.querySelectorAll('.tab-btn'),
   panels: document.querySelectorAll('.panel'),
@@ -4815,6 +4824,235 @@ els.weatherPanel.addEventListener('click', (e) => {
 });
 
 initWeatherWidget();
+
+// ---------- MRT/LRT system map ----------------------------------------------
+// An original schematic diagram (own station layout, not the official LTA/
+// SMRT map artwork) built at runtime as inline SVG from data/mrt-network.json
+// — see that file's "meta" block for the topology/colour sources. Fetched
+// once and cached; a small vanilla pointer-events pan/zoom handler (mouse
+// wheel + drag on desktop, one-finger pan + two-finger pinch on touch) drives
+// the view since the app has no existing map surface reusable for a
+// non-geographic diagram like this (the Leaflet maps elsewhere are all tied
+// to real lat/lon tiles).
+
+let mrtNetworkData = null;
+let mrtMapRendered = false;
+let mrtPanZoom = null;
+
+function escapeMrtLabel(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+// Builds the map's inline SVG markup from the network dataset. Lines are
+// drawn first (as one polyline per line, in station order) so station
+// markers layer on top. Interchange stations (on 2+ lines) get a bigger
+// white/ink "ring" marker; everything else gets a small dot in its line's
+// colour. Every text label carries a white halo (paint-order + stroke) so
+// labels stay legible crossing over coloured line paths underneath.
+function buildMrtSvgMarkup(data) {
+  const stations = data.stations;
+  const lineColorByCode = {};
+  data.lines.forEach((ln) => { lineColorByCode[ln.code] = ln.color; });
+
+  const linePaths = data.lines.map((ln) => {
+    const pts = ln.stationOrder.map((id) => stations[id]).filter(Boolean);
+    if (!pts.length) return '';
+    const path = ln.loop ? pts.concat([pts[0]]) : pts;
+    const d = path.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+    const isLrt = ln.style === 'lrt';
+    return `<path d="${d}" fill="none" stroke="${ln.color}" stroke-width="${isLrt ? 3 : 6}" ` +
+      `stroke-linecap="round" stroke-linejoin="round" opacity="${isLrt ? 0.8 : 1}" ` +
+      `${isLrt ? 'stroke-dasharray="1.5,5"' : ''}></path>`;
+  }).join('');
+
+  const markers = Object.values(stations).map((s) => {
+    const label = escapeMrtLabel(s.name);
+    if (s.interchange) {
+      return `<g>` +
+        `<circle cx="${s.x}" cy="${s.y}" r="7.5" fill="#ffffff" stroke="#1a1a1a" stroke-width="2.5"></circle>` +
+        `<text x="${s.x + 10}" y="${s.y - 9}" font-size="10.5" font-weight="700" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
+        `fill="#1a1a1a" paint-order="stroke" stroke="#ffffff" stroke-width="3.2" stroke-linejoin="round">${label}</text>` +
+        `</g>`;
+    }
+    const color = lineColorByCode[s.lines[0]] || '#1a1a1a';
+    return `<g>` +
+      `<circle cx="${s.x}" cy="${s.y}" r="4" fill="${color}" stroke="#ffffff" stroke-width="1.2"></circle>` +
+      `<text x="${s.x + 7}" y="${s.y - 6}" font-size="8.5" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
+      `fill="#374151" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">${label}</text>` +
+      `</g>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 1000 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schematic map of Singapore's MRT and LRT network">` +
+    `<rect x="0" y="0" width="1000" height="900" fill="#f7f8fa"></rect>` +
+    `<g>${linePaths}</g>` +
+    `<g>${markers}</g>` +
+    `</svg>`;
+}
+
+// Minimal vanilla pan/zoom: translate+scale applied via CSS transform on the
+// canvas element. Pointer Events unify mouse/touch/pen — one active pointer
+// pans, two active pointers pinch-zoom (scaling around their midpoint);
+// wheel zooms around the cursor. Kept self-contained/reusable rather than
+// wired to any one element's markup.
+function createPanZoom(viewport, canvas, opts = {}) {
+  const state = { scale: opts.initialScale || 1, tx: opts.initialX || 0, ty: opts.initialY || 0 };
+  const minScale = opts.minScale || 0.35;
+  const maxScale = opts.maxScale || 6;
+  const pointers = new Map();
+  let dragStart = null;
+  let pinchStartDist = 0;
+
+  function apply() {
+    canvas.style.transform = `translate(${state.tx}px, ${state.ty}px) scale(${state.scale})`;
+  }
+
+  function clampScale() {
+    state.scale = Math.min(maxScale, Math.max(minScale, state.scale));
+  }
+
+  function zoomAt(clientX, clientY, factor) {
+    const rect = viewport.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const prevScale = state.scale;
+    state.scale *= factor;
+    clampScale();
+    const actual = state.scale / prevScale;
+    state.tx = x - (x - state.tx) * actual;
+    state.ty = y - (y - state.ty) * actual;
+    apply();
+  }
+
+  function midOf(pts) {
+    return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+  }
+  function distOf(pts) {
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+  }, { passive: false });
+
+  viewport.addEventListener('pointerdown', (e) => {
+    viewport.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    viewport.classList.add('dragging');
+    if (pointers.size === 1) {
+      dragStart = { x: e.clientX, y: e.clientY, tx: state.tx, ty: state.ty };
+    } else if (pointers.size === 2) {
+      pinchStartDist = distOf([...pointers.values()]);
+      dragStart = null;
+    }
+  });
+
+  viewport.addEventListener('pointermove', (e) => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1 && dragStart) {
+      state.tx = dragStart.tx + (e.clientX - dragStart.x);
+      state.ty = dragStart.ty + (e.clientY - dragStart.y);
+      apply();
+    } else if (pointers.size === 2) {
+      const pts = [...pointers.values()];
+      const dist = distOf(pts);
+      const mid = midOf(pts);
+      if (pinchStartDist > 0) zoomAt(mid.x, mid.y, dist / pinchStartDist);
+      pinchStartDist = dist;
+    }
+  });
+
+  function releasePointer(e) {
+    pointers.delete(e.pointerId);
+    pinchStartDist = 0;
+    if (pointers.size === 1) {
+      const [p] = [...pointers.values()];
+      dragStart = { x: p.x, y: p.y, tx: state.tx, ty: state.ty };
+    } else {
+      dragStart = null;
+    }
+    if (pointers.size === 0) viewport.classList.remove('dragging');
+  }
+  viewport.addEventListener('pointerup', releasePointer);
+  viewport.addEventListener('pointercancel', releasePointer);
+  viewport.addEventListener('pointerleave', releasePointer);
+
+  viewport.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    zoomAt(e.clientX, e.clientY, 1.5);
+  });
+
+  apply();
+
+  return {
+    zoomBy(factor) {
+      const rect = viewport.getBoundingClientRect();
+      zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, factor);
+    },
+    reset(scale, tx, ty) {
+      state.scale = scale;
+      state.tx = tx;
+      state.ty = ty;
+      clampScale();
+      apply();
+    },
+  };
+}
+
+function fitMrtMapToViewport() {
+  if (!els.mrtMapViewport) return { scale: 1, tx: 0, ty: 0 };
+  const rect = els.mrtMapViewport.getBoundingClientRect();
+  const scale = Math.max(0.35, Math.min(rect.width / 1000, rect.height / 900) * 0.95);
+  const tx = (rect.width - 1000 * scale) / 2;
+  const ty = (rect.height - 900 * scale) / 2;
+  return { scale, tx, ty };
+}
+
+async function renderMrtMap() {
+  if (mrtMapRendered) return;
+  try {
+    if (!mrtNetworkData) {
+      const res = await fetch('/api/mrt-network');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      mrtNetworkData = await res.json();
+    }
+    els.mrtMapCanvas.innerHTML = buildMrtSvgMarkup(mrtNetworkData);
+    els.mrtMapStatus.classList.add('hidden');
+    const fit = fitMrtMapToViewport();
+    mrtPanZoom = createPanZoom(els.mrtMapViewport, els.mrtMapCanvas, {
+      initialScale: fit.scale, initialX: fit.tx, initialY: fit.ty,
+    });
+    mrtMapRendered = true;
+  } catch (err) {
+    console.error('MRT map failed to load:', err);
+    els.mrtMapStatus.textContent = 'Could not load the MRT/LRT map. Check your connection and try again.';
+    els.mrtMapStatus.classList.remove('hidden');
+  }
+}
+
+function openMrtMap() {
+  els.mrtMapOverlay.classList.remove('hidden');
+  renderMrtMap();
+}
+function closeMrtMap() {
+  els.mrtMapOverlay.classList.add('hidden');
+}
+
+els.mrtMapBtn.addEventListener('click', openMrtMap);
+els.mrtMapCloseBtn.addEventListener('click', closeMrtMap);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !els.mrtMapOverlay.classList.contains('hidden')) closeMrtMap();
+});
+els.mrtMapZoomInBtn.addEventListener('click', () => mrtPanZoom && mrtPanZoom.zoomBy(1.3));
+els.mrtMapZoomOutBtn.addEventListener('click', () => mrtPanZoom && mrtPanZoom.zoomBy(1 / 1.3));
+els.mrtMapResetBtn.addEventListener('click', () => {
+  if (!mrtPanZoom) return;
+  const fit = fitMrtMapToViewport();
+  mrtPanZoom.reset(fit.scale, fit.tx, fit.ty);
+});
 
 // ---------- MRT/LRT service disruption banner (LTA TrainServiceAlerts) ----------
 // Polls a cached server endpoint every couple of minutes. Dismissing a

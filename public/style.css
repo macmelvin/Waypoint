@@ -1763,3 +1763,92 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
      the flag+name next to it got squeezed to nothing (see .brand above). */
   .weather-widget { max-width: 34vw; }
 }
+
+/* ---- MRT/LRT system map -----------------------------------------------
+   A full-screen overlay in the same spirit as .nav-map-overlay: a fixed
+   panel above the app chrome holding a pan/zoom viewport. The diagram
+   itself is an inline SVG built at runtime from data/mrt-network.json
+   (see renderMrtMap() in app.js) rather than a static image, so it stays
+   crisp at any zoom level on phones and desktop alike. */
+.mrt-map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  background: var(--panel-bg);
+  display: flex;
+  flex-direction: column;
+}
+.mrt-map-overlay.hidden { display: none; }
+
+.mrt-map-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.mrt-map-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+
+.mrt-map-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #f7f8fa;
+  /* Pan/zoom is handled entirely by JS (pointer events) so the browser's
+     own touch scrolling/pinch must not compete with it. */
+  touch-action: none;
+  cursor: grab;
+}
+.mrt-map-viewport.dragging { cursor: grabbing; }
+
+.mrt-map-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1000px;
+  height: 900px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.mrt-map-canvas svg { display: block; width: 100%; height: 100%; }
+
+.mrt-map-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--muted);
+  font-size: 13px;
+}
+.mrt-map-status.hidden { display: none; }
+
+.mrt-map-controls {
+  position: absolute;
+  right: 14px;
+  bottom: 60px;
+  z-index: 2201;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mrt-map-controls .icon-btn {
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mrt-map-caption {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 7px 14px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  text-align: center;
+}

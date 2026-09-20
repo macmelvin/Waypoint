@@ -1,0 +1,2647 @@
+{
+  "meta": {
+    "title": "Singapore MRT & LRT Network",
+    "description": "An independently produced schematic diagram of Singapore's rail network for the Waypoint app. Not to scale, and not the official LTA/SMRT map.",
+    "asOf": "2026-09",
+    "sources": [
+      "https://en.wikipedia.org/wiki/List_of_Singapore_MRT_stations",
+      "https://en.wikipedia.org/wiki/Thomson%E2%80%93East_Coast_Line",
+      "https://en.wikipedia.org/wiki/Circle_Line_(Singapore)",
+      "https://en.wikipedia.org/wiki/North_East_Line",
+      "https://en.wikipedia.org/wiki/Sengkang_LRT_line",
+      "https://en.wikipedia.org/wiki/Punggol_LRT_line",
+      "https://en.wikipedia.org/wiki/Bukit_Panjang_LRT_line",
+      "https://www.lta.gov.sg/ (news releases: Punggol Coast, Hume, Circle Line Stage 6)"
+    ],
+    "excluded": [
+      "Cross Island Line (under construction, not open)",
+      "Jurong Region Line (under construction, not open)",
+      "Mount Pleasant (TE) — built but mothballed, trains skip it",
+      "Marina South (TE) — built but mothballed, trains skip it",
+      "Founders' Memorial (TE) — under construction, opening ~2028",
+      "Bukit Brown (CC18) — reserved station, not built/opened",
+      "Ten Mile Junction (BP14) — closed since 2019"
+    ]
+  },
+  "lines": [
+    {
+      "code": "NS",
+      "name": "North South Line",
+      "color": "#D42E12",
+      "style": "heavy",
+      "kind": "mrt",
+      "loop": false,
+      "stationOrder": [
+        "jurong-east",
+        "bukit-batok",
+        "bukit-gombak",
+        "choa-chu-kang",
+        "yew-tee",
+        "kranji",
+        "marsiling",
+        "woodlands",
+        "admiralty",
+        "sembawang",
+        "canberra",
+        "yishun",
+        "khatib",
+        "yio-chu-kang",
+        "ang-mo-kio",
+        "bishan",
+        "braddell",
+        "toa-payoh",
+        "novena",
+        "newton",
+        "orchard",
+        "somerset",
+        "dhoby-ghaut",
+        "city-hall",
+        "raffles-place",
+        "marina-bay",
+        "marina-south-pier"
+      ]
+    },
+    {
+      "code": "EW",
+      "name": "East West Line",
+      "color": "#009645",
+      "style": "heavy",
+      "kind": "mrt",
+      "loop": false,
+      "stationOrder": [
+        "pasir-ris",
+        "tampines",
+        "simei",
+        "tanah-merah",
+        "bedok",
+        "kembangan",
+        "eunos",
+        "paya-lebar",
+        "aljunied",
+        "kallang",
+        "lavender",
+        "bugis",
+        "city-hall",
+        "raffles-place",
+        "tanjong-pagar",
+        "outram-park",
+        "tiong-bahru",
+        "redhill",
+        "queenstown",
+        "commonwealth",
+        "buona-vista",
+        "dover",
+        "clementi",
+        "jurong-east",
+        "chinese-garden",
+        "lakeside",
+        "boon-lay",
+        "pioneer",
+        "joo-koon",
+        "gul-circle",
+        "tuas-crescent",
+        "tuas-west-road",
+        "tuas-link"
+      ]
+    },
+    {
+      "code": "CG",
+      "name": "Changi Airport Branch",
+      "color": "#009645",
+      "style": "heavy",
+      "kind": "mrt",
+      "loop": false,
+      "stationOrder": [
+        "tanah-merah",
+        "expo",
+        "changi-airport"
+      ]
+    },
+    {
+      "code": "NE",
+      "name": "North East Line",
+      "color": "#9900AA",
+      "style": "heavy",
+      "kind": "mrt",
+      "loop": false,
+      "stationOrder": [
+        "harbourfront",
+        "outram-park",
+        "chinatown",
+        "clarke-quay",
+        "dhoby-ghaut",
+        "little-india",
+        "farrer-park",
+        "boon-keng",
+        "potong-pasir",
+        "woodleigh",
+        "serangoon",
+        "kovan",
+        "hougang",
+        "buangkok",
+        "sengkang",
+        "punggol",
+        "punggol-coast"
+      ]
+    },
+    {
+      "code": "CC",
+      "name": "Circle Line",
+      "color": "#FA9E0D",
+      "style": "heavy",
+      "kind": "mrt",
+      "loop": true,
+      "stationOrder": [
+        "dhoby-ghaut",
+        "bras-basah",
+        "esplanade",
+        "promenade",
+        "nicoll-highway",
+        "stadium",
+        "mountbatten",
+        "dakota",
+        "paya-lebar",
+        "macpherson",
+        "tai-seng",
+        "bartley",
+        "serangoon",
+        "lorong-chuan",
+        "bishan",
+        "marymount",
+        "caldecott",
+        "botanic-gardens",
+        "farrer-road",
+        "holland-village",
+        "buona-vista",
+        "one-north",
+        "kent-ridge",
+        "haw-par-villa",
+        "pasir-panjang",
+        "labrador-park",
+        "telok-blangah",
+        "harbourfront",
+        "keppel",
+        "cantonment",
+        "prince-edward-road",
+        "marina-bay",
+        "bayfront"
+      ]
+    },
+    {
+      "code": "DT",
+      "name": "Downtown Line",
+      "color": "#005EC4",
+      "style": "heavy",
+      "kind": "mrt",
+      "loop": false,
+      "stationOrder": [
+        "bukit-panjang",
+        "cashew",
+        "hillview",
+        "hume",
+        "beauty-world",
+        "king-albert-park",
+        "sixth-avenue",
+        "tan-kah-kee",
+        "botanic-gardens",
+        "stevens",
+        "newton",
+        "little-india",
+        "rochor",
+        "bugis",
+        "promenade",
+        "bayfront",
+        "downtown",
+        "telok-ayer",
+        "chinatown",
+        "fort-canning",
+        "bencoolen",
+        "jalan-besar",
+        "bendemeer",
+        "geylang-bahru",
+        "mattar",
+        "macpherson",
+        "ubi",
+        "kaki-bukit",
+        "bedok-north",
+        "bedok-reservoir",
+        "tampines-west",
+        "tampines",
+        "tampines-east",
+        "upper-changi",
+        "expo"
+      ]
+    },
+    {
+      "code": "TE",
+      "name": "Thomson-East Coast Line",
+      "color": "#9D5B25",
+      "style": "heavy",
+      "kind": "mrt",
+      "loop": false,
+      "stationOrder": [
+        "woodlands-north",
+        "woodlands",
+        "woodlands-south",
+        "springleaf",
+        "lentor",
+        "mayflower",
+        "bright-hill",
+        "upper-thomson",
+        "caldecott",
+        "stevens",
+        "napier",
+        "orchard-boulevard",
+        "orchard",
+        "great-world",
+        "havelock",
+        "outram-park",
+        "maxwell",
+        "shenton-way",
+        "marina-bay",
+        "gardens-by-the-bay",
+        "tanjong-rhu",
+        "katong-park",
+        "tanjong-katong",
+        "marine-parade",
+        "marine-terrace",
+        "siglap",
+        "bayshore"
+      ]
+    },
+    {
+      "code": "BP",
+      "name": "Bukit Panjang LRT",
+      "color": "#748477",
+      "style": "lrt",
+      "kind": "lrt",
+      "loop": true,
+      "stationOrder": [
+        "choa-chu-kang",
+        "south-view",
+        "keat-hong",
+        "teck-whye",
+        "phoenix",
+        "bukit-panjang",
+        "petir",
+        "pending",
+        "bangkit",
+        "fajar",
+        "segar",
+        "jelapang",
+        "senja"
+      ]
+    },
+    {
+      "code": "SE",
+      "name": "Sengkang LRT — East Loop",
+      "color": "#748477",
+      "style": "lrt",
+      "kind": "lrt",
+      "loop": true,
+      "stationOrder": [
+        "sengkang",
+        "compassvale",
+        "rumbia",
+        "bakau",
+        "kangkar",
+        "ranggung"
+      ]
+    },
+    {
+      "code": "SW",
+      "name": "Sengkang LRT — West Loop",
+      "color": "#748477",
+      "style": "lrt",
+      "kind": "lrt",
+      "loop": true,
+      "stationOrder": [
+        "sengkang",
+        "cheng-lim",
+        "farmway",
+        "kupang",
+        "thanggam",
+        "fernvale",
+        "layar",
+        "tongkang",
+        "renjong"
+      ]
+    },
+    {
+      "code": "PE",
+      "name": "Punggol LRT — East Loop",
+      "color": "#748477",
+      "style": "lrt",
+      "kind": "lrt",
+      "loop": true,
+      "stationOrder": [
+        "punggol",
+        "cove",
+        "meridian",
+        "coral-edge",
+        "riviera",
+        "oasis",
+        "damai",
+        "kadaloor"
+      ]
+    },
+    {
+      "code": "PW",
+      "name": "Punggol LRT — West Loop",
+      "color": "#748477",
+      "style": "lrt",
+      "kind": "lrt",
+      "loop": true,
+      "stationOrder": [
+        "punggol",
+        "sam-kee",
+        "teck-lee",
+        "punggol-point",
+        "samudera",
+        "nibong",
+        "sumang",
+        "soo-teck"
+      ]
+    }
+  ],
+  "stations": {
+    "jurong-east": {
+      "name": "Jurong East",
+      "x": 330,
+      "y": 460,
+      "codes": [
+        "NS:NS1",
+        "EW:EW24"
+      ],
+      "lines": [
+        "NS",
+        "EW"
+      ],
+      "interchange": true
+    },
+    "bukit-batok": {
+      "name": "Bukit Batok",
+      "x": 330,
+      "y": 400,
+      "codes": [
+        "NS:NS2"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "bukit-gombak": {
+      "name": "Bukit Gombak",
+      "x": 330,
+      "y": 350,
+      "codes": [
+        "NS:NS3"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "choa-chu-kang": {
+      "name": "Choa Chu Kang",
+      "x": 330,
+      "y": 290,
+      "codes": [
+        "NS:NS4",
+        "BP:BP1"
+      ],
+      "lines": [
+        "NS",
+        "BP"
+      ],
+      "interchange": true
+    },
+    "yew-tee": {
+      "name": "Yew Tee",
+      "x": 335,
+      "y": 235,
+      "codes": [
+        "NS:NS5"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "kranji": {
+      "name": "Kranji",
+      "x": 345,
+      "y": 140,
+      "codes": [
+        "NS:NS7"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "marsiling": {
+      "name": "Marsiling",
+      "x": 365,
+      "y": 95,
+      "codes": [
+        "NS:NS8"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "woodlands": {
+      "name": "Woodlands",
+      "x": 400,
+      "y": 55,
+      "codes": [
+        "NS:NS9",
+        "TE:TE2"
+      ],
+      "lines": [
+        "NS",
+        "TE"
+      ],
+      "interchange": true
+    },
+    "admiralty": {
+      "name": "Admiralty",
+      "x": 450,
+      "y": 60,
+      "codes": [
+        "NS:NS10"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "sembawang": {
+      "name": "Sembawang",
+      "x": 500,
+      "y": 75,
+      "codes": [
+        "NS:NS11"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "canberra": {
+      "name": "Canberra",
+      "x": 530,
+      "y": 100,
+      "codes": [
+        "NS:NS12"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "yishun": {
+      "name": "Yishun",
+      "x": 555,
+      "y": 140,
+      "codes": [
+        "NS:NS13"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "khatib": {
+      "name": "Khatib",
+      "x": 565,
+      "y": 185,
+      "codes": [
+        "NS:NS14"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "yio-chu-kang": {
+      "name": "Yio Chu Kang",
+      "x": 570,
+      "y": 230,
+      "codes": [
+        "NS:NS15"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "ang-mo-kio": {
+      "name": "Ang Mo Kio",
+      "x": 575,
+      "y": 280,
+      "codes": [
+        "NS:NS16"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "bishan": {
+      "name": "Bishan",
+      "x": 580,
+      "y": 330,
+      "codes": [
+        "NS:NS17",
+        "CC:CC15"
+      ],
+      "lines": [
+        "NS",
+        "CC"
+      ],
+      "interchange": true
+    },
+    "braddell": {
+      "name": "Braddell",
+      "x": 580,
+      "y": 370,
+      "codes": [
+        "NS:NS18"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "toa-payoh": {
+      "name": "Toa Payoh",
+      "x": 580,
+      "y": 405,
+      "codes": [
+        "NS:NS19"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "novena": {
+      "name": "Novena",
+      "x": 575,
+      "y": 440,
+      "codes": [
+        "NS:NS20"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "newton": {
+      "name": "Newton",
+      "x": 565,
+      "y": 470,
+      "codes": [
+        "NS:NS21",
+        "DT:DT11"
+      ],
+      "lines": [
+        "NS",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "orchard": {
+      "name": "Orchard",
+      "x": 545,
+      "y": 500,
+      "codes": [
+        "NS:NS22",
+        "TE:TE14"
+      ],
+      "lines": [
+        "NS",
+        "TE"
+      ],
+      "interchange": true
+    },
+    "somerset": {
+      "name": "Somerset",
+      "x": 550,
+      "y": 525,
+      "codes": [
+        "NS:NS23"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "dhoby-ghaut": {
+      "name": "Dhoby Ghaut",
+      "x": 545,
+      "y": 550,
+      "codes": [
+        "NS:NS24",
+        "NE:NE6",
+        "CC:CC1"
+      ],
+      "lines": [
+        "NS",
+        "NE",
+        "CC"
+      ],
+      "interchange": true
+    },
+    "city-hall": {
+      "name": "City Hall",
+      "x": 570,
+      "y": 575,
+      "codes": [
+        "NS:NS25",
+        "EW:EW13"
+      ],
+      "lines": [
+        "NS",
+        "EW"
+      ],
+      "interchange": true
+    },
+    "raffles-place": {
+      "name": "Raffles Place",
+      "x": 585,
+      "y": 600,
+      "codes": [
+        "NS:NS26",
+        "EW:EW14"
+      ],
+      "lines": [
+        "NS",
+        "EW"
+      ],
+      "interchange": true
+    },
+    "marina-bay": {
+      "name": "Marina Bay",
+      "x": 600,
+      "y": 650,
+      "codes": [
+        "NS:NS27",
+        "CC:CE2",
+        "TE:TE20"
+      ],
+      "lines": [
+        "NS",
+        "CC",
+        "TE"
+      ],
+      "interchange": true
+    },
+    "marina-south-pier": {
+      "name": "Marina South Pier",
+      "x": 600,
+      "y": 700,
+      "codes": [
+        "NS:NS28"
+      ],
+      "lines": [
+        "NS"
+      ],
+      "interchange": false
+    },
+    "pasir-ris": {
+      "name": "Pasir Ris",
+      "x": 950,
+      "y": 405,
+      "codes": [
+        "EW:EW1"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "tampines": {
+      "name": "Tampines",
+      "x": 920,
+      "y": 420,
+      "codes": [
+        "EW:EW2",
+        "DT:DT32"
+      ],
+      "lines": [
+        "EW",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "simei": {
+      "name": "Simei",
+      "x": 890,
+      "y": 430,
+      "codes": [
+        "EW:EW3"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "tanah-merah": {
+      "name": "Tanah Merah",
+      "x": 860,
+      "y": 440,
+      "codes": [
+        "EW:EW4",
+        "CG:EW4"
+      ],
+      "lines": [
+        "EW",
+        "CG"
+      ],
+      "interchange": true
+    },
+    "bedok": {
+      "name": "Bedok",
+      "x": 830,
+      "y": 450,
+      "codes": [
+        "EW:EW5"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "kembangan": {
+      "name": "Kembangan",
+      "x": 800,
+      "y": 460,
+      "codes": [
+        "EW:EW6"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "eunos": {
+      "name": "Eunos",
+      "x": 770,
+      "y": 470,
+      "codes": [
+        "EW:EW7"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "paya-lebar": {
+      "name": "Paya Lebar",
+      "x": 740,
+      "y": 480,
+      "codes": [
+        "EW:EW8",
+        "CC:CC9"
+      ],
+      "lines": [
+        "EW",
+        "CC"
+      ],
+      "interchange": true
+    },
+    "aljunied": {
+      "name": "Aljunied",
+      "x": 710,
+      "y": 495,
+      "codes": [
+        "EW:EW9"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "kallang": {
+      "name": "Kallang",
+      "x": 680,
+      "y": 510,
+      "codes": [
+        "EW:EW10"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "lavender": {
+      "name": "Lavender",
+      "x": 650,
+      "y": 530,
+      "codes": [
+        "EW:EW11"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "bugis": {
+      "name": "Bugis",
+      "x": 618,
+      "y": 557,
+      "codes": [
+        "EW:EW12",
+        "DT:DT14"
+      ],
+      "lines": [
+        "EW",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "tanjong-pagar": {
+      "name": "Tanjong Pagar",
+      "x": 555,
+      "y": 600,
+      "codes": [
+        "EW:EW15"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "outram-park": {
+      "name": "Outram Park",
+      "x": 530,
+      "y": 590,
+      "codes": [
+        "EW:EW16",
+        "NE:NE3",
+        "TE:TE17"
+      ],
+      "lines": [
+        "EW",
+        "NE",
+        "TE"
+      ],
+      "interchange": true
+    },
+    "tiong-bahru": {
+      "name": "Tiong Bahru",
+      "x": 510,
+      "y": 575,
+      "codes": [
+        "EW:EW17"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "redhill": {
+      "name": "Redhill",
+      "x": 490,
+      "y": 565,
+      "codes": [
+        "EW:EW18"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "queenstown": {
+      "name": "Queenstown",
+      "x": 470,
+      "y": 555,
+      "codes": [
+        "EW:EW19"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "commonwealth": {
+      "name": "Commonwealth",
+      "x": 450,
+      "y": 545,
+      "codes": [
+        "EW:EW20"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "buona-vista": {
+      "name": "Buona Vista",
+      "x": 425,
+      "y": 530,
+      "codes": [
+        "EW:EW21",
+        "CC:CC22"
+      ],
+      "lines": [
+        "EW",
+        "CC"
+      ],
+      "interchange": true
+    },
+    "dover": {
+      "name": "Dover",
+      "x": 400,
+      "y": 510,
+      "codes": [
+        "EW:EW22"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "clementi": {
+      "name": "Clementi",
+      "x": 365,
+      "y": 490,
+      "codes": [
+        "EW:EW23"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "chinese-garden": {
+      "name": "Chinese Garden",
+      "x": 300,
+      "y": 455,
+      "codes": [
+        "EW:EW25"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "lakeside": {
+      "name": "Lakeside",
+      "x": 270,
+      "y": 450,
+      "codes": [
+        "EW:EW26"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "boon-lay": {
+      "name": "Boon Lay",
+      "x": 235,
+      "y": 455,
+      "codes": [
+        "EW:EW27"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "pioneer": {
+      "name": "Pioneer",
+      "x": 200,
+      "y": 460,
+      "codes": [
+        "EW:EW28"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "joo-koon": {
+      "name": "Joo Koon",
+      "x": 165,
+      "y": 465,
+      "codes": [
+        "EW:EW29"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "gul-circle": {
+      "name": "Gul Circle",
+      "x": 125,
+      "y": 470,
+      "codes": [
+        "EW:EW30"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "tuas-crescent": {
+      "name": "Tuas Crescent",
+      "x": 90,
+      "y": 475,
+      "codes": [
+        "EW:EW31"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "tuas-west-road": {
+      "name": "Tuas West Road",
+      "x": 55,
+      "y": 480,
+      "codes": [
+        "EW:EW32"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "tuas-link": {
+      "name": "Tuas Link",
+      "x": 20,
+      "y": 480,
+      "codes": [
+        "EW:EW33"
+      ],
+      "lines": [
+        "EW"
+      ],
+      "interchange": false
+    },
+    "expo": {
+      "name": "Expo",
+      "x": 890,
+      "y": 480,
+      "codes": [
+        "CG:CG1",
+        "DT:DT35"
+      ],
+      "lines": [
+        "CG",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "changi-airport": {
+      "name": "Changi Airport",
+      "x": 890,
+      "y": 530,
+      "codes": [
+        "CG:CG2"
+      ],
+      "lines": [
+        "CG"
+      ],
+      "interchange": false
+    },
+    "harbourfront": {
+      "name": "HarbourFront",
+      "x": 560,
+      "y": 650,
+      "codes": [
+        "NE:NE1",
+        "CC:CC29"
+      ],
+      "lines": [
+        "NE",
+        "CC"
+      ],
+      "interchange": true
+    },
+    "chinatown": {
+      "name": "Chinatown",
+      "x": 555,
+      "y": 610,
+      "codes": [
+        "NE:NE4",
+        "DT:DT19"
+      ],
+      "lines": [
+        "NE",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "clarke-quay": {
+      "name": "Clarke Quay",
+      "x": 560,
+      "y": 585,
+      "codes": [
+        "NE:NE5"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "little-india": {
+      "name": "Little India",
+      "x": 600,
+      "y": 520,
+      "codes": [
+        "NE:NE7",
+        "DT:DT12"
+      ],
+      "lines": [
+        "NE",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "farrer-park": {
+      "name": "Farrer Park",
+      "x": 625,
+      "y": 500,
+      "codes": [
+        "NE:NE8"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "boon-keng": {
+      "name": "Boon Keng",
+      "x": 650,
+      "y": 480,
+      "codes": [
+        "NE:NE9"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "potong-pasir": {
+      "name": "Potong Pasir",
+      "x": 670,
+      "y": 455,
+      "codes": [
+        "NE:NE10"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "woodleigh": {
+      "name": "Woodleigh",
+      "x": 685,
+      "y": 430,
+      "codes": [
+        "NE:NE11"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "serangoon": {
+      "name": "Serangoon",
+      "x": 660,
+      "y": 370,
+      "codes": [
+        "NE:NE12",
+        "CC:CC13"
+      ],
+      "lines": [
+        "NE",
+        "CC"
+      ],
+      "interchange": true
+    },
+    "kovan": {
+      "name": "Kovan",
+      "x": 680,
+      "y": 340,
+      "codes": [
+        "NE:NE13"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "hougang": {
+      "name": "Hougang",
+      "x": 700,
+      "y": 310,
+      "codes": [
+        "NE:NE14"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "buangkok": {
+      "name": "Buangkok",
+      "x": 715,
+      "y": 280,
+      "codes": [
+        "NE:NE15"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "sengkang": {
+      "name": "Sengkang",
+      "x": 730,
+      "y": 250,
+      "codes": [
+        "NE:NE16",
+        "SE:STC",
+        "SW:STC"
+      ],
+      "lines": [
+        "NE",
+        "SE",
+        "SW"
+      ],
+      "interchange": true
+    },
+    "punggol": {
+      "name": "Punggol",
+      "x": 745,
+      "y": 200,
+      "codes": [
+        "NE:NE17",
+        "PE:PTC",
+        "PW:PTC"
+      ],
+      "lines": [
+        "NE",
+        "PE",
+        "PW"
+      ],
+      "interchange": true
+    },
+    "punggol-coast": {
+      "name": "Punggol Coast",
+      "x": 755,
+      "y": 170,
+      "codes": [
+        "NE:NE18"
+      ],
+      "lines": [
+        "NE"
+      ],
+      "interchange": false
+    },
+    "bras-basah": {
+      "name": "Bras Basah",
+      "x": 565,
+      "y": 530,
+      "codes": [
+        "CC:CC2"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "esplanade": {
+      "name": "Esplanade",
+      "x": 590,
+      "y": 540,
+      "codes": [
+        "CC:CC3"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "promenade": {
+      "name": "Promenade",
+      "x": 615,
+      "y": 535,
+      "codes": [
+        "CC:CC4",
+        "DT:DT15"
+      ],
+      "lines": [
+        "CC",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "nicoll-highway": {
+      "name": "Nicoll Highway",
+      "x": 635,
+      "y": 525,
+      "codes": [
+        "CC:CC5"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "stadium": {
+      "name": "Stadium",
+      "x": 655,
+      "y": 510,
+      "codes": [
+        "CC:CC6"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "mountbatten": {
+      "name": "Mountbatten",
+      "x": 670,
+      "y": 490,
+      "codes": [
+        "CC:CC7"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "dakota": {
+      "name": "Dakota",
+      "x": 685,
+      "y": 470,
+      "codes": [
+        "CC:CC8"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "macpherson": {
+      "name": "MacPherson",
+      "x": 700,
+      "y": 460,
+      "codes": [
+        "CC:CC10",
+        "DT:DT26"
+      ],
+      "lines": [
+        "CC",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "tai-seng": {
+      "name": "Tai Seng",
+      "x": 670,
+      "y": 430,
+      "codes": [
+        "CC:CC11"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "bartley": {
+      "name": "Bartley",
+      "x": 645,
+      "y": 400,
+      "codes": [
+        "CC:CC12"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "lorong-chuan": {
+      "name": "Lorong Chuan",
+      "x": 620,
+      "y": 350,
+      "codes": [
+        "CC:CC14"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "marymount": {
+      "name": "Marymount",
+      "x": 525,
+      "y": 340,
+      "codes": [
+        "CC:CC16"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "caldecott": {
+      "name": "Caldecott",
+      "x": 465,
+      "y": 350,
+      "codes": [
+        "CC:CC17",
+        "TE:TE9"
+      ],
+      "lines": [
+        "CC",
+        "TE"
+      ],
+      "interchange": true
+    },
+    "botanic-gardens": {
+      "name": "Botanic Gardens",
+      "x": 430,
+      "y": 395,
+      "codes": [
+        "CC:CC19",
+        "DT:DT9"
+      ],
+      "lines": [
+        "CC",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "farrer-road": {
+      "name": "Farrer Road",
+      "x": 405,
+      "y": 410,
+      "codes": [
+        "CC:CC20"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "holland-village": {
+      "name": "Holland Village",
+      "x": 390,
+      "y": 435,
+      "codes": [
+        "CC:CC21"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "one-north": {
+      "name": "one-north",
+      "x": 440,
+      "y": 555,
+      "codes": [
+        "CC:CC23"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "kent-ridge": {
+      "name": "Kent Ridge",
+      "x": 455,
+      "y": 580,
+      "codes": [
+        "CC:CC24"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "haw-par-villa": {
+      "name": "Haw Par Villa",
+      "x": 470,
+      "y": 600,
+      "codes": [
+        "CC:CC25"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "pasir-panjang": {
+      "name": "Pasir Panjang",
+      "x": 490,
+      "y": 615,
+      "codes": [
+        "CC:CC26"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "labrador-park": {
+      "name": "Labrador Park",
+      "x": 510,
+      "y": 630,
+      "codes": [
+        "CC:CC27"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "telok-blangah": {
+      "name": "Telok Blangah",
+      "x": 535,
+      "y": 640,
+      "codes": [
+        "CC:CC28"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "keppel": {
+      "name": "Keppel",
+      "x": 590,
+      "y": 645,
+      "codes": [
+        "CC:CC30"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "cantonment": {
+      "name": "Cantonment",
+      "x": 615,
+      "y": 630,
+      "codes": [
+        "CC:CC31"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "prince-edward-road": {
+      "name": "Prince Edward Road",
+      "x": 640,
+      "y": 610,
+      "codes": [
+        "CC:CC32"
+      ],
+      "lines": [
+        "CC"
+      ],
+      "interchange": false
+    },
+    "bayfront": {
+      "name": "Bayfront",
+      "x": 635,
+      "y": 565,
+      "codes": [
+        "CC:CE1",
+        "DT:DT16"
+      ],
+      "lines": [
+        "CC",
+        "DT"
+      ],
+      "interchange": true
+    },
+    "bukit-panjang": {
+      "name": "Bukit Panjang",
+      "x": 300,
+      "y": 260,
+      "codes": [
+        "DT:DT1",
+        "BP:BP6"
+      ],
+      "lines": [
+        "DT",
+        "BP"
+      ],
+      "interchange": true
+    },
+    "cashew": {
+      "name": "Cashew",
+      "x": 325,
+      "y": 280,
+      "codes": [
+        "DT:DT2"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "hillview": {
+      "name": "Hillview",
+      "x": 350,
+      "y": 300,
+      "codes": [
+        "DT:DT3"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "hume": {
+      "name": "Hume",
+      "x": 375,
+      "y": 315,
+      "codes": [
+        "DT:DT4"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "beauty-world": {
+      "name": "Beauty World",
+      "x": 395,
+      "y": 335,
+      "codes": [
+        "DT:DT5"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "king-albert-park": {
+      "name": "King Albert Park",
+      "x": 410,
+      "y": 355,
+      "codes": [
+        "DT:DT6"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "sixth-avenue": {
+      "name": "Sixth Avenue",
+      "x": 420,
+      "y": 370,
+      "codes": [
+        "DT:DT7"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "tan-kah-kee": {
+      "name": "Tan Kah Kee",
+      "x": 425,
+      "y": 385,
+      "codes": [
+        "DT:DT8"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "stevens": {
+      "name": "Stevens",
+      "x": 455,
+      "y": 375,
+      "codes": [
+        "DT:DT10",
+        "TE:TE11"
+      ],
+      "lines": [
+        "DT",
+        "TE"
+      ],
+      "interchange": true
+    },
+    "rochor": {
+      "name": "Rochor",
+      "x": 600,
+      "y": 545,
+      "codes": [
+        "DT:DT13"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "downtown": {
+      "name": "Downtown",
+      "x": 600,
+      "y": 615,
+      "codes": [
+        "DT:DT17"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "telok-ayer": {
+      "name": "Telok Ayer",
+      "x": 580,
+      "y": 625,
+      "codes": [
+        "DT:DT18"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "fort-canning": {
+      "name": "Fort Canning",
+      "x": 565,
+      "y": 590,
+      "codes": [
+        "DT:DT20"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "bencoolen": {
+      "name": "Bencoolen",
+      "x": 585,
+      "y": 570,
+      "codes": [
+        "DT:DT21"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "jalan-besar": {
+      "name": "Jalan Besar",
+      "x": 610,
+      "y": 555,
+      "codes": [
+        "DT:DT22"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "bendemeer": {
+      "name": "Bendemeer",
+      "x": 635,
+      "y": 540,
+      "codes": [
+        "DT:DT23"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "geylang-bahru": {
+      "name": "Geylang Bahru",
+      "x": 660,
+      "y": 520,
+      "codes": [
+        "DT:DT24"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "mattar": {
+      "name": "Mattar",
+      "x": 680,
+      "y": 490,
+      "codes": [
+        "DT:DT25"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "ubi": {
+      "name": "Ubi",
+      "x": 720,
+      "y": 445,
+      "codes": [
+        "DT:DT27"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "kaki-bukit": {
+      "name": "Kaki Bukit",
+      "x": 740,
+      "y": 435,
+      "codes": [
+        "DT:DT28"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "bedok-north": {
+      "name": "Bedok North",
+      "x": 770,
+      "y": 430,
+      "codes": [
+        "DT:DT29"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "bedok-reservoir": {
+      "name": "Bedok Reservoir",
+      "x": 800,
+      "y": 425,
+      "codes": [
+        "DT:DT30"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "tampines-west": {
+      "name": "Tampines West",
+      "x": 860,
+      "y": 420,
+      "codes": [
+        "DT:DT31"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "tampines-east": {
+      "name": "Tampines East",
+      "x": 945,
+      "y": 410,
+      "codes": [
+        "DT:DT33"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "upper-changi": {
+      "name": "Upper Changi",
+      "x": 930,
+      "y": 450,
+      "codes": [
+        "DT:DT34"
+      ],
+      "lines": [
+        "DT"
+      ],
+      "interchange": false
+    },
+    "woodlands-north": {
+      "name": "Woodlands North",
+      "x": 390,
+      "y": 40,
+      "codes": [
+        "TE:TE1"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "woodlands-south": {
+      "name": "Woodlands South",
+      "x": 410,
+      "y": 80,
+      "codes": [
+        "TE:TE3"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "springleaf": {
+      "name": "Springleaf",
+      "x": 430,
+      "y": 120,
+      "codes": [
+        "TE:TE4"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "lentor": {
+      "name": "Lentor",
+      "x": 445,
+      "y": 160,
+      "codes": [
+        "TE:TE5"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "mayflower": {
+      "name": "Mayflower",
+      "x": 455,
+      "y": 195,
+      "codes": [
+        "TE:TE6"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "bright-hill": {
+      "name": "Bright Hill",
+      "x": 460,
+      "y": 230,
+      "codes": [
+        "TE:TE7"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "upper-thomson": {
+      "name": "Upper Thomson",
+      "x": 462,
+      "y": 270,
+      "codes": [
+        "TE:TE8"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "napier": {
+      "name": "Napier",
+      "x": 485,
+      "y": 420,
+      "codes": [
+        "TE:TE12"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "orchard-boulevard": {
+      "name": "Orchard Boulevard",
+      "x": 510,
+      "y": 455,
+      "codes": [
+        "TE:TE13"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "great-world": {
+      "name": "Great World",
+      "x": 530,
+      "y": 540,
+      "codes": [
+        "TE:TE15"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "havelock": {
+      "name": "Havelock",
+      "x": 520,
+      "y": 560,
+      "codes": [
+        "TE:TE16"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "maxwell": {
+      "name": "Maxwell",
+      "x": 545,
+      "y": 605,
+      "codes": [
+        "TE:TE18"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "shenton-way": {
+      "name": "Shenton Way",
+      "x": 565,
+      "y": 615,
+      "codes": [
+        "TE:TE19"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "gardens-by-the-bay": {
+      "name": "Gardens by the Bay",
+      "x": 650,
+      "y": 660,
+      "codes": [
+        "TE:TE22"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "tanjong-rhu": {
+      "name": "Tanjong Rhu",
+      "x": 690,
+      "y": 630,
+      "codes": [
+        "TE:TE23"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "katong-park": {
+      "name": "Katong Park",
+      "x": 720,
+      "y": 610,
+      "codes": [
+        "TE:TE24"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "tanjong-katong": {
+      "name": "Tanjong Katong",
+      "x": 750,
+      "y": 600,
+      "codes": [
+        "TE:TE25"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "marine-parade": {
+      "name": "Marine Parade",
+      "x": 780,
+      "y": 595,
+      "codes": [
+        "TE:TE26"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "marine-terrace": {
+      "name": "Marine Terrace",
+      "x": 810,
+      "y": 590,
+      "codes": [
+        "TE:TE27"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "siglap": {
+      "name": "Siglap",
+      "x": 840,
+      "y": 585,
+      "codes": [
+        "TE:TE28"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "bayshore": {
+      "name": "Bayshore",
+      "x": 870,
+      "y": 580,
+      "codes": [
+        "TE:TE29"
+      ],
+      "lines": [
+        "TE"
+      ],
+      "interchange": false
+    },
+    "south-view": {
+      "name": "South View",
+      "x": 350,
+      "y": 280,
+      "codes": [
+        "BP:BP2"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "keat-hong": {
+      "name": "Keat Hong",
+      "x": 370,
+      "y": 270,
+      "codes": [
+        "BP:BP3"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "teck-whye": {
+      "name": "Teck Whye",
+      "x": 385,
+      "y": 255,
+      "codes": [
+        "BP:BP4"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "phoenix": {
+      "name": "Phoenix",
+      "x": 370,
+      "y": 235,
+      "codes": [
+        "BP:BP5"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "petir": {
+      "name": "Petir",
+      "x": 280,
+      "y": 290,
+      "codes": [
+        "BP:BP7"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "pending": {
+      "name": "Pending",
+      "x": 270,
+      "y": 320,
+      "codes": [
+        "BP:BP8"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "bangkit": {
+      "name": "Bangkit",
+      "x": 280,
+      "y": 350,
+      "codes": [
+        "BP:BP9"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "fajar": {
+      "name": "Fajar",
+      "x": 300,
+      "y": 370,
+      "codes": [
+        "BP:BP10"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "segar": {
+      "name": "Segar",
+      "x": 320,
+      "y": 375,
+      "codes": [
+        "BP:BP11"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "jelapang": {
+      "name": "Jelapang",
+      "x": 340,
+      "y": 360,
+      "codes": [
+        "BP:BP12"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "senja": {
+      "name": "Senja",
+      "x": 345,
+      "y": 330,
+      "codes": [
+        "BP:BP13"
+      ],
+      "lines": [
+        "BP"
+      ],
+      "interchange": false
+    },
+    "compassvale": {
+      "name": "Compassvale",
+      "x": 760,
+      "y": 240,
+      "codes": [
+        "SE:SE1"
+      ],
+      "lines": [
+        "SE"
+      ],
+      "interchange": false
+    },
+    "rumbia": {
+      "name": "Rumbia",
+      "x": 775,
+      "y": 255,
+      "codes": [
+        "SE:SE2"
+      ],
+      "lines": [
+        "SE"
+      ],
+      "interchange": false
+    },
+    "bakau": {
+      "name": "Bakau",
+      "x": 770,
+      "y": 275,
+      "codes": [
+        "SE:SE3"
+      ],
+      "lines": [
+        "SE"
+      ],
+      "interchange": false
+    },
+    "kangkar": {
+      "name": "Kangkar",
+      "x": 750,
+      "y": 285,
+      "codes": [
+        "SE:SE4"
+      ],
+      "lines": [
+        "SE"
+      ],
+      "interchange": false
+    },
+    "ranggung": {
+      "name": "Ranggung",
+      "x": 735,
+      "y": 270,
+      "codes": [
+        "SE:SE5"
+      ],
+      "lines": [
+        "SE"
+      ],
+      "interchange": false
+    },
+    "cheng-lim": {
+      "name": "Cheng Lim",
+      "x": 710,
+      "y": 235,
+      "codes": [
+        "SW:SW1"
+      ],
+      "lines": [
+        "SW"
+      ],
+      "interchange": false
+    },
+    "farmway": {
+      "name": "Farmway",
+      "x": 690,
+      "y": 225,
+      "codes": [
+        "SW:SW2"
+      ],
+      "lines": [
+        "SW"
+      ],
+      "interchange": false
+    },
+    "kupang": {
+      "name": "Kupang",
+      "x": 670,
+      "y": 230,
+      "codes": [
+        "SW:SW3"
+      ],
+      "lines": [
+        "SW"
+      ],
+      "interchange": false
+    },
+    "thanggam": {
+      "name": "Thanggam",
+      "x": 655,
+      "y": 245,
+      "codes": [
+        "SW:SW4"
+      ],
+      "lines": [
+        "SW"
+      ],
+      "interchange": false
+    },
+    "fernvale": {
+      "name": "Fernvale",
+      "x": 650,
+      "y": 265,
+      "codes": [
+        "SW:SW5"
+      ],
+      "lines": [
+        "SW"
+      ],
+      "interchange": false
+    },
+    "layar": {
+      "name": "Layar",
+      "x": 660,
+      "y": 285,
+      "codes": [
+        "SW:SW6"
+      ],
+      "lines": [
+        "SW"
+      ],
+      "interchange": false
+    },
+    "tongkang": {
+      "name": "Tongkang",
+      "x": 680,
+      "y": 290,
+      "codes": [
+        "SW:SW7"
+      ],
+      "lines": [
+        "SW"
+      ],
+      "interchange": false
+    },
+    "renjong": {
+      "name": "Renjong",
+      "x": 705,
+      "y": 280,
+      "codes": [
+        "SW:SW8"
+      ],
+      "lines": [
+        "SW"
+      ],
+      "interchange": false
+    },
+    "cove": {
+      "name": "Cove",
+      "x": 775,
+      "y": 195,
+      "codes": [
+        "PE:PE1"
+      ],
+      "lines": [
+        "PE"
+      ],
+      "interchange": false
+    },
+    "meridian": {
+      "name": "Meridian",
+      "x": 790,
+      "y": 175,
+      "codes": [
+        "PE:PE2"
+      ],
+      "lines": [
+        "PE"
+      ],
+      "interchange": false
+    },
+    "coral-edge": {
+      "name": "Coral Edge",
+      "x": 780,
+      "y": 155,
+      "codes": [
+        "PE:PE3"
+      ],
+      "lines": [
+        "PE"
+      ],
+      "interchange": false
+    },
+    "riviera": {
+      "name": "Riviera",
+      "x": 760,
+      "y": 145,
+      "codes": [
+        "PE:PE4"
+      ],
+      "lines": [
+        "PE"
+      ],
+      "interchange": false
+    },
+    "oasis": {
+      "name": "Oasis",
+      "x": 740,
+      "y": 150,
+      "codes": [
+        "PE:PE6"
+      ],
+      "lines": [
+        "PE"
+      ],
+      "interchange": false
+    },
+    "damai": {
+      "name": "Damai",
+      "x": 725,
+      "y": 165,
+      "codes": [
+        "PE:PE7"
+      ],
+      "lines": [
+        "PE"
+      ],
+      "interchange": false
+    },
+    "kadaloor": {
+      "name": "Kadaloor",
+      "x": 730,
+      "y": 185,
+      "codes": [
+        "PE:PE5"
+      ],
+      "lines": [
+        "PE"
+      ],
+      "interchange": false
+    },
+    "sam-kee": {
+      "name": "Sam Kee",
+      "x": 720,
+      "y": 195,
+      "codes": [
+        "PW:PW1"
+      ],
+      "lines": [
+        "PW"
+      ],
+      "interchange": false
+    },
+    "teck-lee": {
+      "name": "Teck Lee",
+      "x": 700,
+      "y": 180,
+      "codes": [
+        "PW:PW2"
+      ],
+      "lines": [
+        "PW"
+      ],
+      "interchange": false
+    },
+    "punggol-point": {
+      "name": "Punggol Point",
+      "x": 695,
+      "y": 160,
+      "codes": [
+        "PW:PW3"
+      ],
+      "lines": [
+        "PW"
+      ],
+      "interchange": false
+    },
+    "samudera": {
+      "name": "Samudera",
+      "x": 710,
+      "y": 140,
+      "codes": [
+        "PW:PW4"
+      ],
+      "lines": [
+        "PW"
+      ],
+      "interchange": false
+    },
+    "nibong": {
+      "name": "Nibong",
+      "x": 730,
+      "y": 135,
+      "codes": [
+        "PW:PW5"
+      ],
+      "lines": [
+        "PW"
+      ],
+      "interchange": false
+    },
+    "sumang": {
+      "name": "Sumang",
+      "x": 745,
+      "y": 145,
+      "codes": [
+        "PW:PW6"
+      ],
+      "lines": [
+        "PW"
+      ],
+      "interchange": false
+    },
+    "soo-teck": {
+      "name": "Soo Teck",
+      "x": 750,
+      "y": 170,
+      "codes": [
+        "PW:PW7"
+      ],
+      "lines": [
+        "PW"
+      ],
+      "interchange": false
+    }
+  }
+}
