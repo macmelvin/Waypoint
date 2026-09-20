@@ -1,14 +1,107 @@
+/* =========================================================================
+   DESIGN TOKENS — "Apple feel" design system
+   Everything below is a custom property so every color, radius, shadow,
+   font and timing value in the file traces back to one accountable place.
+   The original token names (--accent, --ink, --muted, --border, --bg,
+   --panel-bg, --danger, --radius, --shadow) are kept as aliases so nothing
+   elsewhere in this file (or in app.js, which never reads CSS vars) has to
+   change to pick up the new system — they now just point at the new scale.
+   ========================================================================= */
 :root {
+  /* ---- Brand accent (unchanged — this is Waypoint's existing blue) ---- */
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
-  --ink: #1a1a1a;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --bg: #ffffff;
-  --panel-bg: #fafafa;
+  --accent-light: #eff4ff;          /* tint used for hover/active backgrounds */
+  --accent-tint-weak: rgba(37, 99, 235, 0.12);
+  --accent-tint-strong: rgba(37, 99, 235, 0.22);
+
+  /* ---- Neutral / gray scale (iOS system-gray inspired) ---- */
+  --gray-50:  #f7f7f9;   /* systemGray6 — faint fills, app background */
+  --gray-100: #f0f0f3;   /* systemGray6 (alt) */
+  --gray-200: #e4e4e9;   /* systemGray5 — hairlines, chip fills */
+  --gray-300: #d3d3d9;   /* systemGray4 */
+  --gray-400: #c2c2c9;   /* systemGray3 */
+  --gray-500: #a2a2ab;   /* systemGray2 */
+  --gray-600: #7c7c86;   /* systemGray */
+  --gray-700: #5b5b64;
+  --gray-800: #38383f;
+  --gray-900: #1c1c1e;
+
+  /* ---- Label (text) hierarchy — iOS: label / secondaryLabel / tertiaryLabel ---- */
+  --label-primary: #1c1c1e;
+  --label-secondary: #66666f;
+  --label-tertiary: #9a9aa3;
+  --label-quaternary: #c6c6cc;
+
+  /* ---- Surfaces ---- */
+  --surface-bg: #ffffff;            /* base app background */
+  --surface-secondary: #f5f5f8;     /* grouped/secondary background (was --panel-bg) */
+  --surface-elevated: #ffffff;      /* cards, sheets, popovers */
+  --surface-fill: rgba(120, 120, 128, 0.12);   /* subtle neutral fill, e.g. pressed states */
+  --surface-fill-strong: rgba(120, 120, 128, 0.2);
+
+  /* ---- Hairlines ---- */
+  --separator: #e4e4e9;             /* opaque hairline (was --border) */
+  --separator-translucent: rgba(60, 60, 67, 0.14);
+
+  /* ---- Semantic colors ---- */
   --danger: #dc2626;
-  --radius: 10px;
-  --shadow: 0 2px 10px rgba(0,0,0,0.08);
+  --danger-tint: #fef2f2;
+  --success: #16a34a;
+  --warning: #d97706;
+
+  /* ---- Back-compat aliases (kept so every existing rule below still resolves) ---- */
+  --ink: var(--label-primary);
+  --muted: var(--label-secondary);
+  --border: var(--separator);
+  --bg: var(--surface-bg);
+  --panel-bg: var(--surface-secondary);
+
+  /* ---- Corner radius scale ---- */
+  --radius-xs: 8px;      /* tiny controls: dots, tags */
+  --radius-sm: 10px;     /* inputs, chips, small buttons */
+  --radius-md: 14px;     /* cards, list rows, panels */
+  --radius-lg: 20px;     /* sheets, large modals */
+  --radius-xl: 28px;     /* full sheets / drawers */
+  --radius-pill: 999px;  /* pills, segmented controls */
+  --radius: var(--radius-sm); /* back-compat default */
+
+  /* ---- Elevation (layered, soft shadows — not harsh drop-shadows) ---- */
+  --shadow-1: 0 1px 2px rgba(20, 20, 30, 0.05), 0 1px 1px rgba(20, 20, 30, 0.04);
+  --shadow-2: 0 6px 20px rgba(20, 20, 30, 0.10), 0 1px 3px rgba(20, 20, 30, 0.06);
+  --shadow-3: 0 16px 40px rgba(20, 20, 30, 0.18), 0 4px 10px rgba(20, 20, 30, 0.08);
+  --shadow: var(--shadow-2); /* back-compat default */
+
+  /* ---- Materials (iOS-style frosted/translucent chrome) ---- */
+  --material-thin: rgba(255, 255, 255, 0.6);
+  --material-regular: rgba(255, 255, 255, 0.78);
+  --material-thick: rgba(255, 255, 255, 0.92);
+  --material-dark: rgba(28, 28, 30, 0.72);
+  --material-blur: blur(20px) saturate(180%);
+  --material-blur-light: blur(12px) saturate(160%);
+
+  /* ---- Typography ---- */
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --text-title: 800 26px/1.15 var(--font-system);
+  --text-headline: 700 17px/1.25 var(--font-system);
+  --text-body: 400 15px/1.45 var(--font-system);
+  --tracking-tight: -0.02em;   /* negative tracking for large bold headlines, iOS-style */
+
+  /* ---- Motion ---- */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);   /* sheets, overlays sliding in */
+  --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);     /* small state changes */
+  --duration-fast: 0.15s;
+  --duration-base: 0.28s;
+  --duration-slow: 0.42s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -16,9 +109,38 @@
 html, body {
   height: 100%;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-system);
+  font-size: 15px;
+  line-height: 1.45;
   color: var(--ink);
   background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, input {
+  font-family: inherit;
+}
+
+/* iOS-style tap feedback: a small scale-down + fade on buttons, and a
+   plain fade on links (a bare text link shrinking on tap reads as broken,
+   not native — iOS fades links, not scales them). Both ride on top of each
+   control's own hover/active rules further down. Reduced-motion users get
+   the instant version via the media query above. */
+button:not(:disabled),
+a {
+  transition: transform var(--duration-fast) var(--ease-snappy), opacity var(--duration-fast) var(--ease-snappy), background var(--duration-fast) var(--ease-snappy), border-color var(--duration-fast) var(--ease-snappy), color var(--duration-fast) var(--ease-snappy), box-shadow var(--duration-fast) var(--ease-snappy);
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+a:active {
+  opacity: 0.6;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 #app {
