@@ -78,7 +78,7 @@ async function placeStatus(placeId) {
   return (await res.json()).businessStatus || 'UNKNOWN';
 }
 
-// Fetches phone numbers for confirmed, visible cafes (one lookup each). Run it
+// Fetches phone numbers and weekly opening hours for confirmed, visible cafes (one lookup each). Run it
 // on demand — it uses a pricier Google field than the weekly status check, so
 // it is deliberately not part of that job. Google only lets Places data be
 // cached for a limited time, so re-run it from time to time.
@@ -89,12 +89,15 @@ async function fillPhones() {
   for (const cafe of cafes.filter((c) => c.reviewed && !c.hidden)) {
     try {
       const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(cafe.placeId)}`, {
-        headers: { 'X-Goog-Api-Key': API_KEY, 'X-Goog-FieldMask': 'id,nationalPhoneNumber' },
+        headers: { 'X-Goog-Api-Key': API_KEY, 'X-Goog-FieldMask': 'id,nationalPhoneNumber,regularOpeningHours.weekdayDescriptions' },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const phone = (await res.json()).nationalPhoneNumber || '';
+      const data = await res.json();
+      const phone = data.nationalPhoneNumber || '';
       if (phone) filled++;
       cafe.phone = phone;
+      // Hours you typed in by hand are never overwritten.
+      if (!cafe.hoursManual) cafe.hours = data.regularOpeningHours?.weekdayDescriptions || [];
       cafe.phoneCheckedAt = new Date().toISOString();
     } catch (err) {
       console.warn(`pet-cafes: phone for ${cafe.name}: ${err.message}`); errors++;
@@ -197,7 +200,7 @@ function register(app, { requireAdmin }) {
       .map((c) => ({
         label: c.name, address: c.address, lat: c.lat, lon: c.lon,
         hasIndoor: c.hasIndoor === true, hasOutdoor: c.hasOutdoor === true,
-        animals: c.animals || [], notes: c.notes || '', mapsUrl: c.mapsUrl || '', phone: c.phone || '',
+        animals: c.animals || [], notes: c.notes || '', mapsUrl: c.mapsUrl || '', phone: c.phone || '', hours: c.hours || [],
         distanceMeters: Math.round(haversineMeters(lat, lon, c.lat, c.lon)),
       }))
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
@@ -215,7 +218,7 @@ function register(app, { requireAdmin }) {
   app.post('/api/admin/pet-cafes/discover', requireAdmin, async (req, res) => {
     try { res.json(await exclusive(discover)); } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
   });
-  app.post('/api/admin/pet-cafes/phones', requireAdmin, async (req, res) => {
+  app.post(['/api/admin/pet-cafes/phones', '/api/admin/pet-cafes/details'], requireAdmin, async (req, res) => {
     try { res.json(await exclusive(fillPhones)); } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
   });
   app.post('/api/admin/pet-cafes/verify', requireAdmin, async (req, res) => {
@@ -233,6 +236,11 @@ function register(app, { requireAdmin }) {
     if (Array.isArray(b.animals)) cafe.animals = b.animals.map(String).slice(0, 6);
     if (typeof b.notes === 'string') cafe.notes = b.notes.slice(0, 300);
     if (typeof b.phone === 'string') cafe.phone = b.phone.slice(0, 40);
+    // hours: 7 lines, Monday first, e.g. ["Monday: 11:00 AM – 8:00 PM", ...]. [] clears manual hours.
+    if (Array.isArray(b.hours)) {
+      cafe.hours = b.hours.map((h) => String(h).slice(0, 60)).slice(0, 7);
+      cafe.hoursManual = cafe.hours.length > 0;
+    }
     writeJson(CAFES_FILE, cafes);
     res.json({ cafe });
   });

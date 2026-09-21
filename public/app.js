@@ -654,6 +654,12 @@ async function fetchNearbyCarparks(lat, lon) {
 // Shaped to match fetchCategoryPlaces' { places, radiusUsed }. The address
 // line carries the dining/animal tags, and the shared renderer appends the
 // distance.
+function petCafeTodayHours(hours) {
+  if (!hours || !hours.length) return '';
+  const day = new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: 'Asia/Singapore' });
+  const line = hours.find((h) => h.startsWith(day));
+  return line ? `🕒 ${line.replace(/^[A-Za-z]+:\s*/, '')}` : '';
+}
 const PET_CAFE_DINE = { petcafe: '', petcafeoutdoor: 'outdoor', petcafeindoor: 'indoor' };
 async function fetchNearbyPetCafes(category, lat, lon) {
   const dine = PET_CAFE_DINE[category];
@@ -662,7 +668,7 @@ async function fetchNearbyPetCafes(category, lat, lon) {
   if (!res.ok) throw new Error(data.error || `Pet cafes responded ${res.status}`);
   const places = (data.cafes || []).map((c) => ({
     label: c.label,
-    address: [c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || []), c.phone && `📞 ${c.phone}`].filter(Boolean).join(' · '),
+    address: [c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || []), petCafeTodayHours(c.hours), c.phone && `📞 ${c.phone}`].filter(Boolean).join(' · '),
     lat: c.lat,
     lon: c.lon,
   }));
