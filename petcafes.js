@@ -142,7 +142,7 @@ async function fillPhones() {
   if (!API_KEY) throw new Error('GOOGLE_MAPS_API_KEY is not set');
   const cafes = readJson(CAFES_FILE, []);
   let filled = 0, errors = 0;
-  for (const cafe of cafes.filter((c) => c.reviewed && !c.hidden)) {
+  for (const cafe of cafes.filter((c) => (c.reviewed || c.listUnverified) && !c.hidden)) {
     try {
       const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(cafe.placeId)}`, {
         headers: { 'X-Goog-Api-Key': API_KEY, 'X-Goog-FieldMask': 'id,nationalPhoneNumber,regularOpeningHours.weekdayDescriptions' },
@@ -250,14 +250,14 @@ function register(app, { requireAdmin }) {
     const dine = req.query.dine;
     const onlyOpen = req.query.open === '1';
     const cafes = readJson(CAFES_FILE, [])
-      .filter((c) => c.reviewed && !c.hidden && typeof c.lat === 'number' && typeof c.lon === 'number')
+      .filter((c) => (c.reviewed || c.listUnverified) && !c.hidden && typeof c.lat === 'number' && typeof c.lon === 'number')
       .filter((c) => dine === 'indoor' ? c.hasIndoor === true
         : dine === 'outdoor' ? c.hasOutdoor === true
         : dine === 'both' ? (c.hasIndoor === true && c.hasOutdoor === true) : true)
       .map((c) => ({ ...c, openNow: isOpenNow(c.hours) }))
       .filter((c) => !onlyOpen || c.openNow === true)
       .map((c) => ({
-        label: c.name, openNow: c.openNow, address: c.address, lat: c.lat, lon: c.lon,
+        label: c.name, openNow: c.openNow, verified: c.reviewed === true, address: c.address, lat: c.lat, lon: c.lon,
         hasIndoor: c.hasIndoor === true, hasOutdoor: c.hasOutdoor === true,
         animals: c.animals || [], notes: c.notes || '', mapsUrl: c.mapsUrl || '', phone: c.phone || '', hours: c.hours || [],
         distanceMeters: Math.round(haversineMeters(lat, lon, c.lat, c.lon)),
@@ -290,7 +290,7 @@ function register(app, { requireAdmin }) {
     if (!cafe) return res.status(404).json({ error: 'Unknown cafe id' });
     const b = req.body || {};
     const bool = (v) => (v === true || v === false ? v : undefined);
-    for (const k of ['reviewed', 'hasIndoor', 'hasOutdoor']) if (bool(b[k]) !== undefined) cafe[k] = b[k];
+    for (const k of ['reviewed', 'listUnverified', 'hasIndoor', 'hasOutdoor']) if (bool(b[k]) !== undefined) cafe[k] = b[k];
     if (bool(b.hidden) !== undefined) { cafe.hidden = b.hidden; cafe.hiddenReason = b.hidden ? 'manual' : null; }
     if (Array.isArray(b.animals)) cafe.animals = b.animals.map(String).slice(0, 6);
     if (typeof b.notes === 'string') cafe.notes = b.notes.slice(0, 300);

@@ -683,7 +683,7 @@ async function fetchNearbyPetCafes(category, lat, lon) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Pet cafes responded ${res.status}`);
   const places = (data.cafes || []).map((c) => {
-    const tags = [c.openNow === true && '🟢 Open now', c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || [])].filter(Boolean);
+    const tags = [c.openNow === true && '🟢 Open now', c.verified === false && '⚠️ Unverified', c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || [])].filter(Boolean);
     // Non-breaking spaces keep "8778 5768" and "11:30 AM – 8:30 PM" from splitting across lines.
     const nb = (s) => String(s).replace(/ /g, '\u00a0');
     const info = [petCafeTodayHours(c.hours) && nb(petCafeTodayHours(c.hours)), c.phone && `📞\u00a0${nb(c.phone)}`].filter(Boolean);
