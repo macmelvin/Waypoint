@@ -179,6 +179,11 @@ function slugify(name) {
 // partner). Deliberately not counted per-API-call — this is a single-page
 // app, so the shell only reloads when someone actually (re)opens it, not on
 // every search/directions request.
+// `seenUniqueVisitors` tracks the uniqueVisitors count as of the last time
+// the admin panel acknowledged this partner (see the /ack endpoint below).
+// Whenever uniqueVisitors climbs past it, the admin panel flags that
+// partner as having a new visitor since it was last checked — the signal
+// that someone other than Melvin testing the link has actually opened it.
 function trackPartnerVisit(partner, alreadyAttributed) {
   partner.totalVisits = (partner.totalVisits || 0) + 1;
   if (!alreadyAttributed) partner.uniqueVisitors = (partner.uniqueVisitors || 0) + 1;
@@ -342,6 +347,7 @@ app.post('/api/admin/partners', requireAdmin, (req, res) => {
     lastSeenAt: null,
     uniqueVisitors: 0,
     totalVisits: 0,
+    seenUniqueVisitors: 0,
   };
   partners.push(partner);
   savePartners();
@@ -352,6 +358,17 @@ app.post('/api/admin/partners/:id/toggle', requireAdmin, (req, res) => {
   const p = partners.find((x) => x.id === req.params.id);
   if (!p) return res.status(404).json({ error: 'not found' });
   p.active = !p.active;
+  savePartners();
+  res.json({ partner: p });
+});
+
+// Clears the "new visitor" flag by moving the acknowledged baseline up to
+// the current uniqueVisitors count — called when the admin dismisses the
+// badge in the panel after noticing a new visitor.
+app.post('/api/admin/partners/:id/ack', requireAdmin, (req, res) => {
+  const p = partners.find((x) => x.id === req.params.id);
+  if (!p) return res.status(404).json({ error: 'not found' });
+  p.seenUniqueVisitors = p.uniqueVisitors || 0;
   savePartners();
   res.json({ partner: p });
 });

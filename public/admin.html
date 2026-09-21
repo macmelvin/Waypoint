@@ -47,6 +47,11 @@
     margin-top: 6px; cursor: pointer;
   }
   .empty { color: #64748b; font-size: 14px; text-align: center; padding: 20px 0; }
+  .invite-flagged { background: rgba(37, 99, 235, 0.08); margin: 0 -12px; padding: 12px; border-radius: 8px; border-bottom-color: transparent; }
+  .new-visitor-badge {
+    display: inline-block; background: #1d4ed8; color: #fff; font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px; vertical-align: middle; white-space: nowrap;
+  }
   #status { color: #f87171; font-size: 13px; margin-top: 8px; min-height: 18px; }
   #gate { }
   #panel { display: none; }
@@ -150,19 +155,31 @@ function renderPartners(partners) {
     list.innerHTML = '<div class="empty">No partners yet — add a travel agency above.</div>';
     return;
   }
-  const sorted = [...partners].sort((a, b) => (b.totalVisits || 0) - (a.totalVisits || 0));
+  // A partner is flagged "new visitor" whenever uniqueVisitors has climbed
+  // past the count the admin last acknowledged (seenUniqueVisitors) — the
+  // signal that someone beyond Melvin's own testing has opened the link.
+  // Sort those to the top so they're impossible to miss.
+  const isNew = (p) => (p.uniqueVisitors || 0) > (p.seenUniqueVisitors || 0);
+  const sorted = [...partners].sort((a, b) => {
+    const an = isNew(a) ? 1 : 0, bn = isNew(b) ? 1 : 0;
+    if (an !== bn) return bn - an;
+    return (b.totalVisits || 0) - (a.totalVisits || 0);
+  });
   list.innerHTML = sorted.map((p) => {
     const link = `${location.origin}/?ref=${p.slug}`;
     const seen = p.lastSeenAt ? `last visit ${new Date(p.lastSeenAt).toLocaleString()}` : 'no visits yet';
     const stats = `${p.uniqueVisitors || 0} unique · ${p.totalVisits || 0} total visits`;
+    const flagged = p.active && isNew(p);
+    const badge = flagged ? `<span class="new-visitor-badge">🆕 new visitor</span>` : '';
     return `
-      <div class="invite">
+      <div class="invite${flagged ? ' invite-flagged' : ''}">
         <div style="flex:1;min-width:0">
-          <div class="invite-name">${escapeHtml(p.name)}</div>
+          <div class="invite-name">${escapeHtml(p.name)} ${badge}</div>
           <div class="invite-meta ${p.active ? '' : 'revoked'}">${p.active ? `${stats} · ${seen}` : 'disabled'}</div>
           <div class="link-box" title="Click to copy" onclick="copyLink(this, '${link}')">${link}</div>
         </div>
         <div class="invite-actions">
+          ${flagged ? `<button class="secondary" onclick="ackPartner('${p.id}')">Mark seen</button>` : ''}
           <button class="secondary" onclick="togglePartner('${p.id}')">${p.active ? 'Disable' : 'Enable'}</button>
           <button class="danger" onclick="deletePartner('${p.id}')">Delete</button>
         </div>
@@ -186,6 +203,15 @@ async function createPartner() {
     loadPartners();
   } catch (err) {
     statusEl.textContent = err.message;
+  }
+}
+
+async function ackPartner(id) {
+  try {
+    await api(`/api/admin/partners/${id}/ack`, { method: 'POST' });
+    loadPartners();
+  } catch (err) {
+    alert(err.message);
   }
 }
 
