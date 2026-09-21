@@ -1519,28 +1519,6 @@ app.get('/api/ev-charging-nearby', (req, res) => {
   res.json({ stations: results });
 });
 
-// ---- MRT/LRT system map ------------------------------------------------------
-// Static station/line dataset (data/mrt-network.json) powering the in-app
-// schematic map view. It's an originally laid-out diagram built from public,
-// factual network topology (stations, lines, official line colours) — see
-// that file's "meta" block for sources — not a copy of LTA/SMRT's map
-// artwork. Loaded once into memory since it only changes when a new station
-// opens and the file is manually regenerated.
-let mrtNetwork = null;
-try {
-  mrtNetwork = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'mrt-network.json'), 'utf8'));
-  console.log(`Loaded MRT/LRT network map: ${mrtNetwork.lines.length} lines, ${Object.keys(mrtNetwork.stations).length} stations.`);
-} catch (err) {
-  console.warn('Could not load MRT network data:', err.message);
-}
-
-app.get('/api/mrt-network', (req, res) => {
-  if (!mrtNetwork) {
-    return res.status(503).json({ error: 'MRT network data isn\'t loaded.' });
-  }
-  res.json(mrtNetwork);
-});
-
 // ---- Petrol stations near a destination -------------------------------------
 // LTA DataMall / data.gov.sg don't publish a retail petrol station location
 // dataset (their closest match is a ~21-entry industrial bulk-fuel-depot

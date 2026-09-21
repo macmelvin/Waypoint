@@ -77,9 +77,9 @@
         <span id="langBtnText">EN</span>
       </button>
       <button id="weatherWidget" class="weather-widget hidden" type="button" title="Current weather"></button>
-      <button id="mrtMapBtn" class="icon-btn" type="button" title="MRT/LRT system map" aria-label="MRT/LRT system map">
+      <a id="mrtMapBtn" class="icon-btn" href="https://www.lta.gov.sg/content/dam/ltagov/getting_around/public_transport/rail_network/pdf/SM_EN_(Ver200526)_CCL6.png" target="_blank" rel="noopener" title="View the official LTA MRT/LRT system map" aria-label="View the official LTA MRT/LRT system map">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="3.5" width="13" height="12" rx="4"/><path d="M5.5 11.2h13"/><circle cx="9" cy="14.3" r="0.65" fill="currentColor" stroke="none"/><circle cx="15" cy="14.3" r="0.65" fill="currentColor" stroke="none"/><path d="M8.3 19.2l-2 2.3M15.7 19.2l2 2.3"/></svg>
-      </button>
+      </a>
       <button id="notifyBtn" class="icon-btn" type="button" data-i18n-title="notify_title" data-i18n-aria="notify_title" title="Turn on train/traffic/haze alerts" aria-label="Turn on train/traffic/haze alerts">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5c-3 0-4.6 2.3-4.6 5.4v2.4c0 1-.4 2-1.1 2.7L5 15.3v.9h14v-.9l-1.3-1.3c-.7-.7-1.1-1.7-1.1-2.7V8.9c0-3.1-1.6-5.4-4.6-5.4z"/><path d="M9.8 18.5a2.3 2.3 0 0 0 4.4 0"/></svg>
       </button>
@@ -459,26 +459,6 @@
     <button id="sosModalClose" class="weather-panel-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div id="sosModalBody" class="weather-panel-body">Loading…</div>
   </div>
-</div>
-
-<div id="mrtMapOverlay" class="mrt-map-overlay hidden">
-  <div class="mrt-map-topbar">
-    <span class="mrt-map-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="3.5" width="13" height="12" rx="4"/><path d="M5.5 11.2h13"/><circle cx="9" cy="14.3" r="0.65" fill="currentColor" stroke="none"/><circle cx="15" cy="14.3" r="0.65" fill="currentColor" stroke="none"/><path d="M8.3 19.2l-2 2.3M15.7 19.2l2 2.3"/></svg>
-      MRT / LRT Map
-    </span>
-    <button id="mrtMapCloseBtn" class="icon-btn small" type="button" aria-label="Close map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-  </div>
-  <div id="mrtMapViewport" class="mrt-map-viewport">
-    <div id="mrtMapStatus" class="mrt-map-status">Loading map…</div>
-    <div id="mrtMapCanvas" class="mrt-map-canvas"></div>
-  </div>
-  <div class="mrt-map-controls">
-    <button id="mrtMapZoomInBtn" class="icon-btn small" type="button" aria-label="Zoom in">+</button>
-    <button id="mrtMapZoomOutBtn" class="icon-btn small" type="button" aria-label="Zoom out">−</button>
-    <button id="mrtMapResetBtn" class="icon-btn small" type="button" aria-label="Reset view" title="Reset view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg></button>
-  </div>
-  <p class="mrt-map-caption">Schematic diagram, not to scale — independently produced for Waypoint. Not the official LTA/SMRT map.<br><a href="https://www.lta.gov.sg/content/dam/ltagov/getting_around/public_transport/rail_network/pdf/SM_EN_(Ver200526)_CCL6.png" target="_blank" rel="noopener" class="mrt-map-official-link">View the official LTA system map ↗</a></p>
 </div>
 
 <a href="https://wa.me/6588877041" target="_blank" rel="noopener" class="whatsapp-float" aria-label="Chat on WhatsApp">
