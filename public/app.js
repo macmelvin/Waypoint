@@ -4957,6 +4957,20 @@ function buildMrtSvgMarkup(data) {
     : [0, 0, 1000, 900];
   const [vbX, vbY, vbW, vbH] = bg;
 
+  // Soft landmass silhouette behind the network, for orientation/context —
+  // this is Singapore's own real coastline shape, derived (via a concave
+  // hull) from the thousands of real EV-charging and petrol-station
+  // locations already in the app's own data, not traced from any map
+  // artwork. It's approximate (station positions here are still a
+  // schematic layout, not true-to-scale geography) but shaped from actual
+  // public facts about the island.
+  const landColor = isDark ? '#141b30' : '#e9ecf1';
+  const landStroke = isDark ? '#232c48' : '#d7dbe3';
+  const landOutline = data.meta && data.meta.landOutline;
+  const landMarkup = landOutline && landOutline.length
+    ? `<path d="${landOutline.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0]},${p[1]}`).join(' ')}Z" fill="${landColor}" stroke="${landStroke}" stroke-width="2"></path>`
+    : '';
+
   const linePaths = data.lines.map((ln) => {
     const pts = ln.stationOrder.map((id) => stations[id]).filter(Boolean);
     if (!pts.length) return '';
@@ -4999,6 +5013,7 @@ function buildMrtSvgMarkup(data) {
 
   return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schematic map of Singapore's MRT and LRT network">` +
     `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="${bgColor}"></rect>` +
+    `${landMarkup}` +
     `<g>${linePaths}</g>` +
     `<g>${markers}</g>` +
     `</svg>`;
