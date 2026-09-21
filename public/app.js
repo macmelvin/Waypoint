@@ -993,14 +993,20 @@ const TICKET_LINKS = {
   sgflyer: 'https://www.kkday.com/en-sg/product/productlist/Singapore%20Flyer?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Singapore%20Flyer&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=SingaporeFlyers',
 };
 
-// "Book Online" — KKday's own top-level categories (real affiliate links
-// supplied directly, one per category, each already carrying its own ud1
-// tracking tag), not tied to any Singapore landmark. These chips don't do a
-// place search at all — see the .category-chip click handler below, which
-// opens data-link straight away for any chip that has one. "Transport" and
-// "Souvenirs" from KKday's own category list aren't included — no link was
-// given for those yet.
+// "Book Online" — mostly KKday's own top-level categories (real affiliate
+// links supplied directly, one per category, each already carrying its own
+// ud1 tracking tag), not tied to any Singapore landmark. These chips don't
+// do a place search at all — see the .category-chip click handler below,
+// which opens data-link straight away for any chip that has one. "Transport"
+// and "Souvenirs" from KKday's own category list aren't included — no link
+// was given for those yet.
+//
+// "concerts" is the exception: SISTIC isn't an affiliate partner, and
+// upcoming-concert listings change constantly, so rather than maintain our
+// own (inevitably stale) list of shows, this links straight to SISTIC's own
+// live Concerts genre page — same reasoning as the LTA MRT map link.
 const BOOK_ONLINE_LINKS = {
+  concerts: 'https://www.sistic.com.sg/events?genre=64',
   attractiontickets: 'https://www.kkday.com/en-sg/category/sg-singapore/attraction-tickets/list?cid=26927&ud1=AttractionTickets',
   daytours: 'https://www.kkday.com/en-sg/category/sg-singapore/day-tours/list?cid=26927&ud1=DayTours',
   cruisevacation: 'https://www.kkday.com/en-sg/category/sg-singapore/cruise-vacation/list?cid=26927&ud1=CruiseVacation',
@@ -1388,6 +1394,7 @@ const CHIP_I18N = {
   tiongbahrumarket: { en: 'Tiong Bahru Market', zh: '中峇鲁市场', ms: 'Pasar Tiong Bahru', ta: 'டியோங் பாரு மார்க்கெட்', ja: 'ティオンバル・マーケット', ko: '티옹바루 마켓' },
   eastcoastlagoon: { en: 'East Coast Lagoon Food Village', zh: '东海岸潟湖美食村', ms: 'Kampung Makanan East Coast Lagoon', ta: 'ஈஸ்ட் கோஸ்ட் லகூன் ஃபுட் வில்லேஜ்', ja: 'イーストコースト・ラグーン・フードビレッジ', ko: '이스트코스트 라군 푸드빌리지' },
   amoystreet: { en: 'Amoy Street Food Centre', zh: '厦门街熟食中心', ms: 'Pusat Penjaja Amoy Street', ta: 'அமோய் ஸ்ட்ரீட் ஃபுட் சென்டர்', ja: 'アモイストリート・フードセンター', ko: '아모이 스트리트 푸드센터' },
+  concerts: { en: 'Concerts', zh: '演唱会', ms: 'Konsert', ta: 'இசை நிகழ்ச்சிகள்', ja: 'コンサート', ko: '콘서트' },
   attractiontickets: { en: 'Attraction Tickets', zh: '景点门票', ms: 'Tiket Tempat Menarik', ta: 'சுற்றுலா டிக்கெட்டுகள்', ja: 'アトラクションチケット', ko: '명소 티켓' },
   daytours: { en: 'Half/Full-day Tours', zh: '半日/全日游', ms: 'Lawatan Separuh/Sehari', ta: 'அரை நாள்/முழு நாள் சுற்றுலா', ja: '半日/日帰りツアー', ko: '반나절/종일 투어' },
   cruisevacation: { en: 'Cruise Vacation', zh: '邮轮假期', ms: 'Percutian Pelayaran', ta: 'கப்பல் பயண விடுமுறை', ja: 'クルーズ休暇', ko: '크루즈 여행' },
