@@ -662,7 +662,7 @@ async function fetchNearbyPetCafes(category, lat, lon) {
   if (!res.ok) throw new Error(data.error || `Pet cafes responded ${res.status}`);
   const places = (data.cafes || []).map((c) => ({
     label: c.label,
-    address: [c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || [])].filter(Boolean).join(' · '),
+    address: [c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || []), c.phone && `📞 ${c.phone}`].filter(Boolean).join(' · '),
     lat: c.lat,
     lon: c.lon,
   }));

@@ -51,7 +51,7 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
 // ---- Google Places (New) ---------------------------------------------------
 async function searchText(query) {
   const fields = ['places.id', 'places.displayName', 'places.formattedAddress', 'places.location',
-    'places.businessStatus', 'places.outdoorSeating', 'places.googleMapsUri', 'places.websiteUri', 'nextPageToken'].join(',');
+    'places.businessStatus', 'places.outdoorSeating', 'places.googleMapsUri', 'places.websiteUri', 'places.nationalPhoneNumber', 'nextPageToken'].join(',');
   const out = [];
   let pageToken;
   do {
@@ -78,6 +78,34 @@ async function placeStatus(placeId) {
   return (await res.json()).businessStatus || 'UNKNOWN';
 }
 
+// Fetches phone numbers for confirmed, visible cafes (one lookup each). Run it
+// on demand — it uses a pricier Google field than the weekly status check, so
+// it is deliberately not part of that job. Google only lets Places data be
+// cached for a limited time, so re-run it from time to time.
+async function fillPhones() {
+  if (!API_KEY) throw new Error('GOOGLE_MAPS_API_KEY is not set');
+  const cafes = readJson(CAFES_FILE, []);
+  let filled = 0, errors = 0;
+  for (const cafe of cafes.filter((c) => c.reviewed && !c.hidden)) {
+    try {
+      const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(cafe.placeId)}`, {
+        headers: { 'X-Goog-Api-Key': API_KEY, 'X-Goog-FieldMask': 'id,nationalPhoneNumber' },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const phone = (await res.json()).nationalPhoneNumber || '';
+      if (phone) filled++;
+      cafe.phone = phone;
+      cafe.phoneCheckedAt = new Date().toISOString();
+    } catch (err) {
+      console.warn(`pet-cafes: phone for ${cafe.name}: ${err.message}`); errors++;
+    }
+    await sleep(100);
+  }
+  writeJson(CAFES_FILE, cafes);
+  console.log(`pet-cafes: phones filled for ${filled}, ${errors} error(s)`);
+  return { filled, errors };
+}
+
 let busy = false; // one discover/verify at a time
 
 async function discover() {
@@ -92,7 +120,7 @@ async function discover() {
       cafes.push({
         placeId: p.id, name: p.displayName?.text || 'Unknown', address: p.formattedAddress || '',
         lat: p.location?.latitude, lon: p.location?.longitude,
-        mapsUrl: p.googleMapsUri || '', website: p.websiteUri || '',
+        mapsUrl: p.googleMapsUri || '', website: p.websiteUri || '', phone: p.nationalPhoneNumber || '',
         businessStatus: p.businessStatus || 'UNKNOWN',
         googleOutdoorSeating: p.outdoorSeating ?? null, // hint only
         hasIndoor: null, hasOutdoor: null, animals: [], notes: '',
@@ -169,7 +197,7 @@ function register(app, { requireAdmin }) {
       .map((c) => ({
         label: c.name, address: c.address, lat: c.lat, lon: c.lon,
         hasIndoor: c.hasIndoor === true, hasOutdoor: c.hasOutdoor === true,
-        animals: c.animals || [], notes: c.notes || '', mapsUrl: c.mapsUrl || '',
+        animals: c.animals || [], notes: c.notes || '', mapsUrl: c.mapsUrl || '', phone: c.phone || '',
         distanceMeters: Math.round(haversineMeters(lat, lon, c.lat, c.lon)),
       }))
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
@@ -187,6 +215,9 @@ function register(app, { requireAdmin }) {
   app.post('/api/admin/pet-cafes/discover', requireAdmin, async (req, res) => {
     try { res.json(await exclusive(discover)); } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
   });
+  app.post('/api/admin/pet-cafes/phones', requireAdmin, async (req, res) => {
+    try { res.json(await exclusive(fillPhones)); } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
+  });
   app.post('/api/admin/pet-cafes/verify', requireAdmin, async (req, res) => {
     try { res.json(await exclusive(verify)); } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
   });
@@ -201,6 +232,7 @@ function register(app, { requireAdmin }) {
     if (bool(b.hidden) !== undefined) { cafe.hidden = b.hidden; cafe.hiddenReason = b.hidden ? 'manual' : null; }
     if (Array.isArray(b.animals)) cafe.animals = b.animals.map(String).slice(0, 6);
     if (typeof b.notes === 'string') cafe.notes = b.notes.slice(0, 300);
+    if (typeof b.phone === 'string') cafe.phone = b.phone.slice(0, 40);
     writeJson(CAFES_FILE, cafes);
     res.json({ cafe });
   });
