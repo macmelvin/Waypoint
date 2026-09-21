@@ -1728,7 +1728,7 @@ app.get('/api/anytime-fitness-nearby', (req, res) => {
       distanceMeters: Math.round(haversineMeters(lat, lon, g.lat, g.lon)),
     }))
     .sort((a, b) => a.distanceMeters - b.distanceMeters)
-    .slice(0, 8);
+    .slice(0, 100);
 
   res.json({ gyms: results });
 });

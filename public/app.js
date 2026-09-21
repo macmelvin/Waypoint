@@ -725,17 +725,25 @@ async function fetchNearbyPetCafes(category, lat, lon) {
 
 // Anytime Fitness branches: a manually sourced (not OSM/Overpass) dataset,
 // same reasoning as pet cafes — see /api/anytime-fitness-nearby in server.js.
+// Reuses petCafeContact (despite the name, it's just phone -> WhatsApp/tel
+// link logic) so gym numbers get the same tappable treatment.
 async function fetchNearbyAnytimeFitness(lat, lon) {
   const res = await fetch(`/api/anytime-fitness-nearby?lat=${lat}&lon=${lon}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Anytime Fitness responded ${res.status}`);
-  const nb = (s) => String(s).replace(/ /g, ' ');
-  const places = (data.gyms || []).map((g) => ({
-    label: g.name,
-    address: g.phone ? `${g.address} · 📞 ${nb(g.phone)}` : g.address,
-    lat: g.lat,
-    lon: g.lon,
-  }));
+  const places = (data.gyms || []).map((g) => {
+    const contact = petCafeContact(g.phone);
+    const plain = (x) => (typeof x === 'string' ? x : x.text);
+    const info = [contact].filter(Boolean);
+    return {
+      label: g.name,
+      address: [g.address, ...info].map(plain).join(' · '),
+      details: [[], info],
+      contact,
+      lat: g.lat,
+      lon: g.lon,
+    };
+  });
   return { places, radiusUsed: null };
 }
 
@@ -789,7 +797,7 @@ function searchNearbyCategory(category) {
         const mapped = places
           .map((p) => ({ ...p, distanceMeters: Math.round(haversineMeters(lat, lon, p.lat, p.lon)) }))
           .sort((a, b) => a.distanceMeters - b.distanceMeters)
-          .slice(0, category in PET_CAFE_DINE ? 100 : 8)
+          .slice(0, category in PET_CAFE_DINE || category === 'anytimefitness' ? 100 : 8)
           .map((r) => ({
             label: r.label,
             address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
