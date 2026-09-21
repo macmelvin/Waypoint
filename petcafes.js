@@ -263,7 +263,7 @@ function register(app, { requireAdmin }) {
         distanceMeters: Math.round(haversineMeters(lat, lon, c.lat, c.lon)),
       }))
       .sort((a, b) => a.distanceMeters - b.distanceMeters)
-      .slice(0, 8);
+      .slice(0, 100);
     res.json({ cafes });
   });
 

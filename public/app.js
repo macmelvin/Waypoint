@@ -770,7 +770,7 @@ function searchNearbyCategory(category) {
         const mapped = places
           .map((p) => ({ ...p, distanceMeters: Math.round(haversineMeters(lat, lon, p.lat, p.lon)) }))
           .sort((a, b) => a.distanceMeters - b.distanceMeters)
-          .slice(0, 8)
+          .slice(0, category in PET_CAFE_DINE ? 100 : 8)
           .map((r) => ({
             label: r.label,
             address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
