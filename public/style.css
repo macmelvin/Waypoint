@@ -2218,12 +2218,25 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   position: absolute;
   top: 0;
   left: 0;
+  /* Fallback size only — renderMrtMap() sets the real width/height inline
+     from the dataset's own meta.viewBox so pan/zoom math (which assumes the
+     canvas element's CSS pixel size equals the viewBox units) stays correct
+     even if the underlying station layout's bounding box changes. */
   width: 1000px;
   height: 900px;
   transform-origin: 0 0;
   will-change: transform;
 }
 .mrt-map-canvas svg { display: block; width: 100%; height: 100%; }
+
+/* Progressive label disclosure: at the initial zoomed-out overview, only
+   interchange station labels + codes show (see .mrt-marker-major in
+   buildMrtSvgMarkup). Ordinary station labels are tagged .mrt-label-minor
+   and stay hidden until the rider zooms in past a threshold, at which point
+   renderMrtMap()'s onZoom callback adds .mrt-zoomed-in to the viewport. This
+   keeps the overview legible instead of 184 labels fighting for space. */
+.mrt-map-canvas .mrt-label-minor { display: none; }
+.mrt-map-viewport.mrt-zoomed-in .mrt-label-minor { display: inline; }
 
 .mrt-map-status {
   position: absolute;

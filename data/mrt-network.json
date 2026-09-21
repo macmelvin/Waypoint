@@ -21,6 +21,12 @@
       "Founders' Memorial (TE) — under construction, opening ~2028",
       "Bukit Brown (CC18) — reserved station, not built/opened",
       "Ten Mile Junction (BP14) — closed since 2019"
+    ],
+    "viewBox": [
+      -35.0,
+      -15.0,
+      1040.0,
+      797.7
     ]
   },
   "lines": [
@@ -367,8 +373,8 @@
   "stations": {
     "jurong-east": {
       "name": "Jurong East",
-      "x": 330,
-      "y": 460,
+      "x": 305.7,
+      "y": 460.9,
       "codes": [
         "NS:NS1",
         "EW:EW24"
@@ -381,8 +387,8 @@
     },
     "bukit-batok": {
       "name": "Bukit Batok",
-      "x": 330,
-      "y": 400,
+      "x": 311.8,
+      "y": 396.4,
       "codes": [
         "NS:NS2"
       ],
@@ -393,8 +399,8 @@
     },
     "bukit-gombak": {
       "name": "Bukit Gombak",
-      "x": 330,
-      "y": 350,
+      "x": 330.0,
+      "y": 350.0,
       "codes": [
         "NS:NS3"
       ],
@@ -405,8 +411,8 @@
     },
     "choa-chu-kang": {
       "name": "Choa Chu Kang",
-      "x": 330,
-      "y": 290,
+      "x": 330.0,
+      "y": 290.0,
       "codes": [
         "NS:NS4",
         "BP:BP1"
@@ -419,8 +425,8 @@
     },
     "yew-tee": {
       "name": "Yew Tee",
-      "x": 335,
-      "y": 235,
+      "x": 345.3,
+      "y": 238.7,
       "codes": [
         "NS:NS5"
       ],
@@ -431,8 +437,8 @@
     },
     "kranji": {
       "name": "Kranji",
-      "x": 345,
-      "y": 140,
+      "x": 371.7,
+      "y": 150.1,
       "codes": [
         "NS:NS7"
       ],
@@ -443,8 +449,8 @@
     },
     "marsiling": {
       "name": "Marsiling",
-      "x": 365,
-      "y": 95,
+      "x": 385.3,
+      "y": 104.3,
       "codes": [
         "NS:NS8"
       ],
@@ -455,8 +461,8 @@
     },
     "woodlands": {
       "name": "Woodlands",
-      "x": 400,
-      "y": 55,
+      "x": 400.0,
+      "y": 55.0,
       "codes": [
         "NS:NS9",
         "TE:TE2"
@@ -469,8 +475,8 @@
     },
     "admiralty": {
       "name": "Admiralty",
-      "x": 450,
-      "y": 60,
+      "x": 423.8,
+      "y": 91.3,
       "codes": [
         "NS:NS10"
       ],
@@ -481,8 +487,8 @@
     },
     "sembawang": {
       "name": "Sembawang",
-      "x": 500,
-      "y": 75,
+      "x": 448.5,
+      "y": 129.0,
       "codes": [
         "NS:NS11"
       ],
@@ -493,8 +499,8 @@
     },
     "canberra": {
       "name": "Canberra",
-      "x": 530,
-      "y": 100,
+      "x": 466.9,
+      "y": 157.3,
       "codes": [
         "NS:NS12"
       ],
@@ -505,8 +511,8 @@
     },
     "yishun": {
       "name": "Yishun",
-      "x": 555,
-      "y": 140,
+      "x": 489.2,
+      "y": 191.3,
       "codes": [
         "NS:NS13"
       ],
@@ -517,8 +523,8 @@
     },
     "khatib": {
       "name": "Khatib",
-      "x": 565,
-      "y": 185,
+      "x": 498.4,
+      "y": 184.8,
       "codes": [
         "NS:NS14"
       ],
@@ -529,8 +535,8 @@
     },
     "yio-chu-kang": {
       "name": "Yio Chu Kang",
-      "x": 570,
-      "y": 230,
+      "x": 514.1,
+      "y": 186.9,
       "codes": [
         "NS:NS15"
       ],
@@ -541,8 +547,8 @@
     },
     "ang-mo-kio": {
       "name": "Ang Mo Kio",
-      "x": 575,
-      "y": 280,
+      "x": 541.6,
+      "y": 207.4,
       "codes": [
         "NS:NS16"
       ],
@@ -553,8 +559,8 @@
     },
     "bishan": {
       "name": "Bishan",
-      "x": 580,
-      "y": 330,
+      "x": 578.5,
+      "y": 263.7,
       "codes": [
         "NS:NS17",
         "CC:CC15"
@@ -567,8 +573,8 @@
     },
     "braddell": {
       "name": "Braddell",
-      "x": 580,
-      "y": 370,
+      "x": 571.9,
+      "y": 324.8,
       "codes": [
         "NS:NS18"
       ],
@@ -579,8 +585,8 @@
     },
     "toa-payoh": {
       "name": "Toa Payoh",
-      "x": 580,
-      "y": 405,
+      "x": 566.2,
+      "y": 378.3,
       "codes": [
         "NS:NS19"
       ],
@@ -591,8 +597,8 @@
     },
     "novena": {
       "name": "Novena",
-      "x": 575,
-      "y": 440,
+      "x": 560.4,
+      "y": 432.4,
       "codes": [
         "NS:NS20"
       ],
@@ -603,8 +609,8 @@
     },
     "newton": {
       "name": "Newton",
-      "x": 565,
-      "y": 470,
+      "x": 555.2,
+      "y": 480.7,
       "codes": [
         "NS:NS21",
         "DT:DT11"
@@ -617,8 +623,8 @@
     },
     "orchard": {
       "name": "Orchard",
-      "x": 545,
-      "y": 500,
+      "x": 524.2,
+      "y": 527.2,
       "codes": [
         "NS:NS22",
         "TE:TE14"
@@ -631,8 +637,8 @@
     },
     "somerset": {
       "name": "Somerset",
-      "x": 550,
-      "y": 525,
+      "x": 524.2,
+      "y": 565.9,
       "codes": [
         "NS:NS23"
       ],
@@ -643,8 +649,8 @@
     },
     "dhoby-ghaut": {
       "name": "Dhoby Ghaut",
-      "x": 545,
-      "y": 550,
+      "x": 524.2,
+      "y": 604.7,
       "codes": [
         "NS:NS24",
         "NE:NE6",
@@ -659,8 +665,8 @@
     },
     "city-hall": {
       "name": "City Hall",
-      "x": 570,
-      "y": 575,
+      "x": 563.0,
+      "y": 643.4,
       "codes": [
         "NS:NS25",
         "EW:EW13"
@@ -673,8 +679,8 @@
     },
     "raffles-place": {
       "name": "Raffles Place",
-      "x": 585,
-      "y": 600,
+      "x": 586.2,
+      "y": 682.2,
       "codes": [
         "NS:NS26",
         "EW:EW14"
@@ -687,8 +693,8 @@
     },
     "marina-bay": {
       "name": "Marina Bay",
-      "x": 600,
-      "y": 650,
+      "x": 606.2,
+      "y": 722.2,
       "codes": [
         "NS:NS27",
         "CC:CE2",
@@ -703,8 +709,8 @@
     },
     "marina-south-pier": {
       "name": "Marina South Pier",
-      "x": 600,
-      "y": 700,
+      "x": 601.9,
+      "y": 727.7,
       "codes": [
         "NS:NS28"
       ],
@@ -715,8 +721,8 @@
     },
     "pasir-ris": {
       "name": "Pasir Ris",
-      "x": 950,
-      "y": 405,
+      "x": 950.0,
+      "y": 405.0,
       "codes": [
         "EW:EW1"
       ],
@@ -727,8 +733,8 @@
     },
     "tampines": {
       "name": "Tampines",
-      "x": 920,
-      "y": 420,
+      "x": 920.0,
+      "y": 420.0,
       "codes": [
         "EW:EW2",
         "DT:DT32"
@@ -741,8 +747,8 @@
     },
     "simei": {
       "name": "Simei",
-      "x": 890,
-      "y": 430,
+      "x": 890.0,
+      "y": 430.0,
       "codes": [
         "EW:EW3"
       ],
@@ -753,8 +759,8 @@
     },
     "tanah-merah": {
       "name": "Tanah Merah",
-      "x": 860,
-      "y": 440,
+      "x": 860.0,
+      "y": 440.0,
       "codes": [
         "EW:EW4",
         "CG:EW4"
@@ -767,8 +773,8 @@
     },
     "bedok": {
       "name": "Bedok",
-      "x": 830,
-      "y": 450,
+      "x": 860.9,
+      "y": 449.9,
       "codes": [
         "EW:EW5"
       ],
@@ -779,8 +785,8 @@
     },
     "kembangan": {
       "name": "Kembangan",
-      "x": 800,
-      "y": 460,
+      "x": 859.7,
+      "y": 462.6,
       "codes": [
         "EW:EW6"
       ],
@@ -791,8 +797,8 @@
     },
     "eunos": {
       "name": "Eunos",
-      "x": 770,
-      "y": 470,
+      "x": 849.0,
+      "y": 478.2,
       "codes": [
         "EW:EW7"
       ],
@@ -803,8 +809,8 @@
     },
     "paya-lebar": {
       "name": "Paya Lebar",
-      "x": 740,
-      "y": 480,
+      "x": 826.5,
+      "y": 496.2,
       "codes": [
         "EW:EW8",
         "CC:CC9"
@@ -817,8 +823,8 @@
     },
     "aljunied": {
       "name": "Aljunied",
-      "x": 710,
-      "y": 495,
+      "x": 782.7,
+      "y": 523.8,
       "codes": [
         "EW:EW9"
       ],
@@ -829,8 +835,8 @@
     },
     "kallang": {
       "name": "Kallang",
-      "x": 680,
-      "y": 510,
+      "x": 739.0,
+      "y": 551.4,
       "codes": [
         "EW:EW10"
       ],
@@ -841,8 +847,8 @@
     },
     "lavender": {
       "name": "Lavender",
-      "x": 650,
-      "y": 530,
+      "x": 692.0,
+      "y": 581.1,
       "codes": [
         "EW:EW11"
       ],
@@ -853,8 +859,8 @@
     },
     "bugis": {
       "name": "Bugis",
-      "x": 618,
-      "y": 557,
+      "x": 637.4,
+      "y": 615.5,
       "codes": [
         "EW:EW12",
         "DT:DT14"
@@ -867,8 +873,8 @@
     },
     "tanjong-pagar": {
       "name": "Tanjong Pagar",
-      "x": 555,
-      "y": 600,
+      "x": 541.3,
+      "y": 674.0,
       "codes": [
         "EW:EW15"
       ],
@@ -879,8 +885,8 @@
     },
     "outram-park": {
       "name": "Outram Park",
-      "x": 530,
-      "y": 590,
+      "x": 501.0,
+      "y": 666.7,
       "codes": [
         "EW:EW16",
         "NE:NE3",
@@ -895,8 +901,8 @@
     },
     "tiong-bahru": {
       "name": "Tiong Bahru",
-      "x": 510,
-      "y": 575,
+      "x": 467.4,
+      "y": 647.5,
       "codes": [
         "EW:EW17"
       ],
@@ -907,8 +913,8 @@
     },
     "redhill": {
       "name": "Redhill",
-      "x": 490,
-      "y": 565,
+      "x": 437.4,
+      "y": 630.4,
       "codes": [
         "EW:EW18"
       ],
@@ -919,8 +925,8 @@
     },
     "queenstown": {
       "name": "Queenstown",
-      "x": 470,
-      "y": 555,
+      "x": 407.4,
+      "y": 613.2,
       "codes": [
         "EW:EW19"
       ],
@@ -931,8 +937,8 @@
     },
     "commonwealth": {
       "name": "Commonwealth",
-      "x": 450,
-      "y": 545,
+      "x": 377.4,
+      "y": 596.1,
       "codes": [
         "EW:EW20"
       ],
@@ -943,8 +949,8 @@
     },
     "buona-vista": {
       "name": "Buona Vista",
-      "x": 425,
-      "y": 530,
+      "x": 349.2,
+      "y": 568.2,
       "codes": [
         "EW:EW21",
         "CC:CC22"
@@ -957,8 +963,8 @@
     },
     "dover": {
       "name": "Dover",
-      "x": 400,
-      "y": 510,
+      "x": 326.4,
+      "y": 535.1,
       "codes": [
         "EW:EW22"
       ],
@@ -969,8 +975,8 @@
     },
     "clementi": {
       "name": "Clementi",
-      "x": 365,
-      "y": 490,
+      "x": 309.2,
+      "y": 497.1,
       "codes": [
         "EW:EW23"
       ],
@@ -981,8 +987,8 @@
     },
     "chinese-garden": {
       "name": "Chinese Garden",
-      "x": 300,
-      "y": 455,
+      "x": 299.9,
+      "y": 461.9,
       "codes": [
         "EW:EW25"
       ],
@@ -993,8 +999,8 @@
     },
     "lakeside": {
       "name": "Lakeside",
-      "x": 270,
-      "y": 450,
+      "x": 269.7,
+      "y": 463.9,
       "codes": [
         "EW:EW26"
       ],
@@ -1005,8 +1011,8 @@
     },
     "boon-lay": {
       "name": "Boon Lay",
-      "x": 235,
-      "y": 455,
+      "x": 234.7,
+      "y": 466.1,
       "codes": [
         "EW:EW27"
       ],
@@ -1017,8 +1023,8 @@
     },
     "pioneer": {
       "name": "Pioneer",
-      "x": 200,
-      "y": 460,
+      "x": 199.7,
+      "y": 468.4,
       "codes": [
         "EW:EW28"
       ],
@@ -1029,8 +1035,8 @@
     },
     "joo-koon": {
       "name": "Joo Koon",
-      "x": 165,
-      "y": 465,
+      "x": 164.7,
+      "y": 470.7,
       "codes": [
         "EW:EW29"
       ],
@@ -1041,8 +1047,8 @@
     },
     "gul-circle": {
       "name": "Gul Circle",
-      "x": 125,
-      "y": 470,
+      "x": 124.7,
+      "y": 473.2,
       "codes": [
         "EW:EW30"
       ],
@@ -1053,8 +1059,8 @@
     },
     "tuas-crescent": {
       "name": "Tuas Crescent",
-      "x": 90,
-      "y": 475,
+      "x": 89.7,
+      "y": 475.5,
       "codes": [
         "EW:EW31"
       ],
@@ -1065,8 +1071,8 @@
     },
     "tuas-west-road": {
       "name": "Tuas West Road",
-      "x": 55,
-      "y": 480,
+      "x": 54.7,
+      "y": 477.8,
       "codes": [
         "EW:EW32"
       ],
@@ -1077,8 +1083,8 @@
     },
     "tuas-link": {
       "name": "Tuas Link",
-      "x": 20,
-      "y": 480,
+      "x": 20.0,
+      "y": 480.0,
       "codes": [
         "EW:EW33"
       ],
@@ -1089,8 +1095,8 @@
     },
     "expo": {
       "name": "Expo",
-      "x": 890,
-      "y": 480,
+      "x": 890.0,
+      "y": 480.0,
       "codes": [
         "CG:CG1",
         "DT:DT35"
@@ -1103,8 +1109,8 @@
     },
     "changi-airport": {
       "name": "Changi Airport",
-      "x": 890,
-      "y": 530,
+      "x": 890.0,
+      "y": 530.0,
       "codes": [
         "CG:CG2"
       ],
@@ -1115,8 +1121,8 @@
     },
     "harbourfront": {
       "name": "HarbourFront",
-      "x": 560,
-      "y": 650,
+      "x": 551.8,
+      "y": 721.6,
       "codes": [
         "NE:NE1",
         "CC:CC29"
@@ -1129,8 +1135,8 @@
     },
     "chinatown": {
       "name": "Chinatown",
-      "x": 555,
-      "y": 610,
+      "x": 539.7,
+      "y": 697.7,
       "codes": [
         "NE:NE4",
         "DT:DT19"
@@ -1143,8 +1149,8 @@
     },
     "clarke-quay": {
       "name": "Clarke Quay",
-      "x": 560,
-      "y": 585,
+      "x": 533.5,
+      "y": 660.4,
       "codes": [
         "NE:NE5"
       ],
@@ -1155,8 +1161,8 @@
     },
     "little-india": {
       "name": "Little India",
-      "x": 600,
-      "y": 520,
+      "x": 609.5,
+      "y": 558.2,
       "codes": [
         "NE:NE7",
         "DT:DT12"
@@ -1169,8 +1175,8 @@
     },
     "farrer-park": {
       "name": "Farrer Park",
-      "x": 625,
-      "y": 500,
+      "x": 625.1,
+      "y": 519.1,
       "codes": [
         "NE:NE8"
       ],
@@ -1181,8 +1187,8 @@
     },
     "boon-keng": {
       "name": "Boon Keng",
-      "x": 650,
-      "y": 480,
+      "x": 640.8,
+      "y": 479.9,
       "codes": [
         "NE:NE9"
       ],
@@ -1193,8 +1199,8 @@
     },
     "potong-pasir": {
       "name": "Potong Pasir",
-      "x": 670,
-      "y": 455,
+      "x": 656.4,
+      "y": 440.8,
       "codes": [
         "NE:NE10"
       ],
@@ -1205,8 +1211,8 @@
     },
     "woodleigh": {
       "name": "Woodleigh",
-      "x": 685,
-      "y": 430,
+      "x": 670.7,
+      "y": 405.1,
       "codes": [
         "NE:NE11"
       ],
@@ -1217,8 +1223,8 @@
     },
     "serangoon": {
       "name": "Serangoon",
-      "x": 660,
-      "y": 370,
+      "x": 702.5,
+      "y": 325.7,
       "codes": [
         "NE:NE12",
         "CC:CC13"
@@ -1231,8 +1237,8 @@
     },
     "kovan": {
       "name": "Kovan",
-      "x": 680,
-      "y": 340,
+      "x": 730.6,
+      "y": 277.5,
       "codes": [
         "NE:NE13"
       ],
@@ -1243,8 +1249,8 @@
     },
     "hougang": {
       "name": "Hougang",
-      "x": 700,
-      "y": 310,
+      "x": 747.5,
+      "y": 243.4,
       "codes": [
         "NE:NE14"
       ],
@@ -1255,8 +1261,8 @@
     },
     "buangkok": {
       "name": "Buangkok",
-      "x": 715,
-      "y": 280,
+      "x": 750.2,
+      "y": 230.1,
       "codes": [
         "NE:NE15"
       ],
@@ -1267,8 +1273,8 @@
     },
     "sengkang": {
       "name": "Sengkang",
-      "x": 730,
-      "y": 250,
+      "x": 747.2,
+      "y": 226.5,
       "codes": [
         "NE:NE16",
         "SE:STC",
@@ -1283,8 +1289,8 @@
     },
     "punggol": {
       "name": "Punggol",
-      "x": 745,
-      "y": 200,
+      "x": 745.0,
+      "y": 200.0,
       "codes": [
         "NE:NE17",
         "PE:PTC",
@@ -1299,8 +1305,8 @@
     },
     "punggol-coast": {
       "name": "Punggol Coast",
-      "x": 755,
-      "y": 170,
+      "x": 755.0,
+      "y": 170.0,
       "codes": [
         "NE:NE18"
       ],
@@ -1311,8 +1317,8 @@
     },
     "bras-basah": {
       "name": "Bras Basah",
-      "x": 565,
-      "y": 530,
+      "x": 562.3,
+      "y": 596.5,
       "codes": [
         "CC:CC2"
       ],
@@ -1323,8 +1329,8 @@
     },
     "esplanade": {
       "name": "Esplanade",
-      "x": 590,
-      "y": 540,
+      "x": 598.5,
+      "y": 588.8,
       "codes": [
         "CC:CC3"
       ],
@@ -1335,8 +1341,8 @@
     },
     "promenade": {
       "name": "Promenade",
-      "x": 615,
-      "y": 535,
+      "x": 632.7,
+      "y": 581.4,
       "codes": [
         "CC:CC4",
         "DT:DT15"
@@ -1349,8 +1355,8 @@
     },
     "nicoll-highway": {
       "name": "Nicoll Highway",
-      "x": 635,
-      "y": 525,
+      "x": 661.0,
+      "y": 569.0,
       "codes": [
         "CC:CC5"
       ],
@@ -1361,8 +1367,8 @@
     },
     "stadium": {
       "name": "Stadium",
-      "x": 655,
-      "y": 510,
+      "x": 692.6,
+      "y": 555.1,
       "codes": [
         "CC:CC6"
       ],
@@ -1373,8 +1379,8 @@
     },
     "mountbatten": {
       "name": "Mountbatten",
-      "x": 670,
-      "y": 490,
+      "x": 724.2,
+      "y": 541.2,
       "codes": [
         "CC:CC7"
       ],
@@ -1385,8 +1391,8 @@
     },
     "dakota": {
       "name": "Dakota",
-      "x": 685,
-      "y": 470,
+      "x": 755.8,
+      "y": 527.3,
       "codes": [
         "CC:CC8"
       ],
@@ -1397,8 +1403,8 @@
     },
     "macpherson": {
       "name": "MacPherson",
-      "x": 700,
-      "y": 460,
+      "x": 764.5,
+      "y": 465.2,
       "codes": [
         "CC:CC10",
         "DT:DT26"
@@ -1411,8 +1417,8 @@
     },
     "tai-seng": {
       "name": "Tai Seng",
-      "x": 670,
-      "y": 430,
+      "x": 741.6,
+      "y": 413.7,
       "codes": [
         "CC:CC11"
       ],
@@ -1423,8 +1429,8 @@
     },
     "bartley": {
       "name": "Bartley",
-      "x": 645,
-      "y": 400,
+      "x": 720.6,
+      "y": 366.4,
       "codes": [
         "CC:CC12"
       ],
@@ -1435,8 +1441,8 @@
     },
     "lorong-chuan": {
       "name": "Lorong Chuan",
-      "x": 620,
-      "y": 350,
+      "x": 640.5,
+      "y": 294.7,
       "codes": [
         "CC:CC14"
       ],
@@ -1447,8 +1453,8 @@
     },
     "marymount": {
       "name": "Marymount",
-      "x": 525,
-      "y": 340,
+      "x": 493.1,
+      "y": 278.5,
       "codes": [
         "CC:CC16"
       ],
@@ -1459,8 +1465,8 @@
     },
     "caldecott": {
       "name": "Caldecott",
-      "x": 465,
-      "y": 350,
+      "x": 400.2,
+      "y": 294.7,
       "codes": [
         "CC:CC17",
         "TE:TE9"
@@ -1473,8 +1479,8 @@
     },
     "botanic-gardens": {
       "name": "Botanic Gardens",
-      "x": 430,
-      "y": 395,
+      "x": 346.0,
+      "y": 364.4,
       "codes": [
         "CC:CC19",
         "DT:DT9"
@@ -1487,8 +1493,8 @@
     },
     "farrer-road": {
       "name": "Farrer Road",
-      "x": 405,
-      "y": 410,
+      "x": 344.6,
+      "y": 402.7,
       "codes": [
         "CC:CC20"
       ],
@@ -1499,8 +1505,8 @@
     },
     "holland-village": {
       "name": "Holland Village",
-      "x": 390,
-      "y": 435,
+      "x": 343.1,
+      "y": 440.9,
       "codes": [
         "CC:CC21"
       ],
@@ -1511,8 +1517,8 @@
     },
     "one-north": {
       "name": "one-north",
-      "x": 440,
-      "y": 555,
+      "x": 374.6,
+      "y": 600.0,
       "codes": [
         "CC:CC23"
       ],
@@ -1523,8 +1529,8 @@
     },
     "kent-ridge": {
       "name": "Kent Ridge",
-      "x": 455,
-      "y": 580,
+      "x": 404.3,
+      "y": 630.7,
       "codes": [
         "CC:CC24"
       ],
@@ -1535,8 +1541,8 @@
     },
     "haw-par-villa": {
       "name": "Haw Par Villa",
-      "x": 470,
-      "y": 600,
+      "x": 432.4,
+      "y": 655.1,
       "codes": [
         "CC:CC25"
       ],
@@ -1547,8 +1553,8 @@
     },
     "pasir-panjang": {
       "name": "Pasir Panjang",
-      "x": 490,
-      "y": 615,
+      "x": 461.7,
+      "y": 676.8,
       "codes": [
         "CC:CC26"
       ],
@@ -1559,8 +1565,8 @@
     },
     "labrador-park": {
       "name": "Labrador Park",
-      "x": 510,
-      "y": 630,
+      "x": 491.4,
+      "y": 695.2,
       "codes": [
         "CC:CC27"
       ],
@@ -1571,8 +1577,8 @@
     },
     "telok-blangah": {
       "name": "Telok Blangah",
-      "x": 535,
-      "y": 640,
+      "x": 522.5,
+      "y": 710.8,
       "codes": [
         "CC:CC28"
       ],
@@ -1583,8 +1589,8 @@
     },
     "keppel": {
       "name": "Keppel",
-      "x": 590,
-      "y": 645,
+      "x": 562.9,
+      "y": 722.4,
       "codes": [
         "CC:CC30"
       ],
@@ -1595,8 +1601,8 @@
     },
     "cantonment": {
       "name": "Cantonment",
-      "x": 615,
-      "y": 630,
+      "x": 573.6,
+      "y": 722.8,
       "codes": [
         "CC:CC31"
       ],
@@ -1607,8 +1613,8 @@
     },
     "prince-edward-road": {
       "name": "Prince Edward Road",
-      "x": 640,
-      "y": 610,
+      "x": 585.4,
+      "y": 722.9,
       "codes": [
         "CC:CC32"
       ],
@@ -1619,8 +1625,8 @@
     },
     "bayfront": {
       "name": "Bayfront",
-      "x": 635,
-      "y": 565,
+      "x": 663.7,
+      "y": 627.9,
       "codes": [
         "CC:CE1",
         "DT:DT16"
@@ -1633,8 +1639,8 @@
     },
     "bukit-panjang": {
       "name": "Bukit Panjang",
-      "x": 300,
-      "y": 260,
+      "x": 300.0,
+      "y": 260.0,
       "codes": [
         "DT:DT1",
         "BP:BP6"
@@ -1647,8 +1653,8 @@
     },
     "cashew": {
       "name": "Cashew",
-      "x": 325,
-      "y": 280,
+      "x": 321.7,
+      "y": 282.6,
       "codes": [
         "DT:DT2"
       ],
@@ -1659,8 +1665,8 @@
     },
     "hillview": {
       "name": "Hillview",
-      "x": 350,
-      "y": 300,
+      "x": 343.5,
+      "y": 305.1,
       "codes": [
         "DT:DT3"
       ],
@@ -1671,8 +1677,8 @@
     },
     "hume": {
       "name": "Hume",
-      "x": 375,
-      "y": 315,
+      "x": 341.7,
+      "y": 313.4,
       "codes": [
         "DT:DT4"
       ],
@@ -1683,8 +1689,8 @@
     },
     "beauty-world": {
       "name": "Beauty World",
-      "x": 395,
-      "y": 335,
+      "x": 336.1,
+      "y": 321.4,
       "codes": [
         "DT:DT5"
       ],
@@ -1695,8 +1701,8 @@
     },
     "king-albert-park": {
       "name": "King Albert Park",
-      "x": 410,
-      "y": 355,
+      "x": 335.7,
+      "y": 332.9,
       "codes": [
         "DT:DT6"
       ],
@@ -1707,8 +1713,8 @@
     },
     "sixth-avenue": {
       "name": "Sixth Avenue",
-      "x": 420,
-      "y": 370,
+      "x": 338.1,
+      "y": 343.9,
       "codes": [
         "DT:DT7"
       ],
@@ -1719,8 +1725,8 @@
     },
     "tan-kah-kee": {
       "name": "Tan Kah Kee",
-      "x": 425,
-      "y": 385,
+      "x": 342.0,
+      "y": 355.3,
       "codes": [
         "DT:DT8"
       ],
@@ -1731,8 +1737,8 @@
     },
     "stevens": {
       "name": "Stevens",
-      "x": 455,
-      "y": 375,
+      "x": 384.7,
+      "y": 333.4,
       "codes": [
         "DT:DT10",
         "TE:TE11"
@@ -1745,8 +1751,8 @@
     },
     "rochor": {
       "name": "Rochor",
-      "x": 600,
-      "y": 545,
+      "x": 624.4,
+      "y": 588.9,
       "codes": [
         "DT:DT13"
       ],
@@ -1757,8 +1763,8 @@
     },
     "downtown": {
       "name": "Downtown",
-      "x": 600,
-      "y": 615,
+      "x": 596.5,
+      "y": 665.8,
       "codes": [
         "DT:DT17"
       ],
@@ -1769,8 +1775,8 @@
     },
     "telok-ayer": {
       "name": "Telok Ayer",
-      "x": 580,
-      "y": 625,
+      "x": 571.8,
+      "y": 679.6,
       "codes": [
         "DT:DT18"
       ],
@@ -1781,8 +1787,8 @@
     },
     "fort-canning": {
       "name": "Fort Canning",
-      "x": 565,
-      "y": 590,
+      "x": 563.3,
+      "y": 673.3,
       "codes": [
         "DT:DT20"
       ],
@@ -1793,8 +1799,8 @@
     },
     "bencoolen": {
       "name": "Bencoolen",
-      "x": 585,
-      "y": 570,
+      "x": 593.1,
+      "y": 642.4,
       "codes": [
         "DT:DT21"
       ],
@@ -1805,8 +1811,8 @@
     },
     "jalan-besar": {
       "name": "Jalan Besar",
-      "x": 610,
-      "y": 555,
+      "x": 623.9,
+      "y": 610.6,
       "codes": [
         "DT:DT22"
       ],
@@ -1817,8 +1823,8 @@
     },
     "bendemeer": {
       "name": "Bendemeer",
-      "x": 635,
-      "y": 540,
+      "x": 654.6,
+      "y": 578.8,
       "codes": [
         "DT:DT23"
       ],
@@ -1829,8 +1835,8 @@
     },
     "geylang-bahru": {
       "name": "Geylang Bahru",
-      "x": 660,
-      "y": 520,
+      "x": 688.4,
+      "y": 543.9,
       "codes": [
         "DT:DT24"
       ],
@@ -1841,8 +1847,8 @@
     },
     "mattar": {
       "name": "Mattar",
-      "x": 680,
-      "y": 490,
+      "x": 726.4,
+      "y": 504.5,
       "codes": [
         "DT:DT25"
       ],
@@ -1853,8 +1859,8 @@
     },
     "ubi": {
       "name": "Ubi",
-      "x": 720,
-      "y": 445,
+      "x": 801.8,
+      "y": 458.4,
       "codes": [
         "DT:DT27"
       ],
@@ -1865,8 +1871,8 @@
     },
     "kaki-bukit": {
       "name": "Kaki Bukit",
-      "x": 740,
-      "y": 435,
+      "x": 835.2,
+      "y": 452.3,
       "codes": [
         "DT:DT28"
       ],
@@ -1877,8 +1883,8 @@
     },
     "bedok-north": {
       "name": "Bedok North",
-      "x": 770,
-      "y": 430,
+      "x": 852.2,
+      "y": 444.7,
       "codes": [
         "DT:DT29"
       ],
@@ -1889,8 +1895,8 @@
     },
     "bedok-reservoir": {
       "name": "Bedok Reservoir",
-      "x": 800,
-      "y": 425,
+      "x": 860.4,
+      "y": 438.6,
       "codes": [
         "DT:DT30"
       ],
@@ -1901,8 +1907,8 @@
     },
     "tampines-west": {
       "name": "Tampines West",
-      "x": 860,
-      "y": 420,
+      "x": 862.2,
+      "y": 430.5,
       "codes": [
         "DT:DT31"
       ],
@@ -1913,8 +1919,8 @@
     },
     "tampines-east": {
       "name": "Tampines East",
-      "x": 945,
-      "y": 410,
+      "x": 913.2,
+      "y": 433.5,
       "codes": [
         "DT:DT33"
       ],
@@ -1925,8 +1931,8 @@
     },
     "upper-changi": {
       "name": "Upper Changi",
-      "x": 930,
-      "y": 450,
+      "x": 902.5,
+      "y": 454.9,
       "codes": [
         "DT:DT34"
       ],
@@ -1937,8 +1943,8 @@
     },
     "woodlands-north": {
       "name": "Woodlands North",
-      "x": 390,
-      "y": 40,
+      "x": 390.0,
+      "y": 40.0,
       "codes": [
         "TE:TE1"
       ],
@@ -1949,8 +1955,8 @@
     },
     "woodlands-south": {
       "name": "Woodlands South",
-      "x": 410,
-      "y": 80,
+      "x": 405.7,
+      "y": 80.9,
       "codes": [
         "TE:TE3"
       ],
@@ -1961,8 +1967,8 @@
     },
     "springleaf": {
       "name": "Springleaf",
-      "x": 430,
-      "y": 120,
+      "x": 415.2,
+      "y": 124.0,
       "codes": [
         "TE:TE4"
       ],
@@ -1973,8 +1979,8 @@
     },
     "lentor": {
       "name": "Lentor",
-      "x": 445,
-      "y": 160,
+      "x": 424.3,
+      "y": 165.2,
       "codes": [
         "TE:TE5"
       ],
@@ -1985,8 +1991,8 @@
     },
     "mayflower": {
       "name": "Mayflower",
-      "x": 455,
-      "y": 195,
+      "x": 432.0,
+      "y": 200.2,
       "codes": [
         "TE:TE6"
       ],
@@ -1997,8 +2003,8 @@
     },
     "bright-hill": {
       "name": "Bright Hill",
-      "x": 460,
-      "y": 230,
+      "x": 430.4,
+      "y": 220.5,
       "codes": [
         "TE:TE7"
       ],
@@ -2009,8 +2015,8 @@
     },
     "upper-thomson": {
       "name": "Upper Thomson",
-      "x": 462,
-      "y": 270,
+      "x": 414.7,
+      "y": 229.0,
       "codes": [
         "TE:TE8"
       ],
@@ -2021,8 +2027,8 @@
     },
     "napier": {
       "name": "Napier",
-      "x": 485,
-      "y": 420,
+      "x": 433.7,
+      "y": 401.4,
       "codes": [
         "TE:TE12"
       ],
@@ -2033,8 +2039,8 @@
     },
     "orchard-boulevard": {
       "name": "Orchard Boulevard",
-      "x": 510,
-      "y": 455,
+      "x": 472.6,
+      "y": 455.5,
       "codes": [
         "TE:TE13"
       ],
@@ -2045,8 +2051,8 @@
     },
     "great-world": {
       "name": "Great World",
-      "x": 530,
-      "y": 540,
+      "x": 514.0,
+      "y": 588.8,
       "codes": [
         "TE:TE15"
       ],
@@ -2057,8 +2063,8 @@
     },
     "havelock": {
       "name": "Havelock",
-      "x": 520,
-      "y": 560,
+      "x": 508.6,
+      "y": 621.1,
       "codes": [
         "TE:TE16"
       ],
@@ -2069,8 +2075,8 @@
     },
     "maxwell": {
       "name": "Maxwell",
-      "x": 545,
-      "y": 605,
+      "x": 525.7,
+      "y": 687.9,
       "codes": [
         "TE:TE18"
       ],
@@ -2081,8 +2087,8 @@
     },
     "shenton-way": {
       "name": "Shenton Way",
-      "x": 565,
-      "y": 615,
+      "x": 552.4,
+      "y": 705.3,
       "codes": [
         "TE:TE19"
       ],
@@ -2093,8 +2099,8 @@
     },
     "gardens-by-the-bay": {
       "name": "Gardens by the Bay",
-      "x": 650,
-      "y": 660,
+      "x": 671.5,
+      "y": 707.5,
       "codes": [
         "TE:TE22"
       ],
@@ -2105,8 +2111,8 @@
     },
     "tanjong-rhu": {
       "name": "Tanjong Rhu",
-      "x": 690,
-      "y": 630,
+      "x": 730.1,
+      "y": 682.7,
       "codes": [
         "TE:TE23"
       ],
@@ -2117,8 +2123,8 @@
     },
     "katong-park": {
       "name": "Katong Park",
-      "x": 720,
-      "y": 610,
+      "x": 765.0,
+      "y": 660.2,
       "codes": [
         "TE:TE24"
       ],
@@ -2129,8 +2135,8 @@
     },
     "tanjong-katong": {
       "name": "Tanjong Katong",
-      "x": 750,
-      "y": 600,
+      "x": 788.8,
+      "y": 638.5,
       "codes": [
         "TE:TE25"
       ],
@@ -2141,8 +2147,8 @@
     },
     "marine-parade": {
       "name": "Marine Parade",
-      "x": 780,
-      "y": 595,
+      "x": 804.8,
+      "y": 616.7,
       "codes": [
         "TE:TE26"
       ],
@@ -2153,8 +2159,8 @@
     },
     "marine-terrace": {
       "name": "Marine Terrace",
-      "x": 810,
-      "y": 590,
+      "x": 813.5,
+      "y": 594.7,
       "codes": [
         "TE:TE27"
       ],
@@ -2165,8 +2171,8 @@
     },
     "siglap": {
       "name": "Siglap",
-      "x": 840,
-      "y": 585,
+      "x": 841.7,
+      "y": 587.3,
       "codes": [
         "TE:TE28"
       ],
@@ -2177,8 +2183,8 @@
     },
     "bayshore": {
       "name": "Bayshore",
-      "x": 870,
-      "y": 580,
+      "x": 870.0,
+      "y": 580.0,
       "codes": [
         "TE:TE29"
       ],
@@ -2189,8 +2195,8 @@
     },
     "south-view": {
       "name": "South View",
-      "x": 350,
-      "y": 280,
+      "x": 350.0,
+      "y": 280.0,
       "codes": [
         "BP:BP2"
       ],
@@ -2201,8 +2207,8 @@
     },
     "keat-hong": {
       "name": "Keat Hong",
-      "x": 370,
-      "y": 270,
+      "x": 370.0,
+      "y": 270.0,
       "codes": [
         "BP:BP3"
       ],
@@ -2213,8 +2219,8 @@
     },
     "teck-whye": {
       "name": "Teck Whye",
-      "x": 385,
-      "y": 255,
+      "x": 385.0,
+      "y": 255.0,
       "codes": [
         "BP:BP4"
       ],
@@ -2225,8 +2231,8 @@
     },
     "phoenix": {
       "name": "Phoenix",
-      "x": 370,
-      "y": 235,
+      "x": 370.0,
+      "y": 235.0,
       "codes": [
         "BP:BP5"
       ],
@@ -2237,8 +2243,8 @@
     },
     "petir": {
       "name": "Petir",
-      "x": 280,
-      "y": 290,
+      "x": 280.0,
+      "y": 290.0,
       "codes": [
         "BP:BP7"
       ],
@@ -2249,8 +2255,8 @@
     },
     "pending": {
       "name": "Pending",
-      "x": 270,
-      "y": 320,
+      "x": 270.0,
+      "y": 320.0,
       "codes": [
         "BP:BP8"
       ],
@@ -2261,8 +2267,8 @@
     },
     "bangkit": {
       "name": "Bangkit",
-      "x": 280,
-      "y": 350,
+      "x": 280.0,
+      "y": 350.0,
       "codes": [
         "BP:BP9"
       ],
@@ -2273,8 +2279,8 @@
     },
     "fajar": {
       "name": "Fajar",
-      "x": 300,
-      "y": 370,
+      "x": 300.0,
+      "y": 370.0,
       "codes": [
         "BP:BP10"
       ],
@@ -2285,8 +2291,8 @@
     },
     "segar": {
       "name": "Segar",
-      "x": 320,
-      "y": 375,
+      "x": 320.0,
+      "y": 375.0,
       "codes": [
         "BP:BP11"
       ],
@@ -2297,8 +2303,8 @@
     },
     "jelapang": {
       "name": "Jelapang",
-      "x": 340,
-      "y": 360,
+      "x": 324.2,
+      "y": 354.1,
       "codes": [
         "BP:BP12"
       ],
@@ -2309,8 +2315,8 @@
     },
     "senja": {
       "name": "Senja",
-      "x": 345,
-      "y": 330,
+      "x": 338.5,
+      "y": 326.7,
       "codes": [
         "BP:BP13"
       ],
@@ -2321,8 +2327,8 @@
     },
     "compassvale": {
       "name": "Compassvale",
-      "x": 760,
-      "y": 240,
+      "x": 760.0,
+      "y": 240.0,
       "codes": [
         "SE:SE1"
       ],
@@ -2333,8 +2339,8 @@
     },
     "rumbia": {
       "name": "Rumbia",
-      "x": 775,
-      "y": 255,
+      "x": 775.0,
+      "y": 255.0,
       "codes": [
         "SE:SE2"
       ],
@@ -2345,8 +2351,8 @@
     },
     "bakau": {
       "name": "Bakau",
-      "x": 770,
-      "y": 275,
+      "x": 784.5,
+      "y": 261.4,
       "codes": [
         "SE:SE3"
       ],
@@ -2357,8 +2363,8 @@
     },
     "kangkar": {
       "name": "Kangkar",
-      "x": 750,
-      "y": 285,
+      "x": 780.9,
+      "y": 254.4,
       "codes": [
         "SE:SE4"
       ],
@@ -2369,8 +2375,8 @@
     },
     "ranggung": {
       "name": "Ranggung",
-      "x": 735,
-      "y": 270,
+      "x": 762.5,
+      "y": 237.4,
       "codes": [
         "SE:SE5"
       ],
@@ -2381,8 +2387,8 @@
     },
     "cheng-lim": {
       "name": "Cheng Lim",
-      "x": 710,
-      "y": 235,
+      "x": 723.9,
+      "y": 211.4,
       "codes": [
         "SW:SW1"
       ],
@@ -2393,8 +2399,8 @@
     },
     "farmway": {
       "name": "Farmway",
-      "x": 690,
-      "y": 225,
+      "x": 702.0,
+      "y": 199.7,
       "codes": [
         "SW:SW2"
       ],
@@ -2405,8 +2411,8 @@
     },
     "kupang": {
       "name": "Kupang",
-      "x": 670,
-      "y": 230,
+      "x": 685.3,
+      "y": 191.3,
       "codes": [
         "SW:SW3"
       ],
@@ -2417,8 +2423,8 @@
     },
     "thanggam": {
       "name": "Thanggam",
-      "x": 655,
-      "y": 245,
+      "x": 674.7,
+      "y": 188.9,
       "codes": [
         "SW:SW4"
       ],
@@ -2429,8 +2435,8 @@
     },
     "fernvale": {
       "name": "Fernvale",
-      "x": 650,
-      "y": 265,
+      "x": 675.3,
+      "y": 195.2,
       "codes": [
         "SW:SW5"
       ],
@@ -2441,8 +2447,8 @@
     },
     "layar": {
       "name": "Layar",
-      "x": 660,
-      "y": 285,
+      "x": 694.8,
+      "y": 210.5,
       "codes": [
         "SW:SW6"
       ],
@@ -2453,8 +2459,8 @@
     },
     "tongkang": {
       "name": "Tongkang",
-      "x": 680,
-      "y": 290,
+      "x": 721.3,
+      "y": 221.8,
       "codes": [
         "SW:SW7"
       ],
@@ -2465,8 +2471,8 @@
     },
     "renjong": {
       "name": "Renjong",
-      "x": 705,
-      "y": 280,
+      "x": 743.3,
+      "y": 226.6,
       "codes": [
         "SW:SW8"
       ],
@@ -2477,8 +2483,8 @@
     },
     "cove": {
       "name": "Cove",
-      "x": 775,
-      "y": 195,
+      "x": 775.0,
+      "y": 195.0,
       "codes": [
         "PE:PE1"
       ],
@@ -2489,8 +2495,8 @@
     },
     "meridian": {
       "name": "Meridian",
-      "x": 790,
-      "y": 175,
+      "x": 790.0,
+      "y": 175.0,
       "codes": [
         "PE:PE2"
       ],
@@ -2501,8 +2507,8 @@
     },
     "coral-edge": {
       "name": "Coral Edge",
-      "x": 780,
-      "y": 155,
+      "x": 780.0,
+      "y": 155.0,
       "codes": [
         "PE:PE3"
       ],
@@ -2513,8 +2519,8 @@
     },
     "riviera": {
       "name": "Riviera",
-      "x": 760,
-      "y": 145,
+      "x": 760.0,
+      "y": 145.0,
       "codes": [
         "PE:PE4"
       ],
@@ -2525,8 +2531,8 @@
     },
     "oasis": {
       "name": "Oasis",
-      "x": 740,
-      "y": 150,
+      "x": 740.0,
+      "y": 150.0,
       "codes": [
         "PE:PE6"
       ],
@@ -2537,8 +2543,8 @@
     },
     "damai": {
       "name": "Damai",
-      "x": 725,
-      "y": 165,
+      "x": 725.0,
+      "y": 165.0,
       "codes": [
         "PE:PE7"
       ],
@@ -2549,8 +2555,8 @@
     },
     "kadaloor": {
       "name": "Kadaloor",
-      "x": 730,
-      "y": 185,
+      "x": 730.0,
+      "y": 185.0,
       "codes": [
         "PE:PE5"
       ],
@@ -2561,8 +2567,8 @@
     },
     "sam-kee": {
       "name": "Sam Kee",
-      "x": 720,
-      "y": 195,
+      "x": 720.0,
+      "y": 195.0,
       "codes": [
         "PW:PW1"
       ],
@@ -2573,8 +2579,8 @@
     },
     "teck-lee": {
       "name": "Teck Lee",
-      "x": 700,
-      "y": 180,
+      "x": 700.0,
+      "y": 180.0,
       "codes": [
         "PW:PW2"
       ],
@@ -2585,8 +2591,8 @@
     },
     "punggol-point": {
       "name": "Punggol Point",
-      "x": 695,
-      "y": 160,
+      "x": 695.0,
+      "y": 160.0,
       "codes": [
         "PW:PW3"
       ],
@@ -2597,8 +2603,8 @@
     },
     "samudera": {
       "name": "Samudera",
-      "x": 710,
-      "y": 140,
+      "x": 710.0,
+      "y": 140.0,
       "codes": [
         "PW:PW4"
       ],
@@ -2609,8 +2615,8 @@
     },
     "nibong": {
       "name": "Nibong",
-      "x": 730,
-      "y": 135,
+      "x": 730.0,
+      "y": 135.0,
       "codes": [
         "PW:PW5"
       ],
@@ -2621,8 +2627,8 @@
     },
     "sumang": {
       "name": "Sumang",
-      "x": 745,
-      "y": 145,
+      "x": 745.0,
+      "y": 145.0,
       "codes": [
         "PW:PW6"
       ],
@@ -2633,8 +2639,8 @@
     },
     "soo-teck": {
       "name": "Soo Teck",
-      "x": 750,
-      "y": 170,
+      "x": 750.0,
+      "y": 170.0,
       "codes": [
         "PW:PW7"
       ],

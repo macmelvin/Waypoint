@@ -4924,10 +4924,28 @@ function escapeMrtLabel(str) {
 // white/ink "ring" marker; everything else gets a small dot in its line's
 // colour. Every text label carries a white halo (paint-order + stroke) so
 // labels stay legible crossing over coloured line paths underneath.
+// A station's line codes look like "NS:NS24" ("<line>:<official code>") —
+// pull just the official code part for the small wayfinding badge next to
+// its name (e.g. "NS24"). These codes are LTA's public station numbering,
+// not artwork, so showing them is just useful factual info.
+function mrtStationCodes(s) {
+  return (s.codes || []).map((c) => c.split(':')[1] || c).join(' · ');
+}
+
 function buildMrtSvgMarkup(data) {
   const stations = data.stations;
   const lineColorByCode = {};
   data.lines.forEach((ln) => { lineColorByCode[ln.code] = ln.color; });
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const haloColor = isDark ? '#0b0b0c' : '#ffffff';
+  const majorTextColor = isDark ? '#f5f5f7' : '#1a1a1a';
+  const minorTextColor = isDark ? '#c7c7cc' : '#374151';
+  const ringFill = isDark ? '#1c1c1e' : '#ffffff';
+  const ringStroke = isDark ? '#f5f5f7' : '#1a1a1a';
+  const bg = data.meta && data.meta.viewBox
+    ? data.meta.viewBox
+    : [0, 0, 1000, 900];
+  const [vbX, vbY, vbW, vbH] = bg;
 
   const linePaths = data.lines.map((ln) => {
     const pts = ln.stationOrder.map((id) => stations[id]).filter(Boolean);
@@ -4936,29 +4954,36 @@ function buildMrtSvgMarkup(data) {
     const d = path.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
     const isLrt = ln.style === 'lrt';
     return `<path d="${d}" fill="none" stroke="${ln.color}" stroke-width="${isLrt ? 3 : 6}" ` +
-      `stroke-linecap="round" stroke-linejoin="round" opacity="${isLrt ? 0.8 : 1}" ` +
+      `stroke-linecap="round" stroke-linejoin="round" opacity="${isLrt ? 0.85 : 1}" ` +
       `${isLrt ? 'stroke-dasharray="1.5,5"' : ''}></path>`;
   }).join('');
 
+  // Interchanges (and their codes) always show. Everything else is tagged
+  // "mrt-label-minor" and hidden by default via CSS — see .mrt-zoomed-in in
+  // style.css — only appearing once the rider zooms in, so the map reads
+  // clearly at the overview zoom instead of 184 labels fighting for space.
   const markers = Object.values(stations).map((s) => {
     const label = escapeMrtLabel(s.name);
+    const codes = escapeMrtLabel(mrtStationCodes(s));
     if (s.interchange) {
-      return `<g>` +
-        `<circle cx="${s.x}" cy="${s.y}" r="7.5" fill="#ffffff" stroke="#1a1a1a" stroke-width="2.5"></circle>` +
-        `<text x="${s.x + 10}" y="${s.y - 9}" font-size="10.5" font-weight="700" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
-        `fill="#1a1a1a" paint-order="stroke" stroke="#ffffff" stroke-width="3.2" stroke-linejoin="round">${label}</text>` +
+      return `<g class="mrt-marker mrt-marker-major">` +
+        `<circle cx="${s.x}" cy="${s.y}" r="7.5" fill="${ringFill}" stroke="${ringStroke}" stroke-width="2.5"></circle>` +
+        `<text class="mrt-label mrt-label-major" x="${s.x + 10}" y="${s.y - 11}" font-size="11" font-weight="700" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
+        `fill="${majorTextColor}" paint-order="stroke" stroke="${haloColor}" stroke-width="3.4" stroke-linejoin="round">${label}</text>` +
+        `<text class="mrt-label mrt-label-code" x="${s.x + 10}" y="${s.y + 2}" font-size="7.5" font-weight="600" letter-spacing="0.3" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
+        `fill="${minorTextColor}" paint-order="stroke" stroke="${haloColor}" stroke-width="3" stroke-linejoin="round">${codes}</text>` +
         `</g>`;
     }
     const color = lineColorByCode[s.lines[0]] || '#1a1a1a';
-    return `<g>` +
-      `<circle cx="${s.x}" cy="${s.y}" r="4" fill="${color}" stroke="#ffffff" stroke-width="1.2"></circle>` +
-      `<text x="${s.x + 7}" y="${s.y - 6}" font-size="8.5" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
-      `fill="#374151" paint-order="stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">${label}</text>` +
+    return `<g class="mrt-marker mrt-marker-minor">` +
+      `<circle cx="${s.x}" cy="${s.y}" r="4" fill="${color}" stroke="${haloColor}" stroke-width="1.2"></circle>` +
+      `<text class="mrt-label mrt-label-minor" x="${s.x + 7}" y="${s.y - 6}" font-size="8.5" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
+      `fill="${minorTextColor}" paint-order="stroke" stroke="${haloColor}" stroke-width="3" stroke-linejoin="round">${label}</text>` +
       `</g>`;
   }).join('');
 
-  return `<svg viewBox="0 0 1000 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schematic map of Singapore's MRT and LRT network">` +
-    `<rect x="0" y="0" width="1000" height="900" fill="#f7f8fa"></rect>` +
+  return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schematic map of Singapore's MRT and LRT network">` +
+    `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="${isDark ? '#000000' : '#f7f8fa'}"></rect>` +
     `<g>${linePaths}</g>` +
     `<g>${markers}</g>` +
     `</svg>`;
@@ -4973,12 +4998,18 @@ function createPanZoom(viewport, canvas, opts = {}) {
   const state = { scale: opts.initialScale || 1, tx: opts.initialX || 0, ty: opts.initialY || 0 };
   const minScale = opts.minScale || 0.35;
   const maxScale = opts.maxScale || 6;
+  const onZoom = typeof opts.onZoom === 'function' ? opts.onZoom : null;
   const pointers = new Map();
   let dragStart = null;
   let pinchStartDist = 0;
+  let lastReportedScale = null;
 
   function apply() {
     canvas.style.transform = `translate(${state.tx}px, ${state.ty}px) scale(${state.scale})`;
+    if (onZoom && state.scale !== lastReportedScale) {
+      lastReportedScale = state.scale;
+      onZoom(state.scale);
+    }
   }
 
   function clampScale() {
@@ -5075,12 +5106,20 @@ function createPanZoom(viewport, canvas, opts = {}) {
   };
 }
 
+// "Cover"-style fit: scale so the map's shorter dimension fills the
+// viewport (Math.max, not Math.min), so the diagram fills the screen like a
+// real map app instead of leaving big letterboxed bands on tall phone
+// viewports. Uses the dataset's own viewBox (data.meta.viewBox) rather than
+// a hardcoded canvas size, since the layout's bounding box now comes from
+// the cartogram transform rather than a fixed 1000x900 box.
 function fitMrtMapToViewport() {
   if (!els.mrtMapViewport) return { scale: 1, tx: 0, ty: 0 };
   const rect = els.mrtMapViewport.getBoundingClientRect();
-  const scale = Math.max(0.35, Math.min(rect.width / 1000, rect.height / 900) * 0.95);
-  const tx = (rect.width - 1000 * scale) / 2;
-  const ty = (rect.height - 900 * scale) / 2;
+  const vb = (mrtNetworkData && mrtNetworkData.meta && mrtNetworkData.meta.viewBox) || [0, 0, 1000, 900];
+  const [, , mapW, mapH] = vb;
+  const scale = Math.max(rect.width / mapW, rect.height / mapH) * 1.0;
+  const tx = (rect.width - mapW * scale) / 2;
+  const ty = (rect.height - mapH * scale) / 2;
   return { scale, tx, ty };
 }
 
@@ -5094,9 +5133,19 @@ async function renderMrtMap() {
     }
     els.mrtMapCanvas.innerHTML = buildMrtSvgMarkup(mrtNetworkData);
     els.mrtMapStatus.classList.add('hidden');
+    const vb = (mrtNetworkData.meta && mrtNetworkData.meta.viewBox) || [0, 0, 1000, 900];
+    els.mrtMapCanvas.style.width = `${vb[2]}px`;
+    els.mrtMapCanvas.style.height = `${vb[3]}px`;
     const fit = fitMrtMapToViewport();
+    // Once zoomed in past ~1.8x the initial fit-to-screen scale, reveal
+    // minor station labels — the overview stays clean, detail shows up once
+    // the rider is actually looking at a specific area.
+    const zoomInThreshold = fit.scale * 1.8;
     mrtPanZoom = createPanZoom(els.mrtMapViewport, els.mrtMapCanvas, {
       initialScale: fit.scale, initialX: fit.tx, initialY: fit.ty,
+      onZoom: (scale) => {
+        els.mrtMapViewport.classList.toggle('mrt-zoomed-in', scale >= zoomInThreshold);
+      },
     });
     mrtMapRendered = true;
   } catch (err) {
