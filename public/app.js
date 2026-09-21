@@ -4924,12 +4924,16 @@ function escapeMrtLabel(str) {
 // white/ink "ring" marker; everything else gets a small dot in its line's
 // colour. Every text label carries a white halo (paint-order + stroke) so
 // labels stay legible crossing over coloured line paths underneath.
-// A station's line codes look like "NS:NS24" ("<line>:<official code>") —
-// pull just the official code part for the small wayfinding badge next to
-// its name (e.g. "NS24"). These codes are LTA's public station numbering,
-// not artwork, so showing them is just useful factual info.
-function mrtStationCodes(s) {
-  return (s.codes || []).map((c) => c.split(':')[1] || c).join(' · ');
+// One small colored badge per line at an interchange, showing just the
+// numeric part of that line's official station code (e.g. "NS24" -> "24"),
+// coloured with that line's own official colour — the small numbered pill
+// wayfinding convention used across most schematic transit maps.
+function mrtStationBadges(s, lineColorByCode) {
+  return (s.codes || []).map((c) => {
+    const [lineCode, code] = c.split(':');
+    const num = (code || c).replace(/^[A-Za-z]+/, '');
+    return { num: num || (code || c), color: lineColorByCode[lineCode] || '#6b7280' };
+  });
 }
 
 function buildMrtSvgMarkup(data) {
@@ -4937,11 +4941,17 @@ function buildMrtSvgMarkup(data) {
   const lineColorByCode = {};
   data.lines.forEach((ln) => { lineColorByCode[ln.code] = ln.color; });
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const haloColor = isDark ? '#0b0b0c' : '#ffffff';
+  // Dark variant leans on a deep navy (rather than flat black) with a subtle
+  // lighter panel tone — closer to the high-contrast look of most dedicated
+  // transit-map apps/sites, still our own colour choice rather than a copy
+  // of any one of them.
+  const bgColor = isDark ? '#0b1120' : '#f7f8fa';
+  const haloColor = isDark ? '#0b1120' : '#ffffff';
   const majorTextColor = isDark ? '#f5f5f7' : '#1a1a1a';
   const minorTextColor = isDark ? '#c7c7cc' : '#374151';
-  const ringFill = isDark ? '#1c1c1e' : '#ffffff';
+  const ringFill = isDark ? '#182036' : '#ffffff';
   const ringStroke = isDark ? '#f5f5f7' : '#1a1a1a';
+  const badgeTextColor = '#ffffff';
   const bg = data.meta && data.meta.viewBox
     ? data.meta.viewBox
     : [0, 0, 1000, 900];
@@ -4964,14 +4974,19 @@ function buildMrtSvgMarkup(data) {
   // clearly at the overview zoom instead of 184 labels fighting for space.
   const markers = Object.values(stations).map((s) => {
     const label = escapeMrtLabel(s.name);
-    const codes = escapeMrtLabel(mrtStationCodes(s));
     if (s.interchange) {
+      const badges = mrtStationBadges(s, lineColorByCode);
+      const badgeRowY = s.y + 9;
+      const badgeMarkup = badges.map((b, i) => {
+        const bx = s.x + 10 + i * 13.5;
+        return `<circle cx="${bx}" cy="${badgeRowY}" r="6" fill="${b.color}" stroke="${haloColor}" stroke-width="1.4"></circle>` +
+          `<text x="${bx}" y="${badgeRowY + 2.6}" text-anchor="middle" font-size="6.5" font-weight="700" font-family="-apple-system,Segoe UI,Roboto,sans-serif" fill="${badgeTextColor}">${escapeMrtLabel(b.num)}</text>`;
+      }).join('');
       return `<g class="mrt-marker mrt-marker-major">` +
         `<circle cx="${s.x}" cy="${s.y}" r="7.5" fill="${ringFill}" stroke="${ringStroke}" stroke-width="2.5"></circle>` +
         `<text class="mrt-label mrt-label-major" x="${s.x + 10}" y="${s.y - 11}" font-size="11" font-weight="700" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
         `fill="${majorTextColor}" paint-order="stroke" stroke="${haloColor}" stroke-width="3.4" stroke-linejoin="round">${label}</text>` +
-        `<text class="mrt-label mrt-label-code" x="${s.x + 10}" y="${s.y + 2}" font-size="7.5" font-weight="600" letter-spacing="0.3" font-family="-apple-system,Segoe UI,Roboto,sans-serif" ` +
-        `fill="${minorTextColor}" paint-order="stroke" stroke="${haloColor}" stroke-width="3" stroke-linejoin="round">${codes}</text>` +
+        `<g class="mrt-label-code">${badgeMarkup}</g>` +
         `</g>`;
     }
     const color = lineColorByCode[s.lines[0]] || '#1a1a1a';
@@ -4983,7 +4998,7 @@ function buildMrtSvgMarkup(data) {
   }).join('');
 
   return `<svg viewBox="${vbX} ${vbY} ${vbW} ${vbH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schematic map of Singapore's MRT and LRT network">` +
-    `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="${isDark ? '#000000' : '#f7f8fa'}"></rect>` +
+    `<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="${bgColor}"></rect>` +
     `<g>${linePaths}</g>` +
     `<g>${markers}</g>` +
     `</svg>`;

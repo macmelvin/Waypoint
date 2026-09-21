@@ -2434,10 +2434,10 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   color: var(--label-primary);
 }
 
-/* ---- MRT map canvas: the SVG map's own line/station colors are unchanged
-   (out of scope for this pass — see report), but its light-gray viewport
-   backdrop shouldn't stay a bright box on an otherwise near-black page. ---- */
-[data-theme="dark"] .mrt-map-viewport { background: var(--surface-secondary); }
+/* ---- MRT map canvas: match the viewport's own backdrop to the SVG's deep
+   navy dark-mode background (see buildMrtSvgMarkup's bgColor) so there's no
+   mismatched flash while the map is loading. ---- */
+[data-theme="dark"] .mrt-map-viewport { background: #0b1120; }
 
 /* ---- Bus Arrival Time tab: "Nearby" section + each stop's card go from
    filled/shadowed to outlined, per the reference's card treatment. ---- */
