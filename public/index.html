@@ -7,8 +7,25 @@
 <meta name="description" content="Singapore Tourist Map — Your Travel Companion" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📍</text></svg>" />
 <link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#2563eb" />
+<meta name="theme-color" content="#2563eb" id="themeColorMeta" />
 <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+<!-- Applies the saved (or system-default) color theme before first paint so
+     there's no flash of the wrong theme. Keep the storage key ('waypoint_theme')
+     in sync with THEME_KEY in app.js — they must match. -->
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem('waypoint_theme');
+    var theme = (saved === 'light' || saved === 'dark')
+      ? saved
+      : ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (err) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+</script>
 
 <!-- Open Graph / social share preview (WhatsApp, Telegram, etc.) -->
 <meta property="og:type" content="website" />
@@ -71,6 +88,14 @@
       </button>
       <button id="locateBtn" class="icon-btn locate-btn" type="button" data-i18n-title="where_am_i" data-i18n-aria="where_am_i" title="Where am I" aria-label="Where am I">
         <span id="locateBtnIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><path d="M12 2.3v3M12 18.7v3M2.3 12h3M18.7 12h3"/></svg></span>
+      </button>
+      <button id="themeToggle" class="theme-toggle" type="button" role="switch" aria-checked="false" title="Switch to dark mode" aria-label="Switch to dark mode">
+        <span class="theme-toggle-track">
+          <span class="theme-toggle-thumb">
+            <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
+            <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.7a8.5 8.5 0 0 1-11-11.2 9 9 0 1 0 11 11.2z"/></svg>
+          </span>
+        </span>
       </button>
     </div>
   </header>
@@ -320,6 +345,7 @@
         <div id="nearbyArrivalsSection" class="nearby-arrivals-section">
           <div class="nearby-arrivals-heading">
             <span data-i18n="nearby_arrivals_title">Nearby</span>
+            <span class="live-badge">LIVE</span>
             <button id="nearbyArrivalsRefreshBtn" class="nearby-arrivals-refresh" type="button" title="Refresh" aria-label="Refresh nearby stops"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg></button>
           </div>
           <div id="nearbyArrivalsList" class="nearby-arrivals-list"></div>

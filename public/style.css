@@ -95,6 +95,122 @@
   --duration-slow: 0.42s;
 }
 
+/* =========================================================================
+   DARK MODE — toggled explicitly via [data-theme="dark"] on <html> (see
+   app.js: THEME_KEY / applyTheme()), defaulting to the OS's color-scheme
+   preference on first load before the person ever touches the toggle.
+   Modeled on a transit-tracker reference (near-black background, outlined
+   cards, oversized "hero number" countdowns, green live/good + blue LIVE
+   accents) rather than a simple inverted palette — see the component
+   overrides further down (search "[data-theme=\"dark\"]") for where that
+   reference's specific look gets applied to Waypoint's own live-data
+   surfaces (bus arrivals, weather readout).
+
+   Every token below has a light value up in :root above (unchanged — light
+   mode is not touched by this file) and a dark value here. Anything that
+   only reads these tokens (almost everything in this file, including the
+   --ink/--muted/--border/--bg/--panel-bg aliases) re-themes for free; the
+   few rules that hard-code a light-only color instead of a token get their
+   own explicit [data-theme="dark"] override alongside their light rule. */
+:root[data-theme="dark"] {
+  /* ---- Brand accent — a touch brighter so it still pops on near-black ---- */
+  --accent: #3b82f6;
+  --accent-dark: #60a5fa;
+  --accent-light: rgba(59, 130, 246, 0.16);
+  --accent-tint-weak: rgba(59, 130, 246, 0.18);
+  --accent-tint-strong: rgba(59, 130, 246, 0.3);
+
+  /* ---- Neutral / gray scale — ramp inverted so every existing consumer
+     (hover fills, dividers, the weather-sheet drag handle, etc.) keeps
+     working without being touched individually ---- */
+  --gray-50:  #1c1c1e;
+  --gray-100: #232326;
+  --gray-200: #2c2c30;
+  --gray-300: #3a3a3f;
+  --gray-400: #4a4a50;
+  --gray-500: #6b6b72;
+  --gray-600: #8e8e96;
+  --gray-700: #aeaeb5;
+  --gray-800: #d1d1d6;
+  --gray-900: #f2f2f4;
+
+  /* ---- Label (text) hierarchy ---- */
+  --label-primary: #f5f5f7;
+  --label-secondary: #9a9aa3;
+  --label-tertiary: #6e6e76;
+  --label-quaternary: #48484c;
+
+  /* ---- Surfaces — near-black, not just dark gray, per the reference ---- */
+  --surface-bg: #000000;
+  --surface-secondary: #08080a;
+  --surface-elevated: #0e0e11;         /* cards read as "outlined", see below */
+  --surface-fill: rgba(255, 255, 255, 0.08);
+  --surface-fill-strong: rgba(255, 255, 255, 0.14);
+
+  /* ---- Hairlines — thin, visible borders are what make dark-mode cards
+     read as "outlined" instead of just flat-black ---- */
+  --separator: rgba(255, 255, 255, 0.16);
+  --separator-translucent: rgba(255, 255, 255, 0.14);
+
+  /* ---- Semantic colors — brighter so they hold contrast on black ---- */
+  --danger: #ff6961;
+  --danger-tint: rgba(255, 105, 97, 0.14);
+  --success: #32d74b;                  /* "live / good / on-time" green */
+  --warning: #ffb340;
+
+  /* ---- Materials — dark, translucent chrome instead of frosted white ---- */
+  --material-thin: rgba(10, 10, 12, 0.6);
+  --material-regular: rgba(8, 8, 10, 0.82);
+  --material-thick: rgba(4, 4, 5, 0.94);
+  --material-dark: rgba(0, 0, 0, 0.82);
+
+  /* ---- Elevation — shadows barely read on near-black, so they're kept
+     faint; the outline (--separator) does the visual work instead ---- */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Before the person has ever touched the toggle (no localStorage choice
+   yet), honor the OS's own dark preference. app.js sets data-theme
+   explicitly on every load (light or dark) to avoid a flash, which is why
+   this rule is scoped to :not([data-theme="light"]) rather than relied on
+   alone — an explicit light choice on a dark system must still win. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --accent: #3b82f6;
+    --accent-dark: #60a5fa;
+    --accent-light: rgba(59, 130, 246, 0.16);
+    --accent-tint-weak: rgba(59, 130, 246, 0.18);
+    --accent-tint-strong: rgba(59, 130, 246, 0.3);
+    --gray-50: #1c1c1e; --gray-100: #232326; --gray-200: #2c2c30; --gray-300: #3a3a3f;
+    --gray-400: #4a4a50; --gray-500: #6b6b72; --gray-600: #8e8e96; --gray-700: #aeaeb5;
+    --gray-800: #d1d1d6; --gray-900: #f2f2f4;
+    --label-primary: #f5f5f7;
+    --label-secondary: #9a9aa3;
+    --label-tertiary: #6e6e76;
+    --label-quaternary: #48484c;
+    --surface-bg: #000000;
+    --surface-secondary: #08080a;
+    --surface-elevated: #0e0e11;
+    --surface-fill: rgba(255, 255, 255, 0.08);
+    --surface-fill-strong: rgba(255, 255, 255, 0.14);
+    --separator: rgba(255, 255, 255, 0.16);
+    --separator-translucent: rgba(255, 255, 255, 0.14);
+    --danger: #ff6961;
+    --danger-tint: rgba(255, 105, 97, 0.14);
+    --success: #32d74b;
+    --warning: #ffb340;
+    --material-thin: rgba(10, 10, 12, 0.6);
+    --material-regular: rgba(8, 8, 10, 0.82);
+    --material-thick: rgba(4, 4, 5, 0.94);
+    --material-dark: rgba(0, 0, 0, 0.82);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.5);
+    --shadow-3: 0 16px 40px rgba(0, 0, 0, 0.6);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -2147,4 +2263,210 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   background: var(--bg);
   border-top: 1px solid var(--border);
   text-align: center;
+}
+
+/* =========================================================================
+   DARK-MODE THEME TOGGLE — a pill-shaped switch in the topbar (styled after
+   the reference's clock-side switch), not just an icon button, so the
+   control itself reads as an explicit on/off toggle rather than an action
+   button. Lives in #topbar's .topbar-actions, after the other icon buttons.
+   ========================================================================= */
+.theme-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.theme-toggle-track {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill-strong);
+  border: 1px solid var(--separator);
+  padding: 2px;
+  box-sizing: border-box;
+  transition: background var(--duration-base) var(--ease-snappy);
+}
+.theme-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  color: #d97706;
+  box-shadow: var(--shadow-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(0);
+  transition: transform var(--duration-base) var(--ease-snappy), background var(--duration-base) var(--ease-snappy), color var(--duration-base) var(--ease-snappy);
+}
+.theme-toggle-thumb svg { width: 14px; height: 14px; }
+.theme-toggle-thumb .theme-icon-moon { display: none; }
+[data-theme="dark"] .theme-toggle-track { background: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .theme-toggle-thumb {
+  transform: translateX(20px);
+  background: #1c1c1e;
+  color: #9ec6ff;
+}
+[data-theme="dark"] .theme-toggle-thumb .theme-icon-sun { display: none; }
+[data-theme="dark"] .theme-toggle-thumb .theme-icon-moon { display: block; }
+
+/* =========================================================================
+   LIVE / HERO NUMBER — a small reusable pair (value + unit) used on
+   Waypoint's own live-countdown surfaces (bus arrivals, below). In light
+   mode this stays a modest inline extension of the existing type scale; in
+   dark mode it becomes the reference's oversized stacked digit + label.
+   ========================================================================= */
+.hero-number {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.hero-number-unit {
+  font-size: 0.62em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+/* "LIVE" pill — the reference's blue status badge. Plain inline text in
+   light mode (matches the existing .arrivals-meta "Live · updated…" line);
+   becomes a solid pill only in dark mode. */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* =========================================================================
+   DARK-MODE OVERRIDES for hard-coded (non-token) colors and for the
+   specific live-data surfaces called out in the design brief: bus arrivals
+   (Bus Arrival Time tab + the Favourites/Directions arrivals panels) and
+   the live weather readout. Everything else re-themes automatically from
+   the token block near the top of this file.
+   ========================================================================= */
+
+/* ---- Alert/status banners: translucent-on-black instead of pastel-on-white,
+   keeping each banner's hue identity (red/amber/blue/cyan) ---- */
+[data-theme="dark"] .train-alert-banner {
+  background: rgba(255, 105, 97, 0.14);
+  border-bottom-color: rgba(255, 105, 97, 0.35);
+  color: #ffb4ae;
+}
+[data-theme="dark"] .train-alert-dismiss { color: #ffb4ae; }
+[data-theme="dark"] .offline-banner {
+  background: rgba(255, 179, 64, 0.14);
+  border-bottom-color: rgba(255, 179, 64, 0.35);
+  color: #ffcf8a;
+}
+[data-theme="dark"] .rain-banner {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #9ec6ff;
+}
+[data-theme="dark"] .dengue-banner {
+  background: rgba(255, 179, 64, 0.14);
+  border-color: rgba(255, 179, 64, 0.35);
+  color: #ffcf8a;
+}
+[data-theme="dark"] .flood-banner {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #9adcf5;
+}
+[data-theme="dark"] .attraction-food-tip {
+  background: rgba(255, 179, 64, 0.12);
+  border-color: rgba(255, 179, 64, 0.3);
+  color: var(--label-primary);
+}
+
+/* ---- MRT map canvas: the SVG map's own line/station colors are unchanged
+   (out of scope for this pass — see report), but its light-gray viewport
+   backdrop shouldn't stay a bright box on an otherwise near-black page. ---- */
+[data-theme="dark"] .mrt-map-viewport { background: var(--surface-secondary); }
+
+/* ---- Bus Arrival Time tab: "Nearby" section + each stop's card go from
+   filled/shadowed to outlined, per the reference's card treatment. ---- */
+[data-theme="dark"] .nearby-arrivals-section {
+  background: transparent;
+  border: 1px solid var(--separator);
+}
+[data-theme="dark"] .nearby-stop-card {
+  background: transparent;
+  border: 1px solid var(--separator);
+  box-shadow: none;
+}
+[data-theme="dark"] .nearby-service-no { color: var(--label-primary); }
+
+/* The hero countdown itself: stacked oversized digit + small "MIN" label,
+   white by default, green when the bus/train is arriving right now (the
+   reference's "0 MIN" treatment) instead of always-blue. */
+[data-theme="dark"] .nearby-service-primary {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  color: var(--label-primary);
+}
+[data-theme="dark"] .nearby-live-icon { display: none; } /* the big digit itself is now the "this is live" signal */
+[data-theme="dark"] .nearby-service-primary .hero-number {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+[data-theme="dark"] .nearby-service-primary .hero-number-value {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+[data-theme="dark"] .nearby-service-primary .hero-number-unit {
+  margin-top: 2px;
+  font-size: 11px;
+}
+[data-theme="dark"] .nearby-service-primary.arrival-now { color: var(--success); }
+
+/* Favourites/Directions arrivals panel: outlined card + a real "LIVE" pill,
+   and each service's chip goes green once it's arriving right now. */
+[data-theme="dark"] .arrivals-panel { background: transparent; border-color: var(--separator); }
+[data-theme="dark"] .live-badge {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+[data-theme="dark"] .live-badge .arrivals-live-dot { display: none; } /* the pill itself is the live signal now */
+[data-theme="dark"] .arrival-chip.arrival-now { color: var(--success); font-weight: 700; }
+
+/* ---- Live weather readout (temperature/humidity/wind sheet): same
+   outlined-cell + hero-number treatment as the bus arrivals above. ---- */
+[data-theme="dark"] .weather-panel-grid > div {
+  background: transparent;
+  border: 1px solid var(--separator);
+}
+[data-theme="dark"] .weather-panel-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 9.5px;
+}
+[data-theme="dark"] .weather-panel-value {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
