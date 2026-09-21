@@ -515,6 +515,7 @@ const CATEGORY_LABELS = {
   towtruck: 'tow truck service',
   petgrooming: 'pet groomer',
   petcafe: 'pet cafe',
+  petcafeopen: 'pet cafe that is open now',
   petcafeoutdoor: 'pet cafe with outdoor seating',
   petcafeindoor: 'pet cafe with indoor seating',
 };
@@ -660,15 +661,15 @@ function petCafeTodayHours(hours) {
   const line = hours.find((h) => h.startsWith(day));
   return line ? `🕒 ${line.replace(/^[A-Za-z]+:\s*/, '')}` : '';
 }
-const PET_CAFE_DINE = { petcafe: '', petcafeoutdoor: 'outdoor', petcafeindoor: 'indoor' };
+const PET_CAFE_DINE = { petcafe: '', petcafeopen: '', petcafeoutdoor: 'outdoor', petcafeindoor: 'indoor' };
 async function fetchNearbyPetCafes(category, lat, lon) {
   const dine = PET_CAFE_DINE[category];
-  const res = await fetch(`/api/pet-cafes-nearby?lat=${lat}&lon=${lon}${dine ? `&dine=${dine}` : ''}`);
+  const res = await fetch(`/api/pet-cafes-nearby?lat=${lat}&lon=${lon}${dine ? `&dine=${dine}` : ''}${category === 'petcafeopen' ? '&open=1' : ''}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Pet cafes responded ${res.status}`);
   const places = (data.cafes || []).map((c) => ({
     label: c.label,
-    address: [c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || []), petCafeTodayHours(c.hours), c.phone && `📞 ${c.phone}`].filter(Boolean).join(' · '),
+    address: [c.openNow === true && '🟢 Open now', c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || []), petCafeTodayHours(c.hours), c.phone && `📞 ${c.phone}`].filter(Boolean).join(' · '),
     lat: c.lat,
     lon: c.lon,
   }));
@@ -1238,6 +1239,7 @@ const CHIP_I18N = {
   dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா', ja: 'ドッグパーク', ko: '반려견 공원' },
   towtruck: { en: 'Tow Truck', zh: '拖车服务', ms: 'Khidmat Tunda Kereta', ta: 'இழுவை வாகன சேவை', ja: 'レッカーサービス', ko: '견인 서비스' },
   petcafe: { en: 'Pet Cafes', zh: '宠物咖啡馆', ms: 'Kafe Haiwan', ta: 'செல்லப்பிராணி கஃபே', ja: 'ペットカフェ', ko: '펫 카페' },
+  petcafeopen: { en: 'Pet Cafes · Open now', zh: '宠物咖啡馆 · 营业中', ms: 'Kafe Haiwan · Buka sekarang', ta: 'செல்லப்பிராணி கஃபே · இப்போது திறந்துள்ளது', ja: 'ペットカフェ · 営業中', ko: '펫 카페 · 영업 중' },
   petcafeoutdoor: { en: 'Pet Cafes · Outdoor', zh: '宠物咖啡馆 · 户外', ms: 'Kafe Haiwan · Luar', ta: 'செல்லப்பிராணி கஃபே · வெளிப்புறம்', ja: 'ペットカフェ · 屋外', ko: '펫 카페 · 야외' },
   petcafeindoor: { en: 'Pet Cafes · Indoor', zh: '宠物咖啡馆 · 室内', ms: 'Kafe Haiwan · Dalam', ta: 'செல்லப்பிராணி கஃபே · உட்புறம்', ja: 'ペットカフェ · 屋内', ko: '펫 카페 · 실내' },
   petgrooming: { en: 'Pet Grooming', zh: '宠物美容', ms: 'Dandanan Haiwan', ta: 'செல்லப்பிராணி அழகுபடுத்தல்', ja: 'ペットグルーミング', ko: '반려동물 미용' },

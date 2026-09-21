@@ -48,6 +48,62 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+// ---- Opening hours ---------------------------------------------------------
+// Google's weekdayDescriptions look like "Monday: 10:00 AM – 12:00 PM, 1:00 – 7:30 PM",
+// "Monday: Closed" or "Monday: Open 24 hours". Times are minutes since midnight;
+// a range that runs past midnight ends after 1440.
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function parseClock(str, fallbackMeridiem) {
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i.exec(str.trim());
+  if (!m) return null;
+  const mer = (m[3] || fallbackMeridiem || '').toUpperCase();
+  return { minutes: (Number(m[1]) % 12) * 60 + Number(m[2]) + (mer === 'PM' ? 720 : 0), hasMer: Boolean(m[3]), mer };
+}
+
+// Returns an array of [start, end] ranges, or null when the text can't be understood.
+function parseDayHours(line) {
+  const text = String(line).replace(/[   ]/g, ' ').replace(/^[A-Za-z]+:\s*/, '').trim();
+  if (/^closed$/i.test(text)) return [];
+  if (/^open 24 hours$/i.test(text)) return [[0, 1440]];
+  const ranges = [];
+  for (const part of text.split(',')) {
+    const [a, b] = part.split(/\s*[–—-]\s*/);
+    if (!a || !b) return null;
+    const end = parseClock(b);
+    if (!end || !end.hasMer) return null;
+    let start = parseClock(a, end.mer);
+    if (!start) return null;
+    if (!start.hasMer && start.minutes >= end.minutes) {
+      // "10:00 – 2:00 PM": the start is in the other half of the day
+      start = parseClock(a, end.mer === 'PM' ? 'AM' : 'PM');
+    }
+    let e = end.minutes;
+    if (e <= start.minutes) e += 1440;
+    ranges.push([start.minutes, e]);
+  }
+  return ranges;
+}
+
+// true / false, or null when the cafe has no usable hours.
+function isOpenNow(hours, date = new Date()) {
+  if (!Array.isArray(hours) || hours.length < 7) return null;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Singapore', weekday: 'long', hour: 'numeric', minute: 'numeric', hourCycle: 'h23',
+  }).formatToParts(date);
+  const get = (t) => parts.find((p) => p.type === t).value;
+  const dayIdx = DAY_NAMES.indexOf(get('weekday'));
+  const nowMin = Number(get('hour')) * 60 + Number(get('minute'));
+  const lineFor = (i) => hours.find((h) => String(h).startsWith(DAY_NAMES[(i + 7) % 7]));
+  const today = lineFor(dayIdx) && parseDayHours(lineFor(dayIdx));
+  const yesterday = lineFor(dayIdx - 1) && parseDayHours(lineFor(dayIdx - 1));
+  if (!today) return null;
+  if (today.some(([s, e]) => nowMin >= s && nowMin < e)) return true;
+  // last night's opening that ran past midnight
+  if (yesterday && yesterday.some(([, e]) => e > 1440 && nowMin < e - 1440)) return true;
+  return false;
+}
+
 // ---- Google Places (New) ---------------------------------------------------
 async function searchText(query) {
   const fields = ['places.id', 'places.displayName', 'places.formattedAddress', 'places.location',
@@ -192,13 +248,16 @@ function register(app, { requireAdmin }) {
     const lat = parseFloat(req.query.lat), lon = parseFloat(req.query.lon);
     if (Number.isNaN(lat) || Number.isNaN(lon)) return res.status(400).json({ error: 'lat and lon are required' });
     const dine = req.query.dine;
+    const onlyOpen = req.query.open === '1';
     const cafes = readJson(CAFES_FILE, [])
       .filter((c) => c.reviewed && !c.hidden && typeof c.lat === 'number' && typeof c.lon === 'number')
       .filter((c) => dine === 'indoor' ? c.hasIndoor === true
         : dine === 'outdoor' ? c.hasOutdoor === true
         : dine === 'both' ? (c.hasIndoor === true && c.hasOutdoor === true) : true)
+      .map((c) => ({ ...c, openNow: isOpenNow(c.hours) }))
+      .filter((c) => !onlyOpen || c.openNow === true)
       .map((c) => ({
-        label: c.name, address: c.address, lat: c.lat, lon: c.lon,
+        label: c.name, openNow: c.openNow, address: c.address, lat: c.lat, lon: c.lon,
         hasIndoor: c.hasIndoor === true, hasOutdoor: c.hasOutdoor === true,
         animals: c.animals || [], notes: c.notes || '', mapsUrl: c.mapsUrl || '', phone: c.phone || '', hours: c.hours || [],
         distanceMeters: Math.round(haversineMeters(lat, lon, c.lat, c.lon)),
@@ -260,4 +319,4 @@ function register(app, { requireAdmin }) {
   }
 }
 
-module.exports = { register };
+module.exports = { register, isOpenNow, parseDayHours };
