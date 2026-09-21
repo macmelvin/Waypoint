@@ -1635,17 +1635,18 @@ async function geocodeOneQuery(q) {
   return nominatimOutcome.status === 'fulfilled' ? nominatimOutcome.value : [];
 }
 
-// The raw scraped address is often too noisy for either geocoder to match
-// as one string — unit numbers (#01-03), mall names glued onto a street
-// address, or a postal code buried mid-string. Builds a list of
-// progressively simpler things to try against it, most-specific first.
-function addressQueryCandidates(gym) {
-  const candidates = [gym.address];
+// Generic over any { name, address } item — used for both Anytime Fitness
+// gyms and Apple Stores below. A raw address is often too noisy for either
+// geocoder to match as one string — unit numbers (#01-03), mall names glued
+// onto a street address, or a postal code buried mid-string. Builds a list
+// of progressively simpler things to try against it, most-specific first.
+function addressQueryCandidates(place) {
+  const candidates = [place.address];
 
-  const postalMatch = gym.address.match(/\b\d{6}\b/);
+  const postalMatch = place.address.match(/\b\d{6}\b/);
   if (postalMatch) candidates.push(`Singapore ${postalMatch[0]}`);
 
-  const cleaned = gym.address
+  const cleaned = place.address
     .replace(/#\S+(\/\S+)*/g, '') // unit numbers: #01-03, #02-175-178, #B1-15/16/17/34
     .replace(/\bUnit\b/gi, '')
     .replace(/\s*,\s*,/g, ',')
@@ -1653,9 +1654,9 @@ function addressQueryCandidates(gym) {
     .replace(/\s*,\s*/g, ', ')
     .replace(/^,\s*/, '')
     .trim();
-  if (cleaned && cleaned !== gym.address) candidates.push(cleaned);
+  if (cleaned && cleaned !== place.address) candidates.push(cleaned);
 
-  candidates.push(`${gym.name} Singapore`);
+  candidates.push(`${place.name} Singapore`);
   return candidates;
 }
 
@@ -1731,6 +1732,110 @@ app.get('/api/anytime-fitness-nearby', (req, res) => {
     .slice(0, 100);
 
   res.json({ gyms: results });
+});
+
+// ---- Apple Stores ------------------------------------------------------------
+// Apple only operates 3 physical retail stores in Singapore (Orchard Road,
+// Marina Bay Sands, Jewel Changi Airport — confirmed against Apple's own
+// official store list, not a third-party scrape), so this is a small,
+// hand-typed dataset rather than anything needing admin review. Reuses the
+// same background OneMap+Nominatim geocoding (addressQueryCandidates /
+// geocodeOneQuery, above) built for Anytime Fitness, since those are
+// already generic over any {name, address} item.
+const APPLE_STORE_GEOCODE_FILE = process.env.APPLE_STORE_GEOCODE_FILE || '/data/apple-store-geocoded.json';
+
+let appleStoresRaw = [];
+try {
+  appleStoresRaw = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'apple-stores.json'), 'utf8'));
+  console.log(`Loaded ${appleStoresRaw.length} Apple Store listings (pending geocoding).`);
+} catch (err) {
+  console.warn('Could not load Apple Store data:', err.message);
+}
+
+function loadAppleStoreGeocodeCache() {
+  try {
+    return JSON.parse(fs.readFileSync(APPLE_STORE_GEOCODE_FILE, 'utf8'));
+  } catch (err) {
+    return {};
+  }
+}
+
+function saveAppleStoreGeocodeCache(cache) {
+  try {
+    fs.mkdirSync(path.dirname(APPLE_STORE_GEOCODE_FILE), { recursive: true });
+    fs.writeFileSync(APPLE_STORE_GEOCODE_FILE, JSON.stringify(cache, null, 2));
+  } catch (err) {
+    console.error('failed to persist Apple Store geocode cache:', err.message);
+  }
+}
+
+let appleStores = [];
+
+async function geocodeAppleStores() {
+  const cache = loadAppleStoreGeocodeCache();
+  let resolvedSinceSave = 0;
+
+  for (const store of appleStoresRaw) {
+    let hit = cache[store.name];
+    if (!hit) {
+      try {
+        let results = [];
+        for (const q of addressQueryCandidates(store)) {
+          results = await geocodeOneQuery(q);
+          await new Promise((r) => setTimeout(r, 350));
+          if (results.length) break;
+        }
+        if (results.length) {
+          hit = { lat: results[0].lat, lon: results[0].lon };
+          cache[store.name] = hit;
+          resolvedSinceSave += 1;
+        } else {
+          console.warn(`Apple Store: no geocode match for "${store.name}" (${store.address})`);
+        }
+      } catch (err) {
+        console.warn(`Apple Store: geocode failed for "${store.name}":`, err.message);
+      }
+    }
+    if (hit) {
+      appleStores = appleStores.filter((s) => s.name !== store.name);
+      appleStores.push({ name: store.name, address: store.address, phone: store.phone, lat: hit.lat, lon: hit.lon });
+    }
+    if (resolvedSinceSave >= 10) {
+      saveAppleStoreGeocodeCache(cache);
+      resolvedSinceSave = 0;
+    }
+  }
+  saveAppleStoreGeocodeCache(cache);
+  console.log(`Apple Store: ${appleStores.length}/${appleStoresRaw.length} stores geocoded.`);
+}
+
+if (appleStoresRaw.length) {
+  geocodeAppleStores().catch((err) => console.error('Apple Store geocoding failed:', err.message));
+}
+
+app.get('/api/apple-stores-nearby', (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+  if (!appleStores.length) {
+    return res.status(503).json({ error: 'Apple Store locations aren\'t loaded yet — try again shortly.' });
+  }
+
+  const results = appleStores
+    .map((s) => ({
+      name: s.name,
+      address: s.address,
+      phone: s.phone,
+      lat: s.lat,
+      lon: s.lon,
+      distanceMeters: Math.round(haversineMeters(lat, lon, s.lat, s.lon)),
+    }))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, 100);
+
+  res.json({ stores: results });
 });
 
 // ---- ERP gantry crossings along a driving route -----------------------------

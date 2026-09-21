@@ -550,6 +550,7 @@ const CATEGORY_LABELS = {
   petcafeoutdoor: 'pet cafe with outdoor seating',
   petcafeindoor: 'pet cafe with indoor seating',
   anytimefitness: 'Anytime Fitness gym',
+  applestore: 'Apple Store',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -703,7 +704,11 @@ function petCafeContact(phone) {
     const msg = encodeURIComponent('Hi, are you open today?');
     return { text: `💬 ${nb(phone)}`, href: `https://wa.me/65${digits}?text=${msg}`, external: true };
   }
-  return { text: `📞 ${nb(phone)}`, href: `tel:+65${digits}` };
+  // Singapore toll-free numbers (1800 XXX XXXX, e.g. Apple Store's support
+  // lines) are dialed locally as-is — prefixing +65 in front of "1800"
+  // isn't how they're reached.
+  const href = digits.startsWith('1800') ? `tel:${digits}` : `tel:+65${digits}`;
+  return { text: `📞 ${nb(phone)}`, href };
 }
 const PET_CAFE_DINE = { petcafe: '', petcafeopen: '', petcafeoutdoor: 'outdoor', petcafeindoor: 'indoor' };
 async function fetchNearbyPetCafes(category, lat, lon) {
@@ -747,6 +752,27 @@ async function fetchNearbyAnytimeFitness(lat, lon) {
   return { places, radiusUsed: null };
 }
 
+// Apple's own 3 Singapore retail stores — see /api/apple-stores-nearby.
+async function fetchNearbyAppleStores(lat, lon) {
+  const res = await fetch(`/api/apple-stores-nearby?lat=${lat}&lon=${lon}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Apple Store responded ${res.status}`);
+  const places = (data.stores || []).map((s) => {
+    const contact = petCafeContact(s.phone);
+    const plain = (x) => (typeof x === 'string' ? x : x.text);
+    const info = [contact].filter(Boolean);
+    return {
+      label: s.name,
+      address: [s.address, ...info].map(plain).join(' · '),
+      details: [[], info],
+      contact,
+      lat: s.lat,
+      lon: s.lon,
+    };
+  });
+  return { places, radiusUsed: null };
+}
+
 // Guards against a slow, stale category search overwriting a newer one's
 // results. Overpass (especially the kumi.systems mirror) can be slow or time
 // out — confirmed live, not hypothetical — and each tap here fires a fresh,
@@ -783,6 +809,8 @@ function searchNearbyCategory(category) {
           ? await fetchNearbyPetCafes(category, lat, lon)
           : category === 'anytimefitness'
           ? await fetchNearbyAnytimeFitness(lat, lon)
+          : category === 'applestore'
+          ? await fetchNearbyAppleStores(lat, lon)
           : await fetchCategoryPlaces(category, lat, lon, (radius) => {
               if (!isStale()) els.searchResults.innerHTML = `<li class="r-loading">Searching within ${formatDistance(radius)}…</li>`;
             });
@@ -797,7 +825,7 @@ function searchNearbyCategory(category) {
         const mapped = places
           .map((p) => ({ ...p, distanceMeters: Math.round(haversineMeters(lat, lon, p.lat, p.lon)) }))
           .sort((a, b) => a.distanceMeters - b.distanceMeters)
-          .slice(0, category in PET_CAFE_DINE || category === 'anytimefitness' ? 100 : 8)
+          .slice(0, category in PET_CAFE_DINE || category === 'anytimefitness' || category === 'applestore' ? 100 : 8)
           .map((r) => ({
             label: r.label,
             address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
@@ -1319,6 +1347,7 @@ const CHIP_I18N = {
   petcafeindoor: { en: 'Pet Cafes · Indoor', zh: '宠物咖啡馆 · 室内', ms: 'Kafe Haiwan · Dalam', ta: 'செல்லப்பிராணி கஃபே · உட்புறம்', ja: 'ペットカフェ · 屋内', ko: '펫 카페 · 실내' },
   petgrooming: { en: 'Pet Grooming', zh: '宠物美容', ms: 'Dandanan Haiwan', ta: 'செல்லப்பிராணி அழகுபடுத்தல்', ja: 'ペットグルーミング', ko: '반려동물 미용' },
   anytimefitness: { en: 'Anytime Fitness', zh: 'Anytime Fitness', ms: 'Anytime Fitness', ta: 'Anytime Fitness', ja: 'エニタイムフィットネス', ko: '애니타임 피트니스' },
+  applestore: { en: 'Apple Store', zh: 'Apple Store', ms: 'Apple Store', ta: 'Apple Store', ja: 'アップルストア', ko: '애플스토어' },
   mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
   sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு', ja: 'セントーサ島', ko: '센토사 섬' },

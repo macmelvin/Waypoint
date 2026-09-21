@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Apple Orchard Road",
+    "address": "270 Orchard Road, Singapore 238857",
+    "phone": "1800 699 2824"
+  },
+  {
+    "name": "Apple Marina Bay Sands",
+    "address": "2 Bayfront Avenue, B2-06, Singapore 018972",
+    "phone": "1800 407 4949"
+  },
+  {
+    "name": "Apple Jewel Changi Airport",
+    "address": "78 Airport Boulevard, #02-234, Singapore 819666",
+    "phone": "1800 407 4948"
+  }
+]
