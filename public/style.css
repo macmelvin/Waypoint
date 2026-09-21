@@ -1842,6 +1842,34 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   color: var(--muted);
   opacity: 0.85;
 }
+/* "More tools by me" is tucked behind a native <details> disclosure so it
+   stays out of the way by default — a discreet text toggle rather than a
+   permanently-visible row of links. */
+.more-tools { margin-top: 2px; }
+.more-tools-toggle {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  opacity: 0.75;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 4px;
+}
+.more-tools-toggle:hover { opacity: 1; color: var(--accent); }
+.more-tools-toggle::-webkit-details-marker { display: none; }
+.more-tools-toggle::marker { content: ''; }
+.more-tools-toggle::after {
+  content: '▾';
+  font-size: 9px;
+  transition: transform 0.2s ease;
+}
+.more-tools[open] .more-tools-toggle::after { transform: rotate(-180deg); }
+.more-tools .credits-links { margin-top: 8px; }
+
 .credits-links {
   list-style: none;
   margin: 0;
