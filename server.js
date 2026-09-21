@@ -1635,6 +1635,30 @@ async function geocodeOneQuery(q) {
   return nominatimOutcome.status === 'fulfilled' ? nominatimOutcome.value : [];
 }
 
+// The raw scraped address is often too noisy for either geocoder to match
+// as one string — unit numbers (#01-03), mall names glued onto a street
+// address, or a postal code buried mid-string. Builds a list of
+// progressively simpler things to try against it, most-specific first.
+function addressQueryCandidates(gym) {
+  const candidates = [gym.address];
+
+  const postalMatch = gym.address.match(/\b\d{6}\b/);
+  if (postalMatch) candidates.push(`Singapore ${postalMatch[0]}`);
+
+  const cleaned = gym.address
+    .replace(/#\S+(\/\S+)*/g, '') // unit numbers: #01-03, #02-175-178, #B1-15/16/17/34
+    .replace(/\bUnit\b/gi, '')
+    .replace(/\s*,\s*,/g, ',')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s*,\s*/g, ', ')
+    .replace(/^,\s*/, '')
+    .trim();
+  if (cleaned && cleaned !== gym.address) candidates.push(cleaned);
+
+  candidates.push(`${gym.name} Singapore`);
+  return candidates;
+}
+
 async function geocodeAnytimeFitnessGyms() {
   const cache = loadAnytimeFitnessGeocodeCache();
   let resolvedSinceSave = 0;
@@ -1643,11 +1667,15 @@ async function geocodeAnytimeFitnessGyms() {
     let hit = cache[gym.name];
     if (!hit) {
       try {
-        let results = await geocodeOneQuery(gym.address);
-        // Some addresses are just a unit number inside a mall/CC with no
-        // postal code — retry with the branch name, which both services can
-        // often still resolve as a named building.
-        if (!results.length) results = await geocodeOneQuery(`${gym.name} Singapore`);
+        let results = [];
+        for (const q of addressQueryCandidates(gym)) {
+          results = await geocodeOneQuery(q);
+          // Gentle pacing against these public search endpoints —
+          // fetchOneMapResults already retries on a 429, this just avoids
+          // firing requests back-to-back with no gap at all.
+          await new Promise((r) => setTimeout(r, 350));
+          if (results.length) break;
+        }
         if (results.length) {
           hit = { lat: results[0].lat, lon: results[0].lon };
           cache[gym.name] = hit;
@@ -1658,9 +1686,6 @@ async function geocodeAnytimeFitnessGyms() {
       } catch (err) {
         console.warn(`Anytime Fitness: geocode failed for "${gym.name}":`, err.message);
       }
-      // Gentle pacing against these public search endpoints — fetchOneMapResults
-      // already retries on a 429, this just avoids firing ~100 requests at once.
-      await new Promise((r) => setTimeout(r, 350));
     }
     if (hit) {
       anytimeFitnessGyms = anytimeFitnessGyms.filter((g) => g.name !== gym.name);
