@@ -2867,6 +2867,9 @@ if (PUSH_ENABLED) {
   checkFloodAlertsForPush();
 }
 
+// ---- Pet cafes (indoor/outdoor dining, auto-hides closed cafes) --------------
+require('./petcafes').register(app, { requireAdmin });
+
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

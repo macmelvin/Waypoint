@@ -514,6 +514,9 @@ const CATEGORY_LABELS = {
   carpark: 'carpark',
   towtruck: 'tow truck service',
   petgrooming: 'pet groomer',
+  petcafe: 'pet cafe',
+  petcafeoutdoor: 'pet cafe with outdoor seating',
+  petcafeindoor: 'pet cafe with indoor seating',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -646,6 +649,26 @@ async function fetchNearbyCarparks(lat, lon) {
   return { places, radiusUsed: null };
 }
 
+// Pet cafes come from Waypoint's own curated list (indoor/outdoor confirmed by
+// hand, closed cafes auto-hidden via Google Maps) rather than OpenStreetMap.
+// Shaped to match fetchCategoryPlaces' { places, radiusUsed }. The address
+// line carries the dining/animal tags, and the shared renderer appends the
+// distance.
+const PET_CAFE_DINE = { petcafe: '', petcafeoutdoor: 'outdoor', petcafeindoor: 'indoor' };
+async function fetchNearbyPetCafes(category, lat, lon) {
+  const dine = PET_CAFE_DINE[category];
+  const res = await fetch(`/api/pet-cafes-nearby?lat=${lat}&lon=${lon}${dine ? `&dine=${dine}` : ''}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Pet cafes responded ${res.status}`);
+  const places = (data.cafes || []).map((c) => ({
+    label: c.label,
+    address: [c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || [])].filter(Boolean).join(' · '),
+    lat: c.lat,
+    lon: c.lon,
+  }));
+  return { places, radiusUsed: null };
+}
+
 // Guards against a slow, stale category search overwriting a newer one's
 // results. Overpass (especially the kumi.systems mirror) can be slow or time
 // out — confirmed live, not hypothetical — and each tap here fires a fresh,
@@ -678,6 +701,8 @@ function searchNearbyCategory(category) {
         const { latitude: lat, longitude: lon } = pos.coords;
         const { places, radiusUsed } = category === 'carpark'
           ? await fetchNearbyCarparks(lat, lon)
+          : category in PET_CAFE_DINE
+          ? await fetchNearbyPetCafes(category, lat, lon)
           : await fetchCategoryPlaces(category, lat, lon, (radius) => {
               if (!isStale()) els.searchResults.innerHTML = `<li class="r-loading">Searching within ${formatDistance(radius)}…</li>`;
             });
@@ -1206,6 +1231,9 @@ const CHIP_I18N = {
   library: { en: 'Library', zh: '图书馆', ms: 'Perpustakaan', ta: 'நூலகம்', ja: '図書館', ko: '도서관' },
   dogpark: { en: 'Dog Park', zh: '狗狗公园', ms: 'Taman Anjing', ta: 'நாய் பூங்கா', ja: 'ドッグパーク', ko: '반려견 공원' },
   towtruck: { en: 'Tow Truck', zh: '拖车服务', ms: 'Khidmat Tunda Kereta', ta: 'இழுவை வாகன சேவை', ja: 'レッカーサービス', ko: '견인 서비스' },
+  petcafe: { en: 'Pet Cafes', zh: '宠物咖啡馆', ms: 'Kafe Haiwan', ta: 'செல்லப்பிராணி கஃபே', ja: 'ペットカフェ', ko: '펫 카페' },
+  petcafeoutdoor: { en: 'Pet Cafes · Outdoor', zh: '宠物咖啡馆 · 户外', ms: 'Kafe Haiwan · Luar', ta: 'செல்லப்பிராணி கஃபே · வெளிப்புறம்', ja: 'ペットカフェ · 屋外', ko: '펫 카페 · 야외' },
+  petcafeindoor: { en: 'Pet Cafes · Indoor', zh: '宠物咖啡馆 · 室内', ms: 'Kafe Haiwan · Dalam', ta: 'செல்லப்பிராணி கஃபே · உட்புறம்', ja: 'ペットカフェ · 屋内', ko: '펫 카페 · 실내' },
   petgrooming: { en: 'Pet Grooming', zh: '宠物美容', ms: 'Dandanan Haiwan', ta: 'செல்லப்பிராணி அழகுபடுத்தல்', ja: 'ペットグルーミング', ko: '반려동물 미용' },
   mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
