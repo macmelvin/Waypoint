@@ -1584,9 +1584,12 @@ app.get('/api/petrol-nearby', (req, res) => {
 // sourced snapshot in data/anytime-fitness.json rather than a live feed —
 // same reasoning as the petrol station list above. Unlike petrol stations,
 // no lat/lon was available at source time, so each address is geocoded once
-// in the background via the same OneMap lookup the search bar already uses
-// (fetchOneMapResults, above), and the resolved coordinates are cached to
-// disk so a redeploy doesn't re-hit OneMap for gyms it already resolved.
+// in the background, racing OneMap and Nominatim exactly like /api/geocode
+// (the search bar) already does above — OneMap alone turned out to return
+// zero matches in production for these addresses (unclear why; Nominatim
+// picks up the slack, same as it already silently does for the search bar
+// whenever OneMap has a bad day). Resolved coordinates are cached to disk so
+// a redeploy doesn't re-hit either service for gyms already resolved.
 const ANYTIME_FITNESS_GEOCODE_FILE = process.env.ANYTIME_FITNESS_GEOCODE_FILE || '/data/anytime-fitness-geocoded.json';
 
 let anytimeFitnessRaw = [];
@@ -1619,6 +1622,19 @@ function saveAnytimeFitnessGeocodeCache(cache) {
 // fewer results until the background pass below catches up.
 let anytimeFitnessGyms = [];
 
+// Tries OneMap + Nominatim in parallel for one query, OneMap-first (it's the
+// authoritative Singapore source) but happy to take a Nominatim hit when
+// OneMap comes back empty — same priority /api/geocode uses.
+async function geocodeOneQuery(q) {
+  const [oneMapOutcome, nominatimOutcome] = await Promise.allSettled([
+    fetchOneMapResults(q),
+    fetchNominatimResults(q),
+  ]);
+  const oneMapResults = oneMapOutcome.status === 'fulfilled' ? oneMapOutcome.value : [];
+  if (oneMapResults.length) return oneMapResults;
+  return nominatimOutcome.status === 'fulfilled' ? nominatimOutcome.value : [];
+}
+
 async function geocodeAnytimeFitnessGyms() {
   const cache = loadAnytimeFitnessGeocodeCache();
   let resolvedSinceSave = 0;
@@ -1627,8 +1643,11 @@ async function geocodeAnytimeFitnessGyms() {
     let hit = cache[gym.name];
     if (!hit) {
       try {
-        let results = await fetchOneMapResults(gym.address);
-        if (!results.length) results = await fetchOneMapResults(`${gym.name} Singapore`);
+        let results = await geocodeOneQuery(gym.address);
+        // Some addresses are just a unit number inside a mall/CC with no
+        // postal code — retry with the branch name, which both services can
+        // often still resolve as a named building.
+        if (!results.length) results = await geocodeOneQuery(`${gym.name} Singapore`);
         if (results.length) {
           hit = { lat: results[0].lat, lon: results[0].lon };
           cache[gym.name] = hit;
@@ -1639,7 +1658,7 @@ async function geocodeAnytimeFitnessGyms() {
       } catch (err) {
         console.warn(`Anytime Fitness: geocode failed for "${gym.name}":`, err.message);
       }
-      // Gentle pacing against OneMap's public search endpoint — fetchOneMapResults
+      // Gentle pacing against these public search endpoints — fetchOneMapResults
       // already retries on a 429, this just avoids firing ~100 requests at once.
       await new Promise((r) => setTimeout(r, 350));
     }
