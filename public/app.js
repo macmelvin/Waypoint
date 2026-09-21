@@ -4936,6 +4936,36 @@ function mrtStationBadges(s, lineColorByCode) {
   });
 }
 
+// Turns a polyline (one point per station, in order) into an SVG path with
+// smoothly rounded corners at every interior vertex instead of sharp V
+// joints — cuts back a small distance along each adjacent segment and
+// bridges the gap with a quadratic curve through the original vertex. Reads
+// much closer to a professionally-drafted transit diagram than a plain
+// straight-segment polyline, without changing where any station actually
+// sits (only how the line drawn *between* them curves).
+function roundedPathD(points, radius) {
+  // Drop any consecutive duplicate/near-duplicate points first — two
+  // stations that landed on (almost) the same coordinate would otherwise
+  // divide by a ~zero segment length below and produce NaN path commands,
+  // which browsers render as stray disconnected dots rather than a line.
+  const pts = points.filter((p, i) => i === 0 || Math.hypot(p.x - points[i - 1].x, p.y - points[i - 1].y) > 0.5);
+  if (pts.length < 2) return '';
+  if (pts.length === 2) return `M${pts[0].x},${pts[0].y} L${pts[1].x},${pts[1].y}`;
+  let d = `M${pts[0].x},${pts[0].y}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const prev = pts[i - 1], cur = pts[i], next = pts[i + 1];
+    const d1 = Math.hypot(cur.x - prev.x, cur.y - prev.y);
+    const d2 = Math.hypot(next.x - cur.x, next.y - cur.y);
+    const r = Math.min(radius, d1 / 2, d2 / 2);
+    const a = { x: cur.x - (cur.x - prev.x) / d1 * r, y: cur.y - (cur.y - prev.y) / d1 * r };
+    const b = { x: cur.x + (next.x - cur.x) / d2 * r, y: cur.y + (next.y - cur.y) / d2 * r };
+    d += ` L${a.x},${a.y} Q${cur.x},${cur.y} ${b.x},${b.y}`;
+  }
+  const last = pts[pts.length - 1];
+  d += ` L${last.x},${last.y}`;
+  return d;
+}
+
 function buildMrtSvgMarkup(data) {
   const stations = data.stations;
   const lineColorByCode = {};
@@ -4975,7 +5005,7 @@ function buildMrtSvgMarkup(data) {
     const pts = ln.stationOrder.map((id) => stations[id]).filter(Boolean);
     if (!pts.length) return '';
     const path = ln.loop ? pts.concat([pts[0]]) : pts;
-    const d = path.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+    const d = roundedPathD(path, 9);
     const isLrt = ln.style === 'lrt';
     return `<path d="${d}" fill="none" stroke="${ln.color}" stroke-width="${isLrt ? 3 : 6}" ` +
       `stroke-linecap="round" stroke-linejoin="round" opacity="${isLrt ? 0.85 : 1}" ` +
