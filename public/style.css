@@ -841,6 +841,8 @@ a:active {
 .result-list li:hover { background: var(--gray-100); }
 .result-list li .r-title { font-weight: 600; display: block; }
 .result-list li .r-sub { color: var(--muted); font-size: 12px; }
+.result-list li .r-sub .r-line { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 2px; }
+.result-list li .r-sub .r-chip { white-space: nowrap; }
 .result-list li.r-loading { cursor: default; color: var(--muted); }
 .result-list li.r-loading:hover { background: none; }
 

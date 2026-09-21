@@ -319,7 +319,22 @@ function renderResultList(listEl, results, onPick) {
     title.textContent = shortLabel(r);
     const sub = document.createElement('span');
     sub.className = 'r-sub';
-    sub.textContent = addressText(r);
+    if (r.details) {
+      // Each piece (tag, hours, phone) stays whole; the pieces wrap between themselves.
+      r.details.filter((line) => line.length).forEach((line) => {
+        const row = document.createElement('div');
+        row.className = 'r-line';
+        line.forEach((text) => {
+          const chip = document.createElement('span');
+          chip.className = 'r-chip';
+          chip.textContent = text;
+          row.appendChild(chip);
+        });
+        sub.appendChild(row);
+      });
+    } else {
+      sub.textContent = addressText(r);
+    }
     li.appendChild(title);
     li.appendChild(sub);
     li.addEventListener('click', () => onPick(r));
@@ -667,12 +682,13 @@ async function fetchNearbyPetCafes(category, lat, lon) {
   const res = await fetch(`/api/pet-cafes-nearby?lat=${lat}&lon=${lon}${dine ? `&dine=${dine}` : ''}${category === 'petcafeopen' ? '&open=1' : ''}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Pet cafes responded ${res.status}`);
-  const places = (data.cafes || []).map((c) => ({
-    label: c.label,
-    address: [c.openNow === true && '🟢 Open now', c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || []), petCafeTodayHours(c.hours), c.phone && `📞 ${c.phone}`].filter(Boolean).join(' · '),
-    lat: c.lat,
-    lon: c.lon,
-  }));
+  const places = (data.cafes || []).map((c) => {
+    const tags = [c.openNow === true && '🟢 Open now', c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || [])].filter(Boolean);
+    // Non-breaking spaces keep "8778 5768" and "11:30 AM – 8:30 PM" from splitting across lines.
+    const nb = (s) => String(s).replace(/ /g, '\u00a0');
+    const info = [petCafeTodayHours(c.hours) && nb(petCafeTodayHours(c.hours)), c.phone && `📞\u00a0${nb(c.phone)}`].filter(Boolean);
+    return { label: c.label, address: [...tags, ...info].join(' · '), details: [tags, info], lat: c.lat, lon: c.lon };
+  });
   return { places, radiusUsed: null };
 }
 
@@ -728,6 +744,7 @@ function searchNearbyCategory(category) {
           .map((r) => ({
             label: r.label,
             address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
+            ...(r.details ? { details: [[...r.details[0], formatDistance(r.distanceMeters)], r.details[1]] } : {}),
             lat: r.lat,
             lon: r.lon,
           }));
