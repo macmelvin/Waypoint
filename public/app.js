@@ -549,6 +549,7 @@ const CATEGORY_LABELS = {
   petcafeopen: 'pet cafe that is open now',
   petcafeoutdoor: 'pet cafe with outdoor seating',
   petcafeindoor: 'pet cafe with indoor seating',
+  anytimefitness: 'Anytime Fitness gym',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -722,6 +723,22 @@ async function fetchNearbyPetCafes(category, lat, lon) {
   return { places, radiusUsed: null };
 }
 
+// Anytime Fitness branches: a manually sourced (not OSM/Overpass) dataset,
+// same reasoning as pet cafes — see /api/anytime-fitness-nearby in server.js.
+async function fetchNearbyAnytimeFitness(lat, lon) {
+  const res = await fetch(`/api/anytime-fitness-nearby?lat=${lat}&lon=${lon}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Anytime Fitness responded ${res.status}`);
+  const nb = (s) => String(s).replace(/ /g, ' ');
+  const places = (data.gyms || []).map((g) => ({
+    label: g.name,
+    address: g.phone ? `${g.address} · 📞 ${nb(g.phone)}` : g.address,
+    lat: g.lat,
+    lon: g.lon,
+  }));
+  return { places, radiusUsed: null };
+}
+
 // Guards against a slow, stale category search overwriting a newer one's
 // results. Overpass (especially the kumi.systems mirror) can be slow or time
 // out — confirmed live, not hypothetical — and each tap here fires a fresh,
@@ -756,6 +773,8 @@ function searchNearbyCategory(category) {
           ? await fetchNearbyCarparks(lat, lon)
           : category in PET_CAFE_DINE
           ? await fetchNearbyPetCafes(category, lat, lon)
+          : category === 'anytimefitness'
+          ? await fetchNearbyAnytimeFitness(lat, lon)
           : await fetchCategoryPlaces(category, lat, lon, (radius) => {
               if (!isStale()) els.searchResults.innerHTML = `<li class="r-loading">Searching within ${formatDistance(radius)}…</li>`;
             });
@@ -1291,6 +1310,7 @@ const CHIP_I18N = {
   petcafeoutdoor: { en: 'Pet Cafes · Outdoor', zh: '宠物咖啡馆 · 户外', ms: 'Kafe Haiwan · Luar', ta: 'செல்லப்பிராணி கஃபே · வெளிப்புறம்', ja: 'ペットカフェ · 屋外', ko: '펫 카페 · 야외' },
   petcafeindoor: { en: 'Pet Cafes · Indoor', zh: '宠物咖啡馆 · 室内', ms: 'Kafe Haiwan · Dalam', ta: 'செல்லப்பிராணி கஃபே · உட்புறம்', ja: 'ペットカフェ · 屋内', ko: '펫 카페 · 실내' },
   petgrooming: { en: 'Pet Grooming', zh: '宠物美容', ms: 'Dandanan Haiwan', ta: 'செல்லப்பிராணி அழகுபடுத்தல்', ja: 'ペットグルーミング', ko: '반려동물 미용' },
+  anytimefitness: { en: 'Anytime Fitness', zh: 'Anytime Fitness', ms: 'Anytime Fitness', ta: 'Anytime Fitness', ja: 'エニタイムフィットネス', ko: '애니타임 피트니스' },
   mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
   sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு', ja: 'セントーサ島', ko: '센토사 섬' },

@@ -1,0 +1,502 @@
+[
+  {
+    "name": "Anytime Fitness Geylang Bahru",
+    "address": "1 Geylang Bahru Ln, #01-03 Kolam Ayer Community Club, Singapore",
+    "phone": "+65 9228 2921"
+  },
+  {
+    "name": "Anytime Fitness Marsiling MRT",
+    "address": "Blk 303 Woodlands Street 31 #01-159/161 Singapore 730303",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Nex",
+    "address": "23 Serangoon Central, #04-73/74/75 Nex, Singapore",
+    "phone": "+65 6555 3400"
+  },
+  {
+    "name": "Anytime Fitness Bukit Panjang CC",
+    "address": "Unit #03-01, Bukit Panjang Community Club, Singapore",
+    "phone": "+65 9726 4881"
+  },
+  {
+    "name": "Anytime Fitness Upper Serangoon",
+    "address": "780 Upper Serangoon Rd, Singapore 534626",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Ang Mo Kio South",
+    "address": "340 Ang Mo Kio Ave 1, Singapore 560340",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Clementi 354",
+    "address": "Blk 354, Clementi Ave 2, Singapore",
+    "phone": "+65 9432 2807"
+  },
+  {
+    "name": "Anytime Fitness Katong",
+    "address": "174/176 East Coast Road, Singapore 90187538",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Clementi City",
+    "address": "3151 Commonwealth Avenue, West #03-01, Singapore",
+    "phone": "+65 8869 2174"
+  },
+  {
+    "name": "Anytime Fitness Bedok South Bedok CC",
+    "address": "Bedok community center, 850, Singapore",
+    "phone": "+65 8809 2291"
+  },
+  {
+    "name": "Anytime Fitness Grantral Complex",
+    "address": "601 MacPherson Road, #02-08, Singapore",
+    "phone": "+65 9836 4087"
+  },
+  {
+    "name": "Anytime Fitness Hwi Yoh",
+    "address": "23 Serangoon North Ave 4, #01-01, Singapore",
+    "phone": "+65 8363 5076"
+  },
+  {
+    "name": "Anytime Fitness City Square Mall",
+    "address": "180 Kitchener Road, #06-04, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Bishan",
+    "address": "Blk 505, Bishan Street 11 #01-438, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Havelock Outram",
+    "address": "405 Havelock Road #02-02 Furama RiverFront, Singapore 169633",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Tampines West",
+    "address": "5 Tampines Avenue 3, #02-03, Singapore",
+    "phone": "+65 8186 7478"
+  },
+  {
+    "name": "Anytime Fitness Kim Seng Community Centre",
+    "address": "570 Havelock Rd, Singapore 169640",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Novena",
+    "address": "101 Thomson Road #B1-15/16/17/34 United Square, Singapore 307645",
+    "phone": "+65 8877 7748"
+  },
+  {
+    "name": "Anytime Fitness Northpoint City",
+    "address": "1 Northpoint Drive, #02-175-178 South Wing of Northpoint City, Singapore",
+    "phone": "+65 6481 4737"
+  },
+  {
+    "name": "Anytime Fitness Sengkang Rivervale",
+    "address": "11 Rivervale Crescent, Rivervale Mall, Singapore",
+    "phone": "+65 8868 0210"
+  },
+  {
+    "name": "Anytime Fitness Tampines Central",
+    "address": "866A Tampines Street 83, #03-10, Singapore",
+    "phone": "+65 9623 2183"
+  },
+  {
+    "name": "Anytime Fitness Kembangan",
+    "address": "18 Jalan Masjid #01-04, #B1-06 Kembangan, Singapore",
+    "phone": "+65 8127 9885"
+  },
+  {
+    "name": "Anytime Fitness Woodgrove",
+    "address": "30 Woodlands Avenue Woodgrove Drive #02-12/13 & #02-01-02/03/04 The Woodgrove, Singapore",
+    "phone": "+65 8711 9300"
+  },
+  {
+    "name": "Anytime Fitness Wheelock Place",
+    "address": "501 Orchard Road #05-13/14, Singapore 238880",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Junction 9",
+    "address": "Junction 9 Shopping Mall, 18 Yishun Avenue 9, #02-32/33, Singapore",
+    "phone": "+65 9109 8188"
+  },
+  {
+    "name": "Anytime Fitness Tiong Bahru Plaza",
+    "address": "302 Tiong Bahru Road #01-128/129 Tiong Bahru Plaza, Singapore",
+    "phone": "+65 8686 4340"
+  },
+  {
+    "name": "Anytime Fitness Marine Parade",
+    "address": "Blk 86 Marine Parade Central #01-670, Singapore 440086",
+    "phone": "+65 8608 4683"
+  },
+  {
+    "name": "Anytime Fitness Kebun Baru CC",
+    "address": "216 Ang Mo Kio Ave. 4, #02-04 Kebun Baru CC, Singapore",
+    "phone": "+65 8071 1983"
+  },
+  {
+    "name": "Anytime Fitness Woods Square",
+    "address": "No 8 Woodlands Square #02-12/13/14/15/16, SOLO 2, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Keppel",
+    "address": "1557 Keppel Rd, #01-03, Singapore",
+    "phone": "+65 8709 7218"
+  },
+  {
+    "name": "Anytime Fitness Paya Lebar",
+    "address": "#02-04, 11 Tanjong Katong Road, Singapore",
+    "phone": "+65 9154 4755"
+  },
+  {
+    "name": "Anytime Fitness Guillemard",
+    "address": "100 Guillemard Road, #01-08, Singapore",
+    "phone": "+65 9105 7038"
+  },
+  {
+    "name": "Anytime Fitness Pasir Ris E!Hub",
+    "address": "E!Hub @ Downtown East, 1 Pasir Ris Close, Singapore",
+    "phone": "+65 8500 3193"
+  },
+  {
+    "name": "Anytime Fitness Buangkok",
+    "address": "Hougang Green Shopping Mall, 21 Hougang Street 51 #02-13A, Singapore",
+    "phone": "+65 8555 3059"
+  },
+  {
+    "name": "Anytime Fitness Taman Jurong",
+    "address": "1 Yung Sheng Road, #01-02 Taman Jurong Community Club, Singapore",
+    "phone": "+65 9231 0102"
+  },
+  {
+    "name": "Anytime Fitness Bukit Batok (Le Quest)",
+    "address": "4 Bukit Batok St 41 #01-96/99/100, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Potong Pasir",
+    "address": "No. 15 Tai Thong Crescent, Singapore",
+    "phone": "+65 8748 8208"
+  },
+  {
+    "name": "Anytime Fitness New Tech Park",
+    "address": "151 Lorong Chuan #01-12, Singapore 556741",
+    "phone": "+65 8874 1521"
+  },
+  {
+    "name": "Anytime Fitness Upper Cross Street",
+    "address": "531 Upper Cross Street #01-07, Hong Lim Complex, Singapore",
+    "phone": "+65 9859 4392"
+  },
+  {
+    "name": "Anytime Fitness Geylang",
+    "address": "653 Geylang Rd., Singapore",
+    "phone": "+65 8809 7170"
+  },
+  {
+    "name": "Anytime Fitness Stevens",
+    "address": "383 Bukit Timah Road, Singapore",
+    "phone": "+65 9658 5676"
+  },
+  {
+    "name": "Anytime Fitness Punggol Oasis",
+    "address": "681 Punggol Drive, Oasis Terraces, Singapore",
+    "phone": "+65 8869 6622"
+  },
+  {
+    "name": "Anytime Fitness New Upper Thomson",
+    "address": "246S Upper Thomson Road, Singapore S574370",
+    "phone": "+65 8855 0955"
+  },
+  {
+    "name": "Anytime Fitness Bedok Central",
+    "address": "445 Bedok North Street 1, #03-01 Djitsun Mall Bedok, Singapore",
+    "phone": "+65 8168 1012"
+  },
+  {
+    "name": "Anytime Fitness Alexis",
+    "address": "354 Alexandra Road, Alexis, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness SKH Campus",
+    "address": "Sengkang Community Hospital, 1 Anchorvale Street #01-29, Singapore",
+    "phone": "+65 9773 0829"
+  },
+  {
+    "name": "Anytime Fitness Hougang CC",
+    "address": "Hougang Community Club, 35 Hougang Ave 3, Singapore",
+    "phone": "+65 9771 6693"
+  },
+  {
+    "name": "Anytime Fitness Toa Payoh",
+    "address": "Blk 190 Lorong 6 Toa Payoh #03-512, Singapore 310190",
+    "phone": "+65 8379 8092"
+  },
+  {
+    "name": "Anytime Fitness Cecil Street",
+    "address": "139 Cecil St, #04-01, Singapore",
+    "phone": "+65 8777 8551"
+  },
+  {
+    "name": "Anytime Fitness Kovan",
+    "address": "JForte Sportainment Centre Level 2 50 Hougang Ave 1, Singapore 538885",
+    "phone": "+65 6280 8800"
+  },
+  {
+    "name": "Anytime Fitness Elias CC",
+    "address": "93 Pasir Ris Drive 3 #01-05 Pasir Ris Elias Community Centre, Singapore",
+    "phone": "+65 8869 1517"
+  },
+  {
+    "name": "Anytime Fitness Wisteria",
+    "address": "Wisteria Mall, B1-26/27, Singapore",
+    "phone": "+65 9615 5678"
+  },
+  {
+    "name": "Anytime Fitness Jurong Summit",
+    "address": "8 Jurong Townhall rd #02-00 JTC Summit, Singapore 609434",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Telok Blangah",
+    "address": "Blk 78B Telok Blangah Street 32 #02-15, Singapore 102078",
+    "phone": "+65 8781 7425"
+  },
+  {
+    "name": "Anytime Fitness Marsiling CC",
+    "address": "100 Admirality Road, Singapore 739980",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Bugis",
+    "address": "51 Middle Road #03-01 & #04-01 Singapore 188959, Singapore",
+    "phone": "+65 8855 0608"
+  },
+  {
+    "name": "Anytime Fitness Tampines East Tampines Mart",
+    "address": "9 Tampines Street 32 #02-01 Tampines Mart, Singapore 529286",
+    "phone": "+65 9017 3533"
+  },
+  {
+    "name": "Anytime Fitness City Hall",
+    "address": "1 Raffles Link #B1-47 CityLink Mall, Singapore 179100",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Boon Keng",
+    "address": "294A/B Lavender Street Singapore 338807, Singapore",
+    "phone": "+65 8388 3512"
+  },
+  {
+    "name": "Anytime Fitness Teck Whye",
+    "address": "Blk 26 Teck Whye Lane, #01-180 & #01-182, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Tampines",
+    "address": "#03-361 Block 506 Tampines Central 1, Singapore 520506",
+    "phone": "+65 9865 1970"
+  },
+  {
+    "name": "Anytime Fitness Siglap Community Centre",
+    "address": "#02-11 151 Bedok South Road, Singapore 460151",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Ang Mo Kio",
+    "address": "Broadway Plaza, 4190 Ang Mo Kio Avenue 6 #01-02, Singapore",
+    "phone": "+65 8388 5213"
+  },
+  {
+    "name": "Anytime Fitness MacPherson",
+    "address": "MacPherson Community Club, 400 Paya Lebar Way, Singapore",
+    "phone": "+65 9340 6233"
+  },
+  {
+    "name": "Anytime Fitness Pioneer Mall",
+    "address": "638 Jurong West Street 61 #03-1 Pioneer Mall, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Geylang Central",
+    "address": "301 Geylang Road #04-01, Singapore 389344",
+    "phone": "+65 8688 6268"
+  },
+  {
+    "name": "Anytime Fitness West Coast",
+    "address": "West Coast Plaza 154 West Coast Road, Singapore 127371",
+    "phone": "+65 6779 4276"
+  },
+  {
+    "name": "Anytime Fitness d'Arena Jurong",
+    "address": "D'Arena, 511 Upper Jurong Road, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Loyang Point",
+    "address": "258 Pasir Ris Street 21, #05-03/04/05 Loyang Point, Singapore",
+    "phone": "+65 9023 9602"
+  },
+  {
+    "name": "Anytime Fitness Tampines Grande",
+    "address": "7 Tampines Grande, Singapore 528736",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Jalan Besar",
+    "address": "Rehau Building, 1 King George's Avenue #01-00, Singapore",
+    "phone": "+65 9788 9620"
+  },
+  {
+    "name": "Anytime Fitness Northshore Plaza",
+    "address": "407 Northshore Drive, #01-20 to 25, Singapore",
+    "phone": "+65 9789 0337"
+  },
+  {
+    "name": "Anytime Fitness Holland Village",
+    "address": "31A Lorong Mambong, Singapore 277689",
+    "phone": "+65 8720 1736"
+  },
+  {
+    "name": "Anytime Fitness Bukit Timah Central",
+    "address": "559 Bukit Timah Rd, #B1-01 King's Arcade, Singapore",
+    "phone": "+65 8855 0506"
+  },
+  {
+    "name": "Anytime Fitness Yew Tee",
+    "address": "3rd Floor #20 Choa Chu Kang St. 52 Yew Tee Community Club, Singapore 689286",
+    "phone": "+65 8533 3784"
+  },
+  {
+    "name": "Anytime Fitness Hougang Central",
+    "address": "1187 Upper Serangoon Road #B1-01 The Midtown, Singapore 533971",
+    "phone": "+65 9275 6373"
+  },
+  {
+    "name": "Anytime Fitness Marymount CC",
+    "address": "191 Sin Ming Avenue, #03-01, Singapore",
+    "phone": "+65 9863 5657"
+  },
+  {
+    "name": "Anytime Fitness 537 Bedok North",
+    "address": "#01-555, 537 Bedok North Street 3, Singapore",
+    "phone": "+65 9826 5008"
+  },
+  {
+    "name": "Anytime Fitness Hong Kah North CC",
+    "address": "30 Bukit Batok Street 31, #04-04 Hong Kah North Community Club, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Sembawang",
+    "address": "#02-14 Sembawang Shopping Centre, 604 Sembawang Road, Singapore",
+    "phone": "+65 9817 5045"
+  },
+  {
+    "name": "Anytime Fitness HillV2",
+    "address": "4 Hillview Rise #02-18/19 HillV2, Singapore 667979",
+    "phone": "+65 6266 4426"
+  },
+  {
+    "name": "Anytime Fitness Valley Point",
+    "address": "Valley Point Shopping Centre, 491 River Valley Road, Singapore",
+    "phone": "+65 8807 0227"
+  },
+  {
+    "name": "Anytime Fitness Orchard",
+    "address": "277 Orchard Rd, #04-01 Orchardgateway, Singapore",
+    "phone": "+65 8816 8855"
+  },
+  {
+    "name": "Anytime Fitness Chai Chee",
+    "address": "750 Chai Chee Road, Singapore 469000",
+    "phone": "+65 8952 2513"
+  },
+  {
+    "name": "Anytime Fitness Mountbatten",
+    "address": "372 Tanjong Katong, Mountbatten, Singapore",
+    "phone": "+65 9276 0599"
+  },
+  {
+    "name": "Anytime Fitness Eastpoint Mall",
+    "address": "3 Simei Street 6, #03-25 to 26, Singapore",
+    "phone": "+65 8128 0375"
+  },
+  {
+    "name": "Anytime Fitness Redhill",
+    "address": "#01-08A, 2 Leng Kee Road, Singapore",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Changi City Point",
+    "address": "#02-02C 5 Changi Business Park Central 1, Singapore 486038",
+    "phone": "+65 8686 6181"
+  },
+  {
+    "name": "Anytime Fitness VIIO @ BALESTIER",
+    "address": "520 Balestier Rd, #03-01 to 04, Singapore",
+    "phone": "+65 8157 8984"
+  },
+  {
+    "name": "Anytime Fitness New Queensway",
+    "address": "Queensway Shopping Centre, 1 Queensway #03-51 Singapore",
+    "phone": "+65 8588 1614"
+  },
+  {
+    "name": "Anytime Fitness Cantonment Road",
+    "address": "17 Cantonment Road, Singapore",
+    "phone": "+65 9386 6950"
+  },
+  {
+    "name": "Anytime Fitness Bukit Timah",
+    "address": "Bukit Timah Shopping Centre #B1-01, 170 Upper Bukit Timah Road, Singapore",
+    "phone": "+65 8129 0889"
+  },
+  {
+    "name": "Anytime Fitness Pasir Panjang",
+    "address": "44 Pasir Panjang Road Blocks A & B #01, Singapore 118504",
+    "phone": "+65 9839 6017"
+  },
+  {
+    "name": "Anytime Fitness CSC Bukit Batok",
+    "address": "91, Bukit Batok West Ave 2, Singapore",
+    "phone": "+65 9177 2029"
+  },
+  {
+    "name": "Anytime Fitness Boon Lay",
+    "address": "221 Boon Lay Place, #03-106, Singapore",
+    "phone": "+65 8399 7850"
+  },
+  {
+    "name": "Anytime Fitness Balestier",
+    "address": "288 Balestier Road, Singapore 329731",
+    "phone": "+65 8714 9366"
+  },
+  {
+    "name": "Anytime Fitness Bukit Batok Connection",
+    "address": "2 Bukit Batok Street 23, #01-03, Singapore",
+    "phone": "+65 9787 5998"
+  },
+  {
+    "name": "Anytime Fitness Bedok 85",
+    "address": "Blk 88 Bedok North Street 4 #01-163, Singapore 460088",
+    "phone": null
+  },
+  {
+    "name": "Anytime Fitness Serangoon Gardens",
+    "address": "53 Serangoon Garden Way, Singapore 555949",
+    "phone": "+65 8767 6016"
+  },
+  {
+    "name": "Anytime Fitness Jurong East Central",
+    "address": "134 Jurong Gateway, #01-311, Singapore",
+    "phone": "+65 8816 5848"
+  }
+]

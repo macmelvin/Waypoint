@@ -1578,6 +1578,117 @@ app.get('/api/petrol-nearby', (req, res) => {
   res.json({ stations: results });
 });
 
+// ---- Anytime Fitness gyms ---------------------------------------------------
+// Anytime Fitness Singapore's own site is a JS locator widget with no public
+// API, so the branch list (name/address/phone) here is a one-time, manually
+// sourced snapshot in data/anytime-fitness.json rather than a live feed —
+// same reasoning as the petrol station list above. Unlike petrol stations,
+// no lat/lon was available at source time, so each address is geocoded once
+// in the background via the same OneMap lookup the search bar already uses
+// (fetchOneMapResults, above), and the resolved coordinates are cached to
+// disk so a redeploy doesn't re-hit OneMap for gyms it already resolved.
+const ANYTIME_FITNESS_GEOCODE_FILE = process.env.ANYTIME_FITNESS_GEOCODE_FILE || '/data/anytime-fitness-geocoded.json';
+
+let anytimeFitnessRaw = [];
+try {
+  anytimeFitnessRaw = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'anytime-fitness.json'), 'utf8'));
+  console.log(`Loaded ${anytimeFitnessRaw.length} Anytime Fitness gym listings (pending geocoding).`);
+} catch (err) {
+  console.warn('Could not load Anytime Fitness data:', err.message);
+}
+
+function loadAnytimeFitnessGeocodeCache() {
+  try {
+    return JSON.parse(fs.readFileSync(ANYTIME_FITNESS_GEOCODE_FILE, 'utf8'));
+  } catch (err) {
+    return {};
+  }
+}
+
+function saveAnytimeFitnessGeocodeCache(cache) {
+  try {
+    fs.mkdirSync(path.dirname(ANYTIME_FITNESS_GEOCODE_FILE), { recursive: true });
+    fs.writeFileSync(ANYTIME_FITNESS_GEOCODE_FILE, JSON.stringify(cache, null, 2));
+  } catch (err) {
+    console.error('failed to persist Anytime Fitness geocode cache:', err.message);
+  }
+}
+
+// Populated as geocoding resolves; /api/anytime-fitness-nearby serves from
+// this in-memory list, so early requests right after a fresh deploy may see
+// fewer results until the background pass below catches up.
+let anytimeFitnessGyms = [];
+
+async function geocodeAnytimeFitnessGyms() {
+  const cache = loadAnytimeFitnessGeocodeCache();
+  let resolvedSinceSave = 0;
+
+  for (const gym of anytimeFitnessRaw) {
+    let hit = cache[gym.name];
+    if (!hit) {
+      try {
+        let results = await fetchOneMapResults(gym.address);
+        if (!results.length) results = await fetchOneMapResults(`${gym.name} Singapore`);
+        if (results.length) {
+          hit = { lat: results[0].lat, lon: results[0].lon };
+          cache[gym.name] = hit;
+          resolvedSinceSave += 1;
+        } else {
+          console.warn(`Anytime Fitness: no geocode match for "${gym.name}" (${gym.address})`);
+        }
+      } catch (err) {
+        console.warn(`Anytime Fitness: geocode failed for "${gym.name}":`, err.message);
+      }
+      // Gentle pacing against OneMap's public search endpoint — fetchOneMapResults
+      // already retries on a 429, this just avoids firing ~100 requests at once.
+      await new Promise((r) => setTimeout(r, 350));
+    }
+    if (hit) {
+      anytimeFitnessGyms = anytimeFitnessGyms.filter((g) => g.name !== gym.name);
+      anytimeFitnessGyms.push({ name: gym.name, address: gym.address, phone: gym.phone, lat: hit.lat, lon: hit.lon });
+    }
+    if (resolvedSinceSave >= 10) {
+      saveAnytimeFitnessGeocodeCache(cache);
+      resolvedSinceSave = 0;
+    }
+  }
+  saveAnytimeFitnessGeocodeCache(cache);
+  console.log(`Anytime Fitness: ${anytimeFitnessGyms.length}/${anytimeFitnessRaw.length} gyms geocoded.`);
+}
+
+if (anytimeFitnessRaw.length) {
+  // Fire-and-forget: the HTTP server starts immediately; this just fills in
+  // anytimeFitnessGyms in the background (near-instant on a redeploy once the
+  // cache file already has everything, since the cache hit path skips the
+  // network call and its pacing delay entirely).
+  geocodeAnytimeFitnessGyms().catch((err) => console.error('Anytime Fitness geocoding failed:', err.message));
+}
+
+app.get('/api/anytime-fitness-nearby', (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+  if (!anytimeFitnessGyms.length) {
+    return res.status(503).json({ error: 'Anytime Fitness locations aren\'t loaded yet — try again shortly.' });
+  }
+
+  const results = anytimeFitnessGyms
+    .map((g) => ({
+      name: g.name,
+      address: g.address,
+      phone: g.phone,
+      lat: g.lat,
+      lon: g.lon,
+      distanceMeters: Math.round(haversineMeters(lat, lon, g.lat, g.lon)),
+    }))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, 8);
+
+  res.json({ gyms: results });
+});
+
 // ---- ERP gantry crossings along a driving route -----------------------------
 // LTA doesn't publish an API that maps a route to an exact ERP dollar cost —
 // its ERPRates feed (rates by zone/time/vehicle type) has no published link
