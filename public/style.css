@@ -224,6 +224,16 @@
 
 html, body {
   height: 100%;
+  /* Mobile Chrome/WebView bug fix: with plain `height: 100%` chained from
+     the viewport, the address bar (or the keyboard) showing/hiding can
+     leave the page sized to a stale viewport height until something forces
+     a reflow (e.g. a manual refresh) — which is exactly why the fixed
+     WhatsApp button could end up positioned outside the visible screen.
+     `100dvh` tracks the ACTUAL visible viewport continuously, so browsers
+     that support it (effectively all current mobile browsers) never get
+     that stale value in the first place. Older browsers just keep the
+     100% fallback above. */
+  height: 100dvh;
   margin: 0;
   font-family: var(--font-system);
   font-size: 15px;
@@ -261,6 +271,7 @@ a:active {
 
 #app {
   height: 100%;
+  height: 100dvh; /* see html,body comment above */
   display: flex;
   flex-direction: column;
 }
