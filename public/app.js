@@ -324,10 +324,16 @@ function renderResultList(listEl, results, onPick) {
       r.details.filter((line) => line.length).forEach((line) => {
         const row = document.createElement('div');
         row.className = 'r-line';
-        line.forEach((text) => {
-          const chip = document.createElement('span');
-          chip.className = 'r-chip';
-          chip.textContent = text;
+        line.forEach((item) => {
+          const isLink = typeof item === 'object' && item.href;
+          const chip = document.createElement(isLink ? 'a' : 'span');
+          chip.className = isLink ? 'r-chip r-link' : 'r-chip';
+          chip.textContent = isLink ? item.text : item;
+          if (isLink) {
+            chip.href = item.href;
+            if (item.external) { chip.target = '_blank'; chip.rel = 'noopener'; }
+            chip.addEventListener('click', (e) => e.stopPropagation());
+          }
           row.appendChild(chip);
         });
         sub.appendChild(row);
@@ -349,6 +355,16 @@ function selectSearchResult(r) {
 
   els.placeName.textContent = shortLabel(r);
   els.placeAddress.textContent = addressText(r);
+  const oldContact = els.placeCard.querySelector('.place-contact');
+  if (oldContact) oldContact.remove();
+  if (r.contact && r.contact.href) {
+    const link = document.createElement('a');
+    link.className = 'place-contact';
+    link.href = r.contact.href;
+    link.textContent = r.contact.text.startsWith('💬') ? '💬 Message on WhatsApp' : `📞 Call ${r.contact.text.replace(/^\S+\s/, '')}`;
+    if (r.contact.external) { link.target = '_blank'; link.rel = 'noopener'; }
+    els.placeAddress.insertAdjacentElement('afterend', link);
+  }
   els.placeCard.classList.remove('hidden');
   loadAttractionInfo(r);
 }
@@ -676,6 +692,18 @@ function petCafeTodayHours(hours) {
   const line = hours.find((h) => h.startsWith(day));
   return line ? `🕒 ${line.replace(/^[A-Za-z]+:\s*/, '')}` : '';
 }
+// Singapore mobiles (8xxx / 9xxx xxxx) can open a WhatsApp chat; landlines (6xxx) can't,
+// so those just dial. Returns { text, href } or null.
+function petCafeContact(phone) {
+  const digits = String(phone || '').replace(/\D/g, '').replace(/^65(?=\d{8}$)/, '');
+  if (!digits) return null;
+  const nb = (s) => s.replace(/ /g, ' ');
+  if (/^[89]\d{7}$/.test(digits)) {
+    const msg = encodeURIComponent('Hi, are you open today?');
+    return { text: `💬 ${nb(phone)}`, href: `https://wa.me/65${digits}?text=${msg}`, external: true };
+  }
+  return { text: `📞 ${nb(phone)}`, href: `tel:+65${digits}` };
+}
 const PET_CAFE_DINE = { petcafe: '', petcafeopen: '', petcafeoutdoor: 'outdoor', petcafeindoor: 'indoor' };
 async function fetchNearbyPetCafes(category, lat, lon) {
   const dine = PET_CAFE_DINE[category];
@@ -686,8 +714,10 @@ async function fetchNearbyPetCafes(category, lat, lon) {
     const tags = [c.openNow === true && '🟢 Open now', c.verified === false && '⚠️ Unverified', c.hasIndoor && 'Indoor', c.hasOutdoor && 'Outdoor', ...(c.animals || [])].filter(Boolean);
     // Non-breaking spaces keep "8778 5768" and "11:30 AM – 8:30 PM" from splitting across lines.
     const nb = (s) => String(s).replace(/ /g, '\u00a0');
-    const info = [petCafeTodayHours(c.hours) && nb(petCafeTodayHours(c.hours)), c.phone && `📞\u00a0${nb(c.phone)}`].filter(Boolean);
-    return { label: c.label, address: [...tags, ...info].join(' · '), details: [tags, info], lat: c.lat, lon: c.lon };
+    const contact = petCafeContact(c.phone);
+    const info = [petCafeTodayHours(c.hours) && nb(petCafeTodayHours(c.hours)), contact].filter(Boolean);
+    const plain = (x) => (typeof x === 'string' ? x : x.text);
+    return { label: c.label, address: [...tags, ...info].map(plain).join(' · '), details: [tags, info], contact, lat: c.lat, lon: c.lon };
   });
   return { places, radiusUsed: null };
 }
@@ -745,6 +775,7 @@ function searchNearbyCategory(category) {
             label: r.label,
             address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
             ...(r.details ? { details: [[...r.details[0], formatDistance(r.distanceMeters)], r.details[1]] } : {}),
+            ...(r.contact ? { contact: r.contact } : {}),
             lat: r.lat,
             lon: r.lon,
           }));
