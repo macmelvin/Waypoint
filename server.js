@@ -2339,6 +2339,144 @@ app.get('/api/nearest-station', async (req, res) => {
   }
 });
 
+// ---- Nearby MRT/LRT stations, every line (Nearby category) -----------------
+// Same OTP stopsByRadius index as /api/nearest-station above, but wider
+// (5km vs 3km) and returns every station in range instead of just the
+// closest 3 — for a "what stations are near me" category rather than the
+// attraction card's single "nearest station" line. Also tags each station
+// with the line(s) it serves, using the same route shortName/color/textColor
+// fields /api/transit-plan already reads for itinerary line badges (see
+// MRT_LINE_NAMES/lineBadge in app.js) — so a new line or color change shows
+// up with zero code changes here.
+const MRT_STATIONS_RADIUS_M = 5000;
+
+async function queryNearbyStations(lat, lon, includeRoutes) {
+  const query = includeRoutes ? `
+    query Nearby($lat: Float!, $lon: Float!, $radius: Int!) {
+      stopsByRadius(lat: $lat, lon: $lon, radius: $radius) {
+        edges {
+          node {
+            distance
+            stop { name lat lon vehicleMode routes { shortName color textColor } }
+          }
+        }
+      }
+    }
+  ` : `
+    query Nearby($lat: Float!, $lon: Float!, $radius: Int!) {
+      stopsByRadius(lat: $lat, lon: $lon, radius: $radius) {
+        edges {
+          node {
+            distance
+            stop { name lat lon vehicleMode }
+          }
+        }
+      }
+    }
+  `;
+
+  const MAX_ATTEMPTS = 2;
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const otpRes = await fetch(`${TRANSIT_API_URL}/otp/routers/default/index/graphql`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { lat, lon, radius: MRT_STATIONS_RADIUS_M } }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!otpRes.ok) {
+        lastErr = new Error(`transit router responded ${otpRes.status}`);
+      } else {
+        const body = await otpRes.json();
+        if (body.errors) {
+          const gqlErr = new Error(body.errors.map((e) => e.message).join('; '));
+          gqlErr.graphqlErrors = body.errors;
+          throw gqlErr;
+        }
+        return body;
+      }
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err.graphqlErrors) throw err; // a schema error — retrying the same query won't help
+      lastErr = err;
+    }
+    if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 2000));
+  }
+  throw lastErr;
+}
+
+app.get('/api/mrt-stations-nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+
+  try {
+    let body;
+    try {
+      body = await queryNearbyStations(lat, lon, true);
+    } catch (err) {
+      if (!err.graphqlErrors) throw err;
+      // This OTP build's schema doesn't expose Stop.routes (or names it
+      // differently) — fall back to the plain station list rather than
+      // failing the whole category outright; stations just won't show
+      // their line tags until that's sorted out.
+      console.warn('mrt-stations-nearby: routes field unsupported, retrying without it:', err.message);
+      body = await queryNearbyStations(lat, lon, false);
+    }
+
+    const edges = body.data?.stopsByRadius?.edges || [];
+    // Dedupe by name (a physical station shows up as several platform stops
+    // on the graph, one per line/direction, at ~identical coordinates) while
+    // merging each duplicate's routes so an interchange station ends up
+    // tagged with every line it serves, not just whichever platform stop
+    // happened to be closest.
+    const byName = new Map();
+    for (const { node } of edges) {
+      const stop = node?.stop;
+      if (!stop || (stop.vehicleMode !== 'SUBWAY' && stop.vehicleMode !== 'TRAM')) continue;
+      const routes = (stop.routes || [])
+        .filter((r) => r.shortName)
+        .map((r) => ({ code: r.shortName, color: r.color || null, textColor: r.textColor || null }));
+      const existing = byName.get(stop.name);
+      if (!existing) {
+        byName.set(stop.name, {
+          name: stop.name,
+          mode: stop.vehicleMode === 'TRAM' ? 'LRT' : 'MRT',
+          lat: stop.lat,
+          lon: stop.lon,
+          distance: Math.round(node.distance),
+          routes,
+          _codes: new Set(routes.map((r) => r.code)),
+        });
+      } else {
+        existing.distance = Math.min(existing.distance, Math.round(node.distance));
+        for (const r of routes) {
+          if (!existing._codes.has(r.code)) {
+            existing._codes.add(r.code);
+            existing.routes.push(r);
+          }
+        }
+      }
+    }
+
+    const stations = Array.from(byName.values())
+      .map(({ _codes, ...rest }) => rest)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 60);
+
+    res.json({ stations });
+  } catch (err) {
+    console.error('mrt-stations-nearby error:', err.message);
+    res.status(502).json({ error: 'Could not find nearby MRT/LRT stations.', detail: err.message });
+  }
+});
+
 app.get('/api/stop-search', async (req, res) => {
   const q = (req.query.q || '').trim().toLowerCase();
   if (q.length < 1) return res.json({ results: [] });

@@ -326,13 +326,22 @@ function renderResultList(listEl, results, onPick) {
         row.className = 'r-line';
         line.forEach((item) => {
           const isLink = typeof item === 'object' && item.href;
+          // A colored line-badge chip (e.g. "NS" on red, "CC" on orange) —
+          // used for MRT/LRT station results, same visual language as the
+          // transit-directions line badges (see lineBadge/MRT_LINE_NAMES).
+          const isBadge = !isLink && typeof item === 'object' && item.badge;
           const chip = document.createElement(isLink ? 'a' : 'span');
-          chip.className = isLink ? 'r-chip r-link' : 'r-chip';
-          chip.textContent = isLink ? item.text : item;
+          chip.className = isLink ? 'r-chip r-link' : isBadge ? 'r-chip line-badge' : 'r-chip';
+          chip.textContent = isLink || isBadge ? item.text : item;
           if (isLink) {
             chip.href = item.href;
             if (item.external) { chip.target = '_blank'; chip.rel = 'noopener'; }
             chip.addEventListener('click', (e) => e.stopPropagation());
+          }
+          if (isBadge) {
+            chip.style.background = item.bg || '#666';
+            chip.style.color = item.color || '#fff';
+            if (item.title) chip.title = item.title;
           }
           row.appendChild(chip);
         });
@@ -551,6 +560,7 @@ const CATEGORY_LABELS = {
   petcafeindoor: 'pet cafe with indoor seating',
   anytimefitness: 'Anytime Fitness gym',
   applestore: 'Apple Store',
+  mrtstations: 'MRT/LRT station',
 };
 
 // Same OSM tag mapping as the server used to run — moved client-side after
@@ -773,6 +783,38 @@ async function fetchNearbyAppleStores(lat, lon) {
   return { places, radiusUsed: null };
 }
 
+// Every MRT/LRT station within 5km, tagged with the line(s) it serves — see
+// /api/mrt-stations-nearby. Unlike the other Nearby categories above this
+// isn't a fixed dataset; it's a live query against the same OTP transit
+// graph /api/transit-plan uses, so a new line or station shows up
+// automatically with no data file to maintain.
+async function fetchNearbyMrtStations(lat, lon) {
+  const res = await fetch(`/api/mrt-stations-nearby?lat=${lat}&lon=${lon}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `MRT/LRT stations responded ${res.status}`);
+  const places = (data.stations || []).map((s) => {
+    // Colored line-badge chips, same look as the transit-directions line
+    // badges (lineBadge/MRT_LINE_NAMES) — color/textColor come straight from
+    // the live GTFS feed via the server, with a plain fallback if a build of
+    // the transit router doesn't expose them.
+    const lines = (s.routes || []).map((r) => ({
+      text: r.code,
+      bg: r.color ? `#${r.color}` : '#666',
+      color: r.textColor ? `#${r.textColor}` : contrastTextColor(r.color),
+      badge: true,
+      title: MRT_LINE_NAMES[r.code] || undefined,
+    }));
+    return {
+      label: s.name,
+      address: `${s.mode} station`,
+      details: [lines, []],
+      lat: s.lat,
+      lon: s.lon,
+    };
+  });
+  return { places, radiusUsed: null };
+}
+
 // Guards against a slow, stale category search overwriting a newer one's
 // results. Overpass (especially the kumi.systems mirror) can be slow or time
 // out — confirmed live, not hypothetical — and each tap here fires a fresh,
@@ -811,6 +853,8 @@ function searchNearbyCategory(category) {
           ? await fetchNearbyAnytimeFitness(lat, lon)
           : category === 'applestore'
           ? await fetchNearbyAppleStores(lat, lon)
+          : category === 'mrtstations'
+          ? await fetchNearbyMrtStations(lat, lon)
           : await fetchCategoryPlaces(category, lat, lon, (radius) => {
               if (!isStale()) els.searchResults.innerHTML = `<li class="r-loading">Searching within ${formatDistance(radius)}…</li>`;
             });
@@ -825,7 +869,7 @@ function searchNearbyCategory(category) {
         const mapped = places
           .map((p) => ({ ...p, distanceMeters: Math.round(haversineMeters(lat, lon, p.lat, p.lon)) }))
           .sort((a, b) => a.distanceMeters - b.distanceMeters)
-          .slice(0, category in PET_CAFE_DINE || category === 'anytimefitness' || category === 'applestore' ? 100 : 8)
+          .slice(0, category in PET_CAFE_DINE || category === 'anytimefitness' || category === 'applestore' || category === 'mrtstations' ? 100 : 8)
           .map((r) => ({
             label: r.label,
             address: r.address ? `${r.address} · ${formatDistance(r.distanceMeters)}` : formatDistance(r.distanceMeters),
@@ -1354,6 +1398,7 @@ const CHIP_I18N = {
   petgrooming: { en: 'Pet Grooming', zh: '宠物美容', ms: 'Dandanan Haiwan', ta: 'செல்லப்பிராணி அழகுபடுத்தல்', ja: 'ペットグルーミング', ko: '반려동물 미용' },
   anytimefitness: { en: 'Anytime Fitness', zh: 'Anytime Fitness', ms: 'Anytime Fitness', ta: 'Anytime Fitness', ja: 'エニタイムフィットネス', ko: '애니타임 피트니스' },
   applestore: { en: 'Apple Store', zh: 'Apple Store', ms: 'Apple Store', ta: 'Apple Store', ja: 'アップルストア', ko: '애플스토어' },
+  mrtstations: { en: 'MRT/LRT Stations', zh: '地铁/轻轨站', ms: 'Stesen MRT/LRT', ta: 'எம்ஆர்டி/எல்ஆர்டி நிலையங்கள்', ja: 'MRT/LRT駅', ko: 'MRT/LRT 역' },
   mbs: { en: 'Marina Bay Sands', zh: '滨海湾金沙', ms: 'Marina Bay Sands', ta: 'மரீனா பே சாண்ட்ஸ்', ja: 'マリーナベイ・サンズ', ko: '마리나 베이 샌즈' },
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
   sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு', ja: 'セントーサ島', ko: '센토사 섬' },
