@@ -3285,6 +3285,44 @@ function renderTransitSteps(itinerary) {
     row.appendChild(text);
     li.appendChild(row);
 
+    // Full stop-by-stop list for this leg — leg.stops is already the
+    // complete boarding-to-alighting sequence from OTP's intermediateStops
+    // (see server.js; the "Wake me up" countdown below already relies on
+    // it), just never rendered as a visible list before. Only worth
+    // showing when there's at least one stop between boarding and
+    // alighting — those two are already named in the bolded line above.
+    if (leg.mode !== 'walk' && Array.isArray(leg.stops) && leg.stops.length > 2) {
+      const stopsRow = document.createElement('div');
+      stopsRow.className = 'step-stops-row';
+
+      const stopCount = leg.stops.length - 2;
+      const stopsBtn = document.createElement('button');
+      stopsBtn.type = 'button';
+      stopsBtn.className = 'stops-list-btn';
+      stopsBtn.textContent = `🚏 Show ${stopCount} stop${stopCount === 1 ? '' : 's'}`;
+
+      const stopsList = document.createElement('ol');
+      stopsList.className = 'stops-list-panel hidden';
+      leg.stops.forEach((s, i) => {
+        const stopLi = document.createElement('li');
+        if (i === 0) stopLi.innerHTML = `<strong>${s.name}</strong> <span class="stop-tag">Board here</span>`;
+        else if (i === leg.stops.length - 1) stopLi.innerHTML = `<strong>${s.name}</strong> <span class="stop-tag">Alight here</span>`;
+        else stopLi.textContent = s.name;
+        stopsList.appendChild(stopLi);
+      });
+
+      stopsBtn.addEventListener('click', () => {
+        const opening = stopsList.classList.contains('hidden');
+        stopsList.classList.toggle('hidden', !opening);
+        stopsBtn.classList.toggle('active', opening);
+        stopsBtn.textContent = opening ? '🚏 Hide stops' : `🚏 Show ${stopCount} stop${stopCount === 1 ? '' : 's'}`;
+      });
+
+      stopsRow.appendChild(stopsBtn);
+      stopsRow.appendChild(stopsList);
+      li.appendChild(stopsRow);
+    }
+
     // "Wake me up" alert: only makes sense on a bus/train leg with a real
     // alighting-stop location to watch your live position against.
     if (leg.mode !== 'walk' && leg.toLat != null && leg.toLon != null) {

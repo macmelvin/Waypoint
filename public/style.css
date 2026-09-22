@@ -1502,6 +1502,46 @@ a:active {
   margin-top: 1px;
 }
 
+.step-stops-row {
+  margin-top: 6px;
+  margin-left: 26px;
+}
+.stops-list-btn {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  border-radius: var(--radius-pill);
+  padding: 6px 11px;
+  min-height: 30px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.stops-list-btn:hover { background: var(--gray-100); }
+.stops-list-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.stops-list-panel {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-elevated);
+  padding: 8px 10px 8px 26px;
+  font-size: 12px;
+  color: var(--label-primary);
+  max-height: 260px;
+  overflow-y: auto;
+}
+.stops-list-panel li { padding: 3px 0; }
+.stops-list-panel .stop-tag {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.stops-list-panel.hidden { display: none; }
+
 .step-wake-row {
   display: flex;
   align-items: center;
