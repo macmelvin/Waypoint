@@ -525,7 +525,6 @@ async function loadAttractionInfo(r) {
       <div class="attraction-guides">
         <h4>${t('attraction_guides_title')} <span class="attraction-guides-badge">STGS</span></h4>
         ${guideList.map((g) => {
-          const contactUrl = guideContact(g.whatsapp, g.name, entry.label);
           const languages = (g.languages || []).join(', ');
           return `
             <div class="attraction-guide-card">
@@ -535,10 +534,7 @@ async function loadAttractionInfo(r) {
               </div>
               ${g.specialty || languages ? `<div class="attraction-guide-meta">${escapeHtml([g.specialty, languages].filter(Boolean).join(' · '))}</div>` : ''}
               ${g.note ? `<p class="attraction-guide-note">“${escapeHtml(g.note)}”</p>` : ''}
-              ${contactUrl
-                ? `<a class="attraction-guide-contact" href="${contactUrl}" target="_blank" rel="noopener">💬 ${t('attraction_guide_message')}</a>`
-                : (g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : '')}
-              ${g.sample ? '' : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
+              ${g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
             </div>`;
         }).join('')}
       </div>`
