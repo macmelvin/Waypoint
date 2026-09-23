@@ -48,6 +48,7 @@
   <div id="content" style="display:none">
     <h1 id="guideName"></h1>
     <p class="sub" id="guideSpecialty"></p>
+    <div id="priceBanner" style="display:none;background:#F1EAE0;border:1px solid #E6DDCB;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:14px;color:#1B3A4B;font-weight:600"></div>
 
     <div class="card" id="slotsCard">
       <div id="slotList"></div>
@@ -119,6 +120,11 @@ async function load() {
     document.getElementById('guideSpecialty').textContent = data.guide.specialty || '';
     slots = data.slots || [];
     pricePerAdult = Number(data.pricePerAdult) || 0;
+    const banner = document.getElementById('priceBanner');
+    if (pricePerAdult) {
+      banner.textContent = `S$${pricePerAdult.toFixed(2)} per adult · children under 15 free`;
+      banner.style.display = 'block';
+    }
     renderSlots();
     updateEstimate();
   } catch (err) {

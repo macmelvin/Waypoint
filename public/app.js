@@ -533,6 +533,7 @@ async function loadAttractionInfo(r) {
                 ${g.verified ? `<span class="attraction-guide-verified">✓ ${t('attraction_guide_verified')}</span>` : ''}
               </div>
               ${g.specialty || languages ? `<div class="attraction-guide-meta">${escapeHtml([g.specialty, languages].filter(Boolean).join(' · '))}</div>` : ''}
+              ${g.pricePerAdult != null ? `<div class="attraction-guide-price">S$${Number(g.pricePerAdult).toFixed(2)} / adult · children under 15 free</div>` : ''}
               ${g.note ? `<p class="attraction-guide-note">“${escapeHtml(g.note)}”</p>` : ''}
               ${g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}&landmark=${encodeURIComponent(key)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
             </div>`;
