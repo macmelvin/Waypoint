@@ -400,6 +400,14 @@ const BOOKING_LOOKAHEAD_DAYS = 21;
 // confirms it. Override via ADULT_PRICE_SGD if the rate ever changes.
 const ADULT_PRICE_SGD = Number(process.env.ADULT_PRICE_SGD) > 0 ? Number(process.env.ADULT_PRICE_SGD) : 20;
 
+// A new guide starts with this template already filled in (9am-9pm, every
+// day) rather than an empty availability list -- so they're bookable the
+// moment they're created instead of invisible until someone remembers to
+// set their hours. Any guide (new or existing) can edit or clear this from
+// their own portal page at any time; it's just a sensible starting point,
+// not a fixed requirement.
+const DEFAULT_GUIDE_AVAILABILITY = [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, start: '09:00', end: '21:00' }));
+
 function loadGuideBookings() {
   try {
     return JSON.parse(fs.readFileSync(GUIDE_BOOKINGS_FILE, 'utf8'));
@@ -784,7 +792,7 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
     note: (req.body?.note || '').trim(),
     sample: req.body?.sample === true,
     accessToken: crypto.randomUUID(),
-    availability: [],
+    availability: DEFAULT_GUIDE_AVAILABILITY,
     createdAt: new Date().toISOString(),
   };
   guides.push(guide);
