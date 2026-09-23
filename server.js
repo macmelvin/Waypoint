@@ -391,7 +391,7 @@ if (guidesTokenBackfilled) saveGuides();
 // record time for STGS invoicing.
 const GUIDE_BOOKINGS_FILE = process.env.GUIDE_BOOKINGS_FILE || '/data/guide-bookings.json';
 const REVENUE_SHARE_RATE = 0.10;
-const BOOKING_LOOKAHEAD_DAYS = 21;
+const BOOKING_LOOKAHEAD_DAYS = 14;
 // Flat per-adult walk price used to show visitors a live estimate at booking
 // time (adults x this rate; children under 15 ride free). This is only ever
 // a starting point for admin's "amount paid" field, never written straight
