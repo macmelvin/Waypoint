@@ -136,6 +136,13 @@
 
     <h1 style="margin-top:36px">Guide bookings</h1>
     <p class="sub">Requests visitors submit against a guide's availability. Waypoint never charges anyone -- once a guide tells you what a walk was actually paid, record it here and the 10% STGS share is calculated for you.</p>
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-weight:600">Booking notifications</div>
+        <div class="sub" style="margin:2px 0 0" id="adminPushSub">Get an alert on this device the moment any guide gets a new request.</div>
+      </div>
+      <button id="adminPushBtn" class="secondary" onclick="toggleAdminPush()">Enable</button>
+    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div id="bookingSummary" style="color:#94a3b8;font-size:13px"></div>
@@ -179,6 +186,7 @@ async function loadInvites() {
     loadGuideLandmarks();
     loadGuides();
     loadGuideBookings();
+    updateAdminPushButton();
   } catch (err) {
     statusEl.textContent = err.message;
   }
@@ -552,6 +560,84 @@ async function loadGuideBookings() {
   } catch (err) {
     document.getElementById('bookingList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
   }
+}
+
+// ---- Booking-request push notifications (admin side) -----------------------
+// Same Web Push mechanism as the rest of the app, but its own subscriber pool
+// on the server (adminPushSubscriptions) -- separate from the guide-scoped
+// one and from the public MRT/traffic/haze alerts.
+const ADMIN_PUSH_KEY = 'waypoint_admin_push_enabled';
+
+function adminPushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+function adminUrlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+function updateAdminPushButton() {
+  const btn = document.getElementById('adminPushBtn');
+  const sub = document.getElementById('adminPushSub');
+  if (!btn) return;
+  const enabled = localStorage.getItem(ADMIN_PUSH_KEY) === '1';
+  btn.textContent = enabled ? 'Disable' : 'Enable';
+  if (sub) sub.textContent = enabled
+    ? "You'll get an alert on this device for every new booking request, across all guides."
+    : 'Get an alert on this device the moment any guide gets a new request.';
+}
+
+async function toggleAdminPush() {
+  const enabled = localStorage.getItem(ADMIN_PUSH_KEY) === '1';
+  if (enabled) { await disableAdminPush(); } else { await enableAdminPush(); }
+}
+
+async function enableAdminPush() {
+  if (!adminPushSupported()) { alert("Push notifications aren't supported in this browser."); return; }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { alert('Notification permission was not granted.'); return; }
+    const { publicKey, enabled: serverEnabled } = await (await fetch('/api/push/vapid-public-key')).json();
+    if (!serverEnabled || !publicKey) { alert("Notifications aren't set up on the server yet."); return; }
+    await navigator.serviceWorker.register('/sw.js');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: adminUrlBase64ToUint8Array(publicKey),
+    });
+    await api('/api/admin/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub }),
+    });
+    localStorage.setItem(ADMIN_PUSH_KEY, '1');
+    updateAdminPushButton();
+  } catch (err) {
+    console.error(err);
+    alert(`Could not enable notifications: ${err.message || err.name || err}`);
+  }
+}
+
+async function disableAdminPush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await api('/api/admin/push/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+      await sub.unsubscribe();
+    }
+  } catch (err) {
+    console.error(err);
+  }
+  localStorage.removeItem(ADMIN_PUSH_KEY);
+  updateAdminPushButton();
 }
 
 function renderGuideBookings(bookings) {
