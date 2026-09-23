@@ -1206,6 +1206,7 @@ app.get('/api/guides-for-landmark', (req, res) => {
       whatsapp: g.whatsapp || '',
       note: g.note || '',
       sample: Boolean(g.sample),
+      pricePerAdult: g.sample ? null : resolveGuidePrice(g, key),
     }));
   res.json({ guides: results });
 });
