@@ -653,10 +653,11 @@ function renderGuideBookings(bookings) {
   summaryEl.textContent = `${completedCount} completed · S$${totalOwed.toFixed(2)} owed to STGS (10% of recorded payments)`;
   list.innerHTML = bookings.map((b) => {
     const color = BOOKING_STATUS_COLOR[b.status] || '#94a3b8';
+    const estimateAttr = b.estimatedTotal != null ? b.estimatedTotal.toFixed(2) : '';
     const paymentLine = b.paymentAmount != null
       ? `Paid S$${b.paymentAmount.toFixed(2)} · STGS share S$${b.revenueShare.toFixed(2)}`
-      : (b.status === 'declined' ? '' : `<input type="text" inputmode="decimal" placeholder="Amount paid (SGD)" id="pay-${b.id}" style="width:140px;margin:0;display:inline-block;padding:6px 8px;font-size:13px">
-         <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="recordPayment('${b.id}')">Record payment</button>`);
+      : (b.status === 'declined' ? '' : `<input type="text" inputmode="decimal" placeholder="Amount paid (SGD)" id="pay-${b.id}" value="${estimateAttr}" style="width:140px;margin:0;display:inline-block;padding:6px 8px;font-size:13px">
+         <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="recordPayment('${b.id}')">Record payment</button>${b.estimatedTotal != null ? ` <span style="color:#64748b">(pre-filled from ${b.adults} adult${b.adults === 1 ? '' : 's'} × S$${Number(b.pricePerAdult).toFixed(2)} estimate — edit if different)</span>` : ''}`);
     const notifyBtn = (b.status === 'requested' && b.guideWhatsapp)
       ? `<a href="${buildGuideNotifyLink(b)}" target="_blank" rel="noopener" class="secondary" style="padding:6px 10px;font-size:12px;display:inline-block;text-decoration:none;margin-left:8px">📲 Notify guide on WhatsApp</a>`
       : (b.status === 'requested' ? `<span style="color:#f87171;font-size:12px;margin-left:8px">No WhatsApp number on file for this guide</span>` : '');
@@ -664,7 +665,7 @@ function renderGuideBookings(bookings) {
       <div class="invite">
         <div style="flex:1;min-width:0">
           <div class="invite-name">${escapeHtml(b.guideName)} <span style="color:${color};font-weight:600;font-size:12px">${BOOKING_STATUS_LABEL[b.status] || b.status}</span></div>
-          <div class="invite-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · ${escapeHtml(b.visitorName)} (${escapeHtml(b.visitorPhone)}) · party of ${b.partySize}${b.note ? ` · "${escapeHtml(b.note)}"` : ''}</div>
+          <div class="invite-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · ${escapeHtml(b.visitorName)} (${escapeHtml(b.visitorPhone)}) · ${b.adults != null ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}` : `party of ${b.partySize}`}${b.note ? ` · "${escapeHtml(b.note)}"` : ''}</div>
           <div class="invite-meta" style="margin-top:6px">${paymentLine}${notifyBtn}</div>
         </div>
       </div>`;
@@ -676,9 +677,13 @@ function renderGuideBookings(bookings) {
 // instead of typing a message from scratch. No WhatsApp API/account needed.
 function buildGuideNotifyLink(b) {
   const digits = String(b.guideWhatsapp || '').replace(/[^0-9]/g, '');
+  const headcount = b.adults != null
+    ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}`
+    : `party of ${b.partySize}`;
+  const estimateLine = b.estimatedTotal != null ? `\nEst. S$${b.estimatedTotal.toFixed(2)}` : '';
   const msg = `Hi ${b.guideName}, you have a new Waypoint booking request:\n\n`
     + `${b.date}, ${b.start}-${b.end}\n`
-    + `${b.visitorName} (party of ${b.partySize})${b.note ? `\nNote: ${b.note}` : ''}\n\n`
+    + `${b.visitorName} (${headcount})${estimateLine}${b.note ? `\nNote: ${b.note}` : ''}\n\n`
     + `Please confirm or decline via your Waypoint guide portal link.`;
   return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
 }
