@@ -119,6 +119,10 @@
       </select>
       <div style="color:#64748b;font-size:11px;margin-top:4px">Cmd/Ctrl-click to pick more than one landmark.</div>
       <textarea id="guideNoteInput" placeholder="Guide's curated tip / preview (shown on the place card)" rows="2" style="width:100%;margin-top:10px;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#94a3b8;cursor:pointer">
+        <input type="checkbox" id="guideSampleCheckbox">
+        Sample / placeholder profile (shows a "Sample profile" note instead of a WhatsApp button -- only takes effect if you leave the WhatsApp number above blank)
+      </label>
       <div style="margin-top:10px"><button onclick="createGuide()">Add guide</button></div>
       <div id="guideCreateStatus" style="color:#f87171;font-size:13px;margin-top:8px;"></div>
     </div>
@@ -233,6 +237,7 @@ async function createGuide() {
   const select = document.getElementById('guideLandmarkSelect');
   const statusEl = document.getElementById('guideCreateStatus');
   statusEl.textContent = '';
+  const sampleCheckbox = document.getElementById('guideSampleCheckbox');
   const name = nameInput.value.trim();
   const landmarks = Array.from(select.selectedOptions).map((o) => o.value);
   if (!name) { statusEl.textContent = 'Name is required'; return; }
@@ -248,10 +253,11 @@ async function createGuide() {
         whatsapp: whatsappInput.value.trim(),
         note: noteInput.value.trim(),
         landmarks,
+        sample: sampleCheckbox.checked,
       }),
     });
     nameInput.value = ''; specialtyInput.value = ''; languagesInput.value = '';
-    whatsappInput.value = ''; noteInput.value = '';
+    whatsappInput.value = ''; noteInput.value = ''; sampleCheckbox.checked = false;
     Array.from(select.options).forEach((o) => { o.selected = false; });
     loadGuides();
   } catch (err) {

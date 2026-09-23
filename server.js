@@ -557,7 +557,7 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
     verified: req.body?.verified !== false,
     active: true,
     note: (req.body?.note || '').trim(),
-    sample: false,
+    sample: req.body?.sample === true,
     createdAt: new Date().toISOString(),
   };
   guides.push(guide);
