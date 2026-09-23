@@ -886,6 +886,20 @@ app.post('/api/admin/guide-bookings/:id/payment', requireAdmin, (req, res) => {
   res.json({ booking: b });
 });
 
+// Lets admin permanently remove a booking -- mainly for clearing out test
+// requests made while trying out the feature, but also useful for a
+// visitor's duplicate/mistaken submission. Unlike the status endpoint above
+// (which keeps a record but marks it declined/etc.), this deletes it
+// outright, so there's no confirmation step here beyond the delete button
+// itself in admin.html.
+app.delete('/api/admin/guide-bookings/:id', requireAdmin, (req, res) => {
+  const idx = guideBookings.findIndex((x) => x.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'not found' });
+  guideBookings.splice(idx, 1);
+  saveGuideBookings();
+  res.json({ ok: true });
+});
+
 // Express's static middleware ignores dotfiles (like .well-known) by
 // default, which would 404 the Android app's Digital Asset Links file —
 // serve that one path explicitly before the catch-all static handler.
