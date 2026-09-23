@@ -114,6 +114,9 @@
         <input type="text" id="guideLanguagesInput" placeholder="Languages, comma separated" style="margin-bottom:0">
         <input type="text" id="guideWhatsappInput" placeholder="WhatsApp number (e.g. 91234567)" style="margin-bottom:0">
       </div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" inputmode="decimal" id="guidePriceInput" placeholder="Price per adult, SGD (e.g. 20)" style="margin-bottom:0">
+      </div>
       <select id="guideLandmarkSelect" multiple size="4" style="width:100%;margin-top:10px;padding:8px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:13px">
         <option disabled>Loading landmarks…</option>
       </select>
@@ -238,7 +241,8 @@ function renderGuides(guides) {
   const sorted = [...guides].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   list.innerHTML = sorted.map((g) => {
     const landmarkLabels = (g.landmarks || []).map((k) => guideLandmarks[k] || k).join(', ');
-    const meta = [g.specialty, (g.languages || []).join('/'), landmarkLabels].filter(Boolean).join(' · ');
+    const priceLabel = g.pricePerAdult != null ? `S$${Number(g.pricePerAdult).toFixed(2)}/adult` : '';
+    const meta = [g.specialty, (g.languages || []).join('/'), landmarkLabels, priceLabel].filter(Boolean).join(' · ');
     const sampleBadge = g.sample ? '<span class="new-visitor-badge" style="background:#7c3aed">sample</span>' : '';
     const contactState = g.whatsapp ? `WhatsApp on file` : '<span style="color:#f87171">no WhatsApp number yet</span>';
     return `
@@ -281,6 +285,7 @@ function editGuide(id) {
   document.getElementById('guideSpecialtyInput').value = g.specialty || '';
   document.getElementById('guideLanguagesInput').value = (g.languages || []).join(', ');
   document.getElementById('guideWhatsappInput').value = g.whatsapp || '';
+  document.getElementById('guidePriceInput').value = g.pricePerAdult != null ? g.pricePerAdult : '';
   document.getElementById('guideNoteInput').value = g.note || '';
   document.getElementById('guideSampleCheckbox').checked = Boolean(g.sample);
   const select = document.getElementById('guideLandmarkSelect');
@@ -301,6 +306,7 @@ function cancelEditGuide() {
   document.getElementById('guideSpecialtyInput').value = '';
   document.getElementById('guideLanguagesInput').value = '';
   document.getElementById('guideWhatsappInput').value = '';
+  document.getElementById('guidePriceInput').value = '';
   document.getElementById('guideNoteInput').value = '';
   document.getElementById('guideSampleCheckbox').checked = false;
   Array.from(document.getElementById('guideLandmarkSelect').options).forEach((o) => { o.selected = false; });
@@ -315,6 +321,7 @@ async function createGuide() {
   const specialtyInput = document.getElementById('guideSpecialtyInput');
   const languagesInput = document.getElementById('guideLanguagesInput');
   const whatsappInput = document.getElementById('guideWhatsappInput');
+  const priceInput = document.getElementById('guidePriceInput');
   const noteInput = document.getElementById('guideNoteInput');
   const select = document.getElementById('guideLandmarkSelect');
   const statusEl = document.getElementById('guideCreateStatus');
@@ -329,6 +336,7 @@ async function createGuide() {
     specialty: specialtyInput.value.trim(),
     languages: languagesInput.value.split(',').map((l) => l.trim()).filter(Boolean),
     whatsapp: whatsappInput.value.trim(),
+    pricePerAdult: priceInput.value.trim() ? Number(priceInput.value.trim()) : undefined,
     note: noteInput.value.trim(),
     landmarks,
     sample: sampleCheckbox.checked,
@@ -348,7 +356,7 @@ async function createGuide() {
         body: JSON.stringify(payload),
       });
       nameInput.value = ''; specialtyInput.value = ''; languagesInput.value = '';
-      whatsappInput.value = ''; noteInput.value = ''; sampleCheckbox.checked = false;
+      whatsappInput.value = ''; priceInput.value = ''; noteInput.value = ''; sampleCheckbox.checked = false;
       Array.from(select.options).forEach((o) => { o.selected = false; });
     }
     loadGuides();

@@ -372,10 +372,16 @@ let guides = loadGuides();
 // requests) without a real login system. Backfills any guide created
 // before this existed (or a sample that's never had one) so nothing in
 // production is ever missing a token.
+// Fallback per-adult price for any guide that hasn't set their own (see
+// pricePerAdult backfill just below) -- also the starting value shown when
+// admin adds a new guide. Override via ADULT_PRICE_SGD env var.
+const ADULT_PRICE_SGD = Number(process.env.ADULT_PRICE_SGD) > 0 ? Number(process.env.ADULT_PRICE_SGD) : 20;
+
 let guidesTokenBackfilled = false;
 for (const g of guides) {
   if (!g.accessToken) { g.accessToken = crypto.randomUUID(); guidesTokenBackfilled = true; }
   if (!Array.isArray(g.availability)) { g.availability = []; guidesTokenBackfilled = true; }
+  if (!(Number(g.pricePerAdult) > 0)) { g.pricePerAdult = ADULT_PRICE_SGD; guidesTokenBackfilled = true; }
 }
 if (guidesTokenBackfilled) saveGuides();
 
@@ -392,13 +398,6 @@ if (guidesTokenBackfilled) saveGuides();
 const GUIDE_BOOKINGS_FILE = process.env.GUIDE_BOOKINGS_FILE || '/data/guide-bookings.json';
 const REVENUE_SHARE_RATE = 0.10;
 const BOOKING_LOOKAHEAD_DAYS = 14;
-// Flat per-adult walk price used to show visitors a live estimate at booking
-// time (adults x this rate; children under 15 ride free). This is only ever
-// a starting point for admin's "amount paid" field, never written straight
-// to paymentAmount/revenueShare -- the actual amount collected can differ
-// (a discount, a no-show, an extra guest on the day), so a human still
-// confirms it. Override via ADULT_PRICE_SGD if the rate ever changes.
-const ADULT_PRICE_SGD = Number(process.env.ADULT_PRICE_SGD) > 0 ? Number(process.env.ADULT_PRICE_SGD) : 20;
 
 // A new guide starts with this template already filled in (9am-9pm, every
 // day) rather than an empty availability list -- so they're bookable the
@@ -791,6 +790,7 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
     active: true,
     note: (req.body?.note || '').trim(),
     sample: req.body?.sample === true,
+    pricePerAdult: Number(req.body?.pricePerAdult) > 0 ? Number(req.body.pricePerAdult) : ADULT_PRICE_SGD,
     accessToken: crypto.randomUUID(),
     availability: DEFAULT_GUIDE_AVAILABILITY,
     createdAt: new Date().toISOString(),
@@ -818,6 +818,7 @@ app.put('/api/admin/guides/:id', requireAdmin, (req, res) => {
   g.verified = req.body?.verified !== false;
   g.note = (req.body?.note || '').trim();
   g.sample = req.body?.sample === true;
+  if (Number(req.body?.pricePerAdult) > 0) g.pricePerAdult = Number(req.body.pricePerAdult);
   saveGuides();
   res.json({ guide: g });
 });
@@ -1188,7 +1189,7 @@ app.get('/api/guides/:id/available-slots', (req, res) => {
   res.json({
     guide: { id: guide.id, name: guide.name, specialty: guide.specialty },
     slots: computeAvailableSlots(guide),
-    pricePerAdult: ADULT_PRICE_SGD,
+    pricePerAdult: Number(guide.pricePerAdult) > 0 ? Number(guide.pricePerAdult) : ADULT_PRICE_SGD,
   });
 });
 
@@ -1216,7 +1217,8 @@ app.post('/api/guides/:id/book', (req, res) => {
   const adults = Math.max(1, Math.min(20, parseInt(req.body?.adults, 10) || 1));
   const children = Math.max(0, Math.min(20, parseInt(req.body?.children, 10) || 0));
   if (adults + children > 20) return res.status(400).json({ error: 'party size is too large -- please contact the guide directly' });
-  const estimatedTotal = Math.round(adults * ADULT_PRICE_SGD * 100) / 100;
+  const pricePerAdult = Number(guide.pricePerAdult) > 0 ? Number(guide.pricePerAdult) : ADULT_PRICE_SGD;
+  const estimatedTotal = Math.round(adults * pricePerAdult * 100) / 100;
   const booking = {
     id: crypto.randomUUID(),
     guideId: guide.id,
@@ -1228,7 +1230,7 @@ app.post('/api/guides/:id/book', (req, res) => {
     partySize: adults + children,
     adults,
     children,
-    pricePerAdult: ADULT_PRICE_SGD,
+    pricePerAdult,
     estimatedTotal,
     note: String(req.body?.note || '').trim(),
     status: 'requested',
