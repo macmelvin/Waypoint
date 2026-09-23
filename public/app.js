@@ -534,7 +534,7 @@ async function loadAttractionInfo(r) {
               </div>
               ${g.specialty || languages ? `<div class="attraction-guide-meta">${escapeHtml([g.specialty, languages].filter(Boolean).join(' · '))}</div>` : ''}
               ${g.note ? `<p class="attraction-guide-note">“${escapeHtml(g.note)}”</p>` : ''}
-              ${g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
+              ${g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}&landmark=${encodeURIComponent(key)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
             </div>`;
         }).join('')}
       </div>`

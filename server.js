@@ -382,8 +382,35 @@ for (const g of guides) {
   if (!g.accessToken) { g.accessToken = crypto.randomUUID(); guidesTokenBackfilled = true; }
   if (!Array.isArray(g.availability)) { g.availability = []; guidesTokenBackfilled = true; }
   if (!(Number(g.pricePerAdult) > 0)) { g.pricePerAdult = ADULT_PRICE_SGD; guidesTokenBackfilled = true; }
+  if (!g.landmarkPrices || typeof g.landmarkPrices !== 'object') { g.landmarkPrices = {}; guidesTokenBackfilled = true; }
 }
 if (guidesTokenBackfilled) saveGuides();
+
+// A guide's price for a specific landmark/tour, falling back to their
+// default pricePerAdult when that landmark has no override set -- lets one
+// guide profile that covers several different walking tours (e.g. one
+// person leading both a Chinatown walk and a Kampong Glam walk) charge a
+// different rate per tour instead of one flat number for everything
+// they're linked to.
+function resolveGuidePrice(guide, landmarkKey) {
+  const overrides = guide.landmarkPrices || {};
+  if (landmarkKey && Number(overrides[landmarkKey]) > 0) return Number(overrides[landmarkKey]);
+  return Number(guide.pricePerAdult) > 0 ? Number(guide.pricePerAdult) : ADULT_PRICE_SGD;
+}
+
+// Keeps a guide's landmarkPrices to only real numeric overrides for
+// landmarks the guide actually covers -- an override for a landmark that
+// got unchecked, or a bad value, just gets dropped rather than erroring.
+function sanitizeLandmarkPrices(landmarkPrices, landmarks) {
+  const landmarkSet = new Set(landmarks || []);
+  const out = {};
+  if (landmarkPrices && typeof landmarkPrices === 'object') {
+    for (const [key, val] of Object.entries(landmarkPrices)) {
+      if (landmarkSet.has(key) && GUIDE_LANDMARKS[key] && Number(val) > 0) out[key] = Number(val);
+    }
+  }
+  return out;
+}
 
 // ---- Guide booking calendar (STGS pilot) ------------------------------------
 // A guide's `availability` is a weekly recurring template: an array of
@@ -791,6 +818,7 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
     note: (req.body?.note || '').trim(),
     sample: req.body?.sample === true,
     pricePerAdult: Number(req.body?.pricePerAdult) > 0 ? Number(req.body.pricePerAdult) : ADULT_PRICE_SGD,
+    landmarkPrices: sanitizeLandmarkPrices(req.body?.landmarkPrices, landmarks),
     accessToken: crypto.randomUUID(),
     availability: DEFAULT_GUIDE_AVAILABILITY,
     createdAt: new Date().toISOString(),
@@ -819,6 +847,7 @@ app.put('/api/admin/guides/:id', requireAdmin, (req, res) => {
   g.note = (req.body?.note || '').trim();
   g.sample = req.body?.sample === true;
   if (Number(req.body?.pricePerAdult) > 0) g.pricePerAdult = Number(req.body.pricePerAdult);
+  g.landmarkPrices = sanitizeLandmarkPrices(req.body?.landmarkPrices, landmarks);
   saveGuides();
   res.json({ guide: g });
 });
@@ -851,6 +880,7 @@ app.get('/api/admin/guide-bookings', requireAdmin, (req, res) => {
         ...b,
         guideName: guide?.name || '(deleted guide)',
         guideWhatsapp: guide?.whatsapp || '',
+        landmarkLabel: b.landmark ? (GUIDE_LANDMARKS[b.landmark] || b.landmark) : '',
       };
     });
   res.json({ bookings: results });
@@ -1186,10 +1216,14 @@ app.get('/api/guides-for-landmark', (req, res) => {
 app.get('/api/guides/:id/available-slots', (req, res) => {
   const guide = guides.find((g) => g.id === req.params.id);
   if (!guide || !guide.active || guide.sample) return res.json({ guide: null, slots: [] });
+  // Optional ?landmark= tells us which specific tour the visitor is booking
+  // (a guide can cover several), so the price shown matches that tour's
+  // override if one is set, rather than always the guide's default rate.
+  const landmarkKey = typeof req.query.landmark === 'string' ? req.query.landmark : '';
   res.json({
     guide: { id: guide.id, name: guide.name, specialty: guide.specialty },
     slots: computeAvailableSlots(guide),
-    pricePerAdult: Number(guide.pricePerAdult) > 0 ? Number(guide.pricePerAdult) : ADULT_PRICE_SGD,
+    pricePerAdult: resolveGuidePrice(guide, landmarkKey),
   });
 });
 
@@ -1217,11 +1251,13 @@ app.post('/api/guides/:id/book', (req, res) => {
   const adults = Math.max(1, Math.min(20, parseInt(req.body?.adults, 10) || 1));
   const children = Math.max(0, Math.min(20, parseInt(req.body?.children, 10) || 0));
   if (adults + children > 20) return res.status(400).json({ error: 'party size is too large -- please contact the guide directly' });
-  const pricePerAdult = Number(guide.pricePerAdult) > 0 ? Number(guide.pricePerAdult) : ADULT_PRICE_SGD;
+  const landmarkKey = typeof req.body?.landmark === 'string' ? req.body.landmark : '';
+  const pricePerAdult = resolveGuidePrice(guide, landmarkKey);
   const estimatedTotal = Math.round(adults * pricePerAdult * 100) / 100;
   const booking = {
     id: crypto.randomUUID(),
     guideId: guide.id,
+    landmark: landmarkKey || null,
     date: String(date),
     start,
     end,
@@ -1268,7 +1304,8 @@ app.get('/api/guide-portal/:token', (req, res) => {
   if (!guide) return res.status(404).json({ error: 'invalid link' });
   const bookings = guideBookings
     .filter((b) => b.guideId === guide.id)
-    .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+    .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
+    .map((b) => ({ ...b, landmarkLabel: b.landmark ? (GUIDE_LANDMARKS[b.landmark] || b.landmark) : '' }));
   res.json({
     guide: {
       id: guide.id, name: guide.name, specialty: guide.specialty,

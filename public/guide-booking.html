@@ -84,6 +84,7 @@
 <script>
 const params = new URLSearchParams(location.search);
 const guideId = params.get('guide') || '';
+const landmarkKey = params.get('landmark') || '';
 let slots = [];
 let selectedSlot = null;
 let pricePerAdult = 0;
@@ -109,7 +110,7 @@ function formatDate(iso) {
 async function load() {
   if (!guideId) { showEmpty('Missing guide.'); return; }
   try {
-    const res = await fetch(`/api/guides/${encodeURIComponent(guideId)}/available-slots`);
+    const res = await fetch(`/api/guides/${encodeURIComponent(guideId)}/available-slots${landmarkKey ? `?landmark=${encodeURIComponent(landmarkKey)}` : ''}`);
     const data = await res.json();
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = 'block';
@@ -175,7 +176,7 @@ async function submitBooking() {
     const res = await fetch(`/api/guides/${encodeURIComponent(guideId)}/book`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: selectedSlot.date, start: selectedSlot.start, end: selectedSlot.end, visitorName, visitorPhone, adults, children, note }),
+      body: JSON.stringify({ date: selectedSlot.date, start: selectedSlot.start, end: selectedSlot.end, visitorName, visitorPhone, adults, children, note, landmark: landmarkKey }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {

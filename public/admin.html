@@ -115,12 +115,12 @@
         <input type="text" id="guideWhatsappInput" placeholder="WhatsApp number (e.g. 91234567)" style="margin-bottom:0">
       </div>
       <div class="row" style="margin-top:10px">
-        <input type="text" inputmode="decimal" id="guidePriceInput" placeholder="Price per adult, SGD (e.g. 20)" style="margin-bottom:0">
+        <input type="text" inputmode="decimal" id="guidePriceInput" placeholder="Default price per adult, SGD (e.g. 20)" style="margin-bottom:0">
       </div>
-      <select id="guideLandmarkSelect" multiple size="4" style="width:100%;margin-top:10px;padding:8px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:13px">
-        <option disabled>Loading landmarks…</option>
-      </select>
-      <div style="color:#64748b;font-size:11px;margin-top:4px">Cmd/Ctrl-click to pick more than one landmark.</div>
+      <div style="color:#64748b;font-size:11px;margin-top:4px">Tick each tour/landmark this guide covers. Leave a tour's price blank to use the default above, or set a specific price for that tour.</div>
+      <div id="guideLandmarkChecks" style="margin-top:6px;display:flex;flex-direction:column;gap:4px">
+        <div style="color:#64748b;font-size:13px">Loading landmarks…</div>
+      </div>
       <textarea id="guideNoteInput" placeholder="Guide's curated tip / preview (shown on the place card)" rows="2" style="width:100%;margin-top:10px;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px;font-family:inherit;resize:vertical"></textarea>
       <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#94a3b8;cursor:pointer">
         <input type="checkbox" id="guideSampleCheckbox">
@@ -210,13 +210,47 @@ async function loadGuideLandmarks() {
   try {
     const { landmarks } = await api('/api/admin/guide-landmarks');
     guideLandmarks = landmarks || {};
-    const select = document.getElementById('guideLandmarkSelect');
-    select.innerHTML = Object.entries(guideLandmarks)
-      .map(([key, label]) => `<option value="${key}">${escapeHtml(label)}</option>`)
-      .join('');
+    const container = document.getElementById('guideLandmarkChecks');
+    container.innerHTML = Object.entries(guideLandmarks).map(([key, label]) => `
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#e2e8f0;cursor:pointer">
+        <input type="checkbox" class="landmark-check" value="${key}" onchange="toggleLandmarkPriceInput(this)">
+        <span style="flex:1">${escapeHtml(label)}</span>
+        <input type="text" inputmode="decimal" class="landmark-price" data-key="${key}" placeholder="Default price" disabled style="width:120px;margin:0;padding:6px 8px;font-size:12px">
+      </label>`).join('');
   } catch (err) {
     console.error('failed to load guide landmarks:', err);
   }
+}
+
+function toggleLandmarkPriceInput(checkbox) {
+  const row = checkbox.closest('label');
+  const priceInput = row.querySelector('.landmark-price');
+  priceInput.disabled = !checkbox.checked;
+  if (!checkbox.checked) priceInput.value = '';
+}
+
+function readLandmarkSelections() {
+  const landmarks = [];
+  const landmarkPrices = {};
+  document.querySelectorAll('#guideLandmarkChecks .landmark-check').forEach((cb) => {
+    if (!cb.checked) return;
+    landmarks.push(cb.value);
+    const priceInput = cb.closest('label').querySelector('.landmark-price');
+    const val = priceInput.value.trim();
+    if (val) landmarkPrices[cb.value] = Number(val);
+  });
+  return { landmarks, landmarkPrices };
+}
+
+function setLandmarkSelections(landmarks, landmarkPrices) {
+  const landmarkSet = new Set(landmarks || []);
+  const prices = landmarkPrices || {};
+  document.querySelectorAll('#guideLandmarkChecks .landmark-check').forEach((cb) => {
+    cb.checked = landmarkSet.has(cb.value);
+    const priceInput = cb.closest('label').querySelector('.landmark-price');
+    priceInput.disabled = !cb.checked;
+    priceInput.value = cb.checked && prices[cb.value] != null ? prices[cb.value] : '';
+  });
 }
 
 let guidesCache = [];
@@ -240,8 +274,11 @@ function renderGuides(guides) {
   }
   const sorted = [...guides].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   list.innerHTML = sorted.map((g) => {
-    const landmarkLabels = (g.landmarks || []).map((k) => guideLandmarks[k] || k).join(', ');
-    const priceLabel = g.pricePerAdult != null ? `S$${Number(g.pricePerAdult).toFixed(2)}/adult` : '';
+    const landmarkPrices = g.landmarkPrices || {};
+    const landmarkLabels = (g.landmarks || [])
+      .map((k) => `${guideLandmarks[k] || k}${landmarkPrices[k] != null ? ` (S$${Number(landmarkPrices[k]).toFixed(2)})` : ''}`)
+      .join(', ');
+    const priceLabel = g.pricePerAdult != null ? `default S$${Number(g.pricePerAdult).toFixed(2)}/adult` : '';
     const meta = [g.specialty, (g.languages || []).join('/'), landmarkLabels, priceLabel].filter(Boolean).join(' · ');
     const sampleBadge = g.sample ? '<span class="new-visitor-badge" style="background:#7c3aed">sample</span>' : '';
     const contactState = g.whatsapp ? `WhatsApp on file` : '<span style="color:#f87171">no WhatsApp number yet</span>';
@@ -288,9 +325,7 @@ function editGuide(id) {
   document.getElementById('guidePriceInput').value = g.pricePerAdult != null ? g.pricePerAdult : '';
   document.getElementById('guideNoteInput').value = g.note || '';
   document.getElementById('guideSampleCheckbox').checked = Boolean(g.sample);
-  const select = document.getElementById('guideLandmarkSelect');
-  const landmarkSet = new Set(g.landmarks || []);
-  Array.from(select.options).forEach((o) => { o.selected = landmarkSet.has(o.value); });
+  setLandmarkSelections(g.landmarks, g.landmarkPrices);
   document.getElementById('guideSubmitBtn').textContent = 'Save changes';
   document.getElementById('guideCancelEditBtn').style.display = '';
   const formStatus = document.getElementById('guideFormStatus');
@@ -309,7 +344,7 @@ function cancelEditGuide() {
   document.getElementById('guidePriceInput').value = '';
   document.getElementById('guideNoteInput').value = '';
   document.getElementById('guideSampleCheckbox').checked = false;
-  Array.from(document.getElementById('guideLandmarkSelect').options).forEach((o) => { o.selected = false; });
+  setLandmarkSelections([], {});
   document.getElementById('guideSubmitBtn').textContent = 'Add guide';
   document.getElementById('guideCancelEditBtn').style.display = 'none';
   document.getElementById('guideFormStatus').style.display = 'none';
@@ -323,12 +358,11 @@ async function createGuide() {
   const whatsappInput = document.getElementById('guideWhatsappInput');
   const priceInput = document.getElementById('guidePriceInput');
   const noteInput = document.getElementById('guideNoteInput');
-  const select = document.getElementById('guideLandmarkSelect');
   const statusEl = document.getElementById('guideCreateStatus');
   statusEl.textContent = '';
   const sampleCheckbox = document.getElementById('guideSampleCheckbox');
   const name = nameInput.value.trim();
-  const landmarks = Array.from(select.selectedOptions).map((o) => o.value);
+  const { landmarks, landmarkPrices } = readLandmarkSelections();
   if (!name) { statusEl.textContent = 'Name is required'; return; }
   if (!landmarks.length) { statusEl.textContent = 'Pick at least one landmark'; return; }
   const payload = {
@@ -337,6 +371,7 @@ async function createGuide() {
     languages: languagesInput.value.split(',').map((l) => l.trim()).filter(Boolean),
     whatsapp: whatsappInput.value.trim(),
     pricePerAdult: priceInput.value.trim() ? Number(priceInput.value.trim()) : undefined,
+    landmarkPrices,
     note: noteInput.value.trim(),
     landmarks,
     sample: sampleCheckbox.checked,
@@ -357,7 +392,7 @@ async function createGuide() {
       });
       nameInput.value = ''; specialtyInput.value = ''; languagesInput.value = '';
       whatsappInput.value = ''; priceInput.value = ''; noteInput.value = ''; sampleCheckbox.checked = false;
-      Array.from(select.options).forEach((o) => { o.selected = false; });
+      setLandmarkSelections([], {});
     }
     loadGuides();
   } catch (err) {
@@ -672,7 +707,7 @@ function renderGuideBookings(bookings) {
     return `
       <div class="invite">
         <div style="flex:1;min-width:0">
-          <div class="invite-name">${escapeHtml(b.guideName)} <span style="color:${color};font-weight:600;font-size:12px">${BOOKING_STATUS_LABEL[b.status] || b.status}</span></div>
+          <div class="invite-name">${escapeHtml(b.guideName)}${b.landmarkLabel ? ` · ${escapeHtml(b.landmarkLabel)}` : ''} <span style="color:${color};font-weight:600;font-size:12px">${BOOKING_STATUS_LABEL[b.status] || b.status}</span></div>
           <div class="invite-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · ${escapeHtml(b.visitorName)} (${escapeHtml(b.visitorPhone)}) · ${b.adults != null ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}` : `party of ${b.partySize}`}${b.note ? ` · "${escapeHtml(b.note)}"` : ''}</div>
           <div class="invite-meta" style="margin-top:6px">${paymentLine}${notifyBtn}</div>
         </div>
@@ -700,7 +735,8 @@ function buildGuideNotifyLink(b) {
     ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}`
     : `party of ${b.partySize}`;
   const estimateLine = b.estimatedTotal != null ? `\nEst. S$${b.estimatedTotal.toFixed(2)}` : '';
-  const msg = `Hi ${b.guideName}, you have a new Waypoint booking request:\n\n`
+  const tourLine = b.landmarkLabel ? ` (${b.landmarkLabel})` : '';
+  const msg = `Hi ${b.guideName}, you have a new Waypoint booking request${tourLine}:\n\n`
     + `${b.date}, ${b.start}-${b.end}\n`
     + `${b.visitorName} (${headcount})${estimateLine}${b.note ? `\nNote: ${b.note}` : ''}\n\n`
     + `Please confirm or decline via your Waypoint guide portal link.`;
