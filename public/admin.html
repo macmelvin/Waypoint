@@ -701,9 +701,10 @@ function renderGuideBookings(bookings) {
       ? `Paid S$${b.paymentAmount.toFixed(2)} · STGS share S$${b.revenueShare.toFixed(2)}`
       : (b.status === 'declined' ? '' : `<input type="text" inputmode="decimal" placeholder="Amount paid (SGD)" id="pay-${b.id}" value="${estimateAttr}" style="width:140px;margin:0;display:inline-block;padding:6px 8px;font-size:13px">
          <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="recordPayment('${b.id}')">Record payment</button>${b.estimatedTotal != null ? ` <span style="color:#64748b">(pre-filled from ${b.adults} adult${b.adults === 1 ? '' : 's'} × S$${Number(b.pricePerAdult).toFixed(2)} estimate — edit if different)</span>` : ''}`);
-    const notifyBtn = (b.status === 'requested' && b.guideWhatsapp)
+    const notifyEligible = b.status !== 'declined';
+    const notifyBtn = (notifyEligible && b.guideWhatsapp)
       ? `<a href="${buildGuideNotifyLink(b)}" target="_blank" rel="noopener" class="secondary" style="padding:6px 10px;font-size:12px;display:inline-block;text-decoration:none;margin-left:8px">📲 Notify guide on WhatsApp</a>`
-      : (b.status === 'requested' ? `<span style="color:#f87171;font-size:12px;margin-left:8px">No WhatsApp number on file for this guide</span>` : '');
+      : (notifyEligible ? `<span style="color:#f87171;font-size:12px;margin-left:8px">No WhatsApp number on file for this guide</span>` : '');
     return `
       <div class="invite">
         <div style="flex:1;min-width:0">
@@ -736,10 +737,21 @@ function buildGuideNotifyLink(b) {
     : `party of ${b.partySize}`;
   const estimateLine = b.estimatedTotal != null ? `\nEst. S$${b.estimatedTotal.toFixed(2)}` : '';
   const tourLine = b.landmarkLabel ? ` (${b.landmarkLabel})` : '';
-  const msg = `Hi ${b.guideName}, you have a new Waypoint booking request${tourLine}:\n\n`
+  let intro, outro;
+  if (b.status === 'completed') {
+    intro = `Hi ${b.guideName}, payment has been recorded for your Waypoint booking${tourLine}:`;
+    outro = `This booking is marked completed. Let us know if anything looks off.`;
+  } else if (b.status === 'confirmed') {
+    intro = `Hi ${b.guideName}, here are the details for your confirmed Waypoint booking${tourLine}:`;
+    outro = `See you then! Message us if anything changes.`;
+  } else {
+    intro = `Hi ${b.guideName}, you have a new Waypoint booking request${tourLine}:`;
+    outro = `Please confirm or decline via your Waypoint guide portal link.`;
+  }
+  const msg = `${intro}\n\n`
     + `${b.date}, ${b.start}-${b.end}\n`
     + `${b.visitorName} (${headcount})${estimateLine}${b.note ? `\nNote: ${b.note}` : ''}\n\n`
-    + `Please confirm or decline via your Waypoint guide portal link.`;
+    + outro;
   return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
 }
 
