@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waypoint — Book a Guided Walk</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, sans-serif;
+    background: #FBF8F7; color: #1F2A2E; padding: 20px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #1B3A4B; }
+  .sub { color: #5C6A70; font-size: 14px; margin: 0 0 20px; }
+  .card {
+    background: #fff; border: 1px solid #E6DDCB; border-radius: 14px;
+    padding: 18px; margin-bottom: 14px;
+  }
+  .slot-date { font-size: 13px; font-weight: 600; color: #C0783C; text-transform: uppercase; letter-spacing: 0.5px; margin: 14px 0 6px; }
+  .slot-date:first-child { margin-top: 0; }
+  .slot-btn {
+    display: block; width: 100%; text-align: left; padding: 12px 14px; margin-bottom: 8px;
+    border-radius: 10px; border: 1px solid #E6DDCB; background: #fff; font-size: 14px;
+    font-family: inherit; cursor: pointer; color: #1F2A2E;
+  }
+  .slot-btn:hover { background: #F1EAE0; }
+  .slot-btn.selected { background: #1B3A4B; color: #FBF8F7; border-color: #1B3A4B; }
+  input[type=text], textarea {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #E6DDCB;
+    background: #fff; color: #1F2A2E; font-size: 14px; margin-bottom: 10px; font-family: inherit;
+  }
+  button.primary {
+    width: 100%; padding: 14px; border-radius: 10px; background: #1B3A4B; color: #FBF8F7;
+    font-size: 15px; font-weight: 600; border: none; cursor: pointer;
+  }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .empty { color: #8A97A0; font-size: 14px; text-align: center; padding: 20px 0; }
+  #error { color: #b91c1c; font-size: 13px; margin-top: 8px; }
+  .confirm-box { text-align: center; padding: 30px 20px; }
+  .confirm-icon { font-size: 36px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loading" class="card"><div class="empty">Loading availability…</div></div>
+  <div id="content" style="display:none">
+    <h1 id="guideName"></h1>
+    <p class="sub" id="guideSpecialty"></p>
+
+    <div class="card" id="slotsCard">
+      <div id="slotList"></div>
+    </div>
+
+    <div class="card" id="formCard" style="display:none">
+      <div style="font-weight:600;margin-bottom:10px">Your details</div>
+      <input type="text" id="nameInput" placeholder="Your name">
+      <input type="text" id="phoneInput" placeholder="Phone number (e.g. 91234567)">
+      <input type="text" id="partySizeInput" placeholder="Party size (e.g. 2)" value="1">
+      <textarea id="noteInput" placeholder="Anything the guide should know? (optional)" rows="2"></textarea>
+      <button class="primary" id="submitBtn" onclick="submitBooking()">Request this slot</button>
+      <div id="error"></div>
+    </div>
+
+    <div class="card confirm-box" id="confirmCard" style="display:none">
+      <div class="confirm-icon">✓</div>
+      <div style="font-weight:600;margin-top:8px">Request sent</div>
+      <div class="sub" style="margin-top:6px">The guide will confirm within 24 hours. This is an enquiry, not an instant booking.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const guideId = params.get('guide') || '';
+let slots = [];
+let selectedSlot = null;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+async function load() {
+  if (!guideId) { showEmpty('Missing guide.'); return; }
+  try {
+    const res = await fetch(`/api/guides/${encodeURIComponent(guideId)}/available-slots`);
+    const data = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    if (!data.guide) { showEmpty("This guide isn't currently bookable."); return; }
+    document.getElementById('guideName').textContent = data.guide.name;
+    document.getElementById('guideSpecialty').textContent = data.guide.specialty || '';
+    slots = data.slots || [];
+    renderSlots();
+  } catch (err) {
+    document.getElementById('loading').textContent = 'Could not load availability — please try again.';
+  }
+}
+
+function showEmpty(msg) {
+  document.getElementById('slotList').innerHTML = `<div class="empty">${escapeHtml(msg)}</div>`;
+}
+
+function renderSlots() {
+  const list = document.getElementById('slotList');
+  if (!slots.length) {
+    list.innerHTML = '<div class="empty">No upcoming availability right now — check back soon, or message the guide directly from the app.</div>';
+    return;
+  }
+  let lastDate = null;
+  let html = '';
+  slots.forEach((s, i) => {
+    if (s.date !== lastDate) {
+      html += `<div class="slot-date">${formatDate(s.date)}</div>`;
+      lastDate = s.date;
+    }
+    html += `<button type="button" class="slot-btn" data-i="${i}" onclick="selectSlot(${i})">${s.start} – ${s.end}</button>`;
+  });
+  list.innerHTML = html;
+}
+
+function selectSlot(i) {
+  selectedSlot = slots[i];
+  document.querySelectorAll('.slot-btn').forEach((b) => b.classList.toggle('selected', Number(b.dataset.i) === i));
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('formCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function submitBooking() {
+  const errorEl = document.getElementById('error');
+  errorEl.textContent = '';
+  if (!selectedSlot) { errorEl.textContent = 'Pick a time slot first.'; return; }
+  const visitorName = document.getElementById('nameInput').value.trim();
+  const visitorPhone = document.getElementById('phoneInput').value.trim();
+  const partySize = parseInt(document.getElementById('partySizeInput').value, 10) || 1;
+  const note = document.getElementById('noteInput').value.trim();
+  if (!visitorName) { errorEl.textContent = 'Your name is required.'; return; }
+  if (!visitorPhone) { errorEl.textContent = 'Your phone number is required.'; return; }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/api/guides/${encodeURIComponent(guideId)}/book`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: selectedSlot.date, start: selectedSlot.start, end: selectedSlot.end, visitorName, visitorPhone, partySize, note }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errorEl.textContent = body.error || `HTTP ${res.status}`;
+      if (res.status === 409) { await load(); document.getElementById('formCard').style.display = 'none'; }
+      btn.disabled = false;
+      return;
+    }
+    document.getElementById('slotsCard').style.display = 'none';
+    document.getElementById('formCard').style.display = 'none';
+    document.getElementById('confirmCard').style.display = 'block';
+  } catch (err) {
+    errorEl.textContent = 'Something went wrong — please try again.';
+    btn.disabled = false;
+  }
+}
+
+load();
+</script>
+</body>
+</html>

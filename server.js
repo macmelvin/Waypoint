@@ -267,6 +267,96 @@ function saveGuides() {
 
 let guides = loadGuides();
 
+// Every guide needs a stable, unguessable access token so they can reach
+// their own booking portal (set weekly availability, confirm/decline
+// requests) without a real login system. Backfills any guide created
+// before this existed (or a sample that's never had one) so nothing in
+// production is ever missing a token.
+let guidesTokenBackfilled = false;
+for (const g of guides) {
+  if (!g.accessToken) { g.accessToken = crypto.randomUUID(); guidesTokenBackfilled = true; }
+  if (!Array.isArray(g.availability)) { g.availability = []; guidesTokenBackfilled = true; }
+}
+if (guidesTokenBackfilled) saveGuides();
+
+// ---- Guide booking calendar (STGS pilot) ------------------------------------
+// A guide's `availability` is a weekly recurring template: an array of
+// { day (0=Sun..6=Sat), start: "HH:MM", end: "HH:MM" }. A booking is always
+// for one real calendar date though -- /api/guides/:id/available-slots turns
+// the template into concrete upcoming dates, filtering out any date+slot
+// that already has a non-declined booking against it (this is what makes a
+// requested slot "auto-block" for everyone else). Waypoint never touches
+// payment here -- an admin records what was actually paid, after the fact,
+// against `paymentAmount`, and `revenueShare` (10%) is computed from that at
+// record time for STGS invoicing.
+const GUIDE_BOOKINGS_FILE = process.env.GUIDE_BOOKINGS_FILE || '/data/guide-bookings.json';
+const REVENUE_SHARE_RATE = 0.10;
+const BOOKING_LOOKAHEAD_DAYS = 21;
+
+function loadGuideBookings() {
+  try {
+    return JSON.parse(fs.readFileSync(GUIDE_BOOKINGS_FILE, 'utf8'));
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveGuideBookings() {
+  try {
+    fs.mkdirSync(path.dirname(GUIDE_BOOKINGS_FILE), { recursive: true });
+    fs.writeFileSync(GUIDE_BOOKINGS_FILE, JSON.stringify(guideBookings, null, 2));
+  } catch (err) {
+    console.error('failed to persist guide bookings:', err.message);
+  }
+}
+
+let guideBookings = loadGuideBookings();
+
+function isValidHHMM(v) {
+  return typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
+}
+
+function isValidAvailability(list) {
+  return Array.isArray(list) && list.every((w) =>
+    w && Number.isInteger(w.day) && w.day >= 0 && w.day <= 6 &&
+    isValidHHMM(w.start) && isValidHHMM(w.end) && w.start < w.end
+  );
+}
+
+function dateToISO(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+// Concrete upcoming dates (next BOOKING_LOOKAHEAD_DAYS days) that match a
+// guide's weekly availability template and don't already have a live
+// booking (requested or confirmed -- declined ones free the slot back up).
+function computeAvailableSlots(guide) {
+  const slots = [];
+  const now = new Date();
+  const takenKeys = new Set(
+    guideBookings
+      .filter((b) => b.guideId === guide.id && (b.status === 'requested' || b.status === 'confirmed'))
+      .map((b) => `${b.date}|${b.start}|${b.end}`)
+  );
+  for (let i = 0; i < BOOKING_LOOKAHEAD_DAYS; i++) {
+    const d = new Date(now.getTime() + i * 86400000);
+    const iso = dateToISO(d);
+    const day = d.getDay();
+    for (const w of guide.availability || []) {
+      if (w.day !== day) continue;
+      const key = `${iso}|${w.start}|${w.end}`;
+      if (takenKeys.has(key)) continue;
+      slots.push({ date: iso, start: w.start, end: w.end });
+    }
+  }
+  slots.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+  return slots;
+}
+
+function findGuideByToken(token) {
+  return guides.find((g) => g.accessToken === token);
+}
+
 function slugify(name) {
   return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
@@ -558,6 +648,8 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
     active: true,
     note: (req.body?.note || '').trim(),
     sample: req.body?.sample === true,
+    accessToken: crypto.randomUUID(),
+    availability: [],
     createdAt: new Date().toISOString(),
   };
   guides.push(guide);
@@ -600,6 +692,48 @@ app.delete('/api/admin/guides/:id', requireAdmin, (req, res) => {
   guides = guides.filter((x) => x.id !== req.params.id);
   if (guides.length !== before) saveGuides();
   res.json({ ok: true });
+});
+
+// Every booking request across every guide, for the admin "Guide Bookings"
+// view -- joins in the guide's own name/id so the panel doesn't need a
+// second round trip. Newest first.
+app.get('/api/admin/guide-bookings', requireAdmin, (req, res) => {
+  const byId = new Map(guides.map((g) => [g.id, g]));
+  const results = [...guideBookings]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map((b) => ({ ...b, guideName: byId.get(b.guideId)?.name || '(deleted guide)' }));
+  res.json({ bookings: results });
+});
+
+// Admin override for a booking's status (e.g. marking a no-show as
+// declined, or manually confirming one the guide hasn't gotten to yet).
+app.post('/api/admin/guide-bookings/:id/status', requireAdmin, (req, res) => {
+  const b = guideBookings.find((x) => x.id === req.params.id);
+  if (!b) return res.status(404).json({ error: 'not found' });
+  const status = String(req.body?.status || '');
+  if (!['requested', 'confirmed', 'declined', 'completed'].includes(status)) {
+    return res.status(400).json({ error: 'invalid status' });
+  }
+  b.status = status;
+  saveGuideBookings();
+  res.json({ booking: b });
+});
+
+// Records what was actually paid for a completed walk. This is the only
+// place a dollar amount enters the system -- Waypoint never charges a card,
+// an admin enters what the guide reports receiving, and the 10% STGS share
+// is computed from that figure right here.
+app.post('/api/admin/guide-bookings/:id/payment', requireAdmin, (req, res) => {
+  const b = guideBookings.find((x) => x.id === req.params.id);
+  if (!b) return res.status(404).json({ error: 'not found' });
+  const amount = Number(req.body?.amount);
+  if (!Number.isFinite(amount) || amount < 0) return res.status(400).json({ error: 'amount must be a non-negative number' });
+  b.paymentAmount = Math.round(amount * 100) / 100;
+  b.revenueShare = Math.round(amount * REVENUE_SHARE_RATE * 100) / 100;
+  b.status = 'completed';
+  b.paymentRecordedAt = new Date().toISOString();
+  saveGuideBookings();
+  res.json({ booking: b });
 });
 
 // Express's static middleware ignores dotfiles (like .well-known) by
@@ -879,6 +1013,99 @@ app.get('/api/guides-for-landmark', (req, res) => {
       sample: Boolean(g.sample),
     }));
   res.json({ guides: results });
+});
+
+// Public: upcoming concrete dates a guide is bookable on, derived from their
+// weekly availability template minus anything already requested/confirmed.
+// Sample guides (no real person behind them) never have slots.
+app.get('/api/guides/:id/available-slots', (req, res) => {
+  const guide = guides.find((g) => g.id === req.params.id);
+  if (!guide || !guide.active || guide.sample) return res.json({ guide: null, slots: [] });
+  res.json({
+    guide: { id: guide.id, name: guide.name, specialty: guide.specialty },
+    slots: computeAvailableSlots(guide),
+  });
+});
+
+// Public: a visitor requesting a specific slot. Re-validates against the
+// live availability computation (not just trusting the client) so two
+// people racing for the same slot can't both get it -- whichever request
+// lands first wins, the second gets a 409.
+app.post('/api/guides/:id/book', (req, res) => {
+  const guide = guides.find((g) => g.id === req.params.id);
+  if (!guide || !guide.active || guide.sample) return res.status(404).json({ error: 'guide not available for booking' });
+  const { date, start, end } = req.body || {};
+  if (!isValidHHMM(start) || !isValidHHMM(end)) return res.status(400).json({ error: 'invalid slot' });
+  const stillOpen = computeAvailableSlots(guide).some((s) => s.date === date && s.start === start && s.end === end);
+  if (!stillOpen) return res.status(409).json({ error: 'That slot was just taken -- please pick another.' });
+  const visitorName = String(req.body?.visitorName || '').trim();
+  const visitorPhone = String(req.body?.visitorPhone || '').trim();
+  if (!visitorName) return res.status(400).json({ error: 'name is required' });
+  if (!visitorPhone) return res.status(400).json({ error: 'phone number is required' });
+  const partySize = Math.max(1, Math.min(20, parseInt(req.body?.partySize, 10) || 1));
+  const booking = {
+    id: crypto.randomUUID(),
+    guideId: guide.id,
+    date: String(date),
+    start,
+    end,
+    visitorName,
+    visitorPhone,
+    partySize,
+    note: String(req.body?.note || '').trim(),
+    status: 'requested',
+    paymentAmount: null,
+    revenueShare: null,
+    createdAt: new Date().toISOString(),
+  };
+  guideBookings.push(booking);
+  saveGuideBookings();
+  res.json({ booking });
+});
+
+// ---- Guide portal (token-authed, no admin login) ----------------------------
+// A guide reaches their own portal via a private link containing their
+// accessToken (see GUIDE_BOOKINGS_FILE comment above) -- no username/
+// password. These routes only ever expose or modify that one guide's own
+// data, never the full guide/booking lists.
+app.get('/api/guide-portal/:token', (req, res) => {
+  const guide = findGuideByToken(req.params.token);
+  if (!guide) return res.status(404).json({ error: 'invalid link' });
+  const bookings = guideBookings
+    .filter((b) => b.guideId === guide.id)
+    .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+  res.json({
+    guide: {
+      id: guide.id, name: guide.name, specialty: guide.specialty,
+      landmarks: guide.landmarks, availability: guide.availability || [], active: guide.active,
+    },
+    bookings,
+  });
+});
+
+app.put('/api/guide-portal/:token/availability', (req, res) => {
+  const guide = findGuideByToken(req.params.token);
+  if (!guide) return res.status(404).json({ error: 'invalid link' });
+  const availability = req.body?.availability;
+  if (!isValidAvailability(availability)) return res.status(400).json({ error: 'invalid availability -- each entry needs day (0-6), start and end (HH:MM, start before end)' });
+  guide.availability = availability;
+  saveGuides();
+  res.json({ guide: { availability: guide.availability } });
+});
+
+// A guide can confirm or decline a request against their own bookings only
+// -- they cannot touch another guide's, and they cannot record a payment
+// (that stays admin-only, see /api/admin/guide-bookings/:id/payment).
+app.post('/api/guide-portal/:token/bookings/:bookingId/respond', (req, res) => {
+  const guide = findGuideByToken(req.params.token);
+  if (!guide) return res.status(404).json({ error: 'invalid link' });
+  const booking = guideBookings.find((b) => b.id === req.params.bookingId && b.guideId === guide.id);
+  if (!booking) return res.status(404).json({ error: 'not found' });
+  const status = String(req.body?.status || '');
+  if (!['confirmed', 'declined'].includes(status)) return res.status(400).json({ error: 'status must be confirmed or declined' });
+  booking.status = status;
+  saveGuideBookings();
+  res.json({ booking });
 });
 
 // ---- Nearby places by category (Waze-style "Categories" quick search) ------

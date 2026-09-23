@@ -538,6 +538,7 @@ async function loadAttractionInfo(r) {
               ${contactUrl
                 ? `<a class="attraction-guide-contact" href="${contactUrl}" target="_blank" rel="noopener">💬 ${t('attraction_guide_message')}</a>`
                 : (g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : '')}
+              ${g.sample ? '' : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
             </div>`;
         }).join('')}
       </div>`
@@ -1279,7 +1280,7 @@ const I18N = {
     fav_section_divider: 'Or save a specific stop to check anytime',
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
-    attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:', attraction_guides_title: 'Certified local guides', attraction_guide_verified: 'Verified', attraction_guide_message: 'Secure a Guided Walk Booking', attraction_guide_sample: 'Sample profile — contact number not yet added',
+    attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:', attraction_guides_title: 'Certified local guides', attraction_guide_verified: 'Verified', attraction_guide_message: 'Secure a Guided Walk Booking', attraction_guide_sample: 'Sample profile — contact number not yet added', attraction_guide_availability: 'Check availability & book',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
