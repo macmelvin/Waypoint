@@ -571,15 +571,30 @@ function renderGuideBookings(bookings) {
       ? `Paid S$${b.paymentAmount.toFixed(2)} · STGS share S$${b.revenueShare.toFixed(2)}`
       : (b.status === 'declined' ? '' : `<input type="text" inputmode="decimal" placeholder="Amount paid (SGD)" id="pay-${b.id}" style="width:140px;margin:0;display:inline-block;padding:6px 8px;font-size:13px">
          <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="recordPayment('${b.id}')">Record payment</button>`);
+    const notifyBtn = (b.status === 'requested' && b.guideWhatsapp)
+      ? `<a href="${buildGuideNotifyLink(b)}" target="_blank" rel="noopener" class="secondary" style="padding:6px 10px;font-size:12px;display:inline-block;text-decoration:none;margin-left:8px">📲 Notify guide on WhatsApp</a>`
+      : (b.status === 'requested' ? `<span style="color:#f87171;font-size:12px;margin-left:8px">No WhatsApp number on file for this guide</span>` : '');
     return `
       <div class="invite">
         <div style="flex:1;min-width:0">
           <div class="invite-name">${escapeHtml(b.guideName)} <span style="color:${color};font-weight:600;font-size:12px">${BOOKING_STATUS_LABEL[b.status] || b.status}</span></div>
           <div class="invite-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · ${escapeHtml(b.visitorName)} (${escapeHtml(b.visitorPhone)}) · party of ${b.partySize}${b.note ? ` · "${escapeHtml(b.note)}"` : ''}</div>
-          <div class="invite-meta" style="margin-top:6px">${paymentLine}</div>
+          <div class="invite-meta" style="margin-top:6px">${paymentLine}${notifyBtn}</div>
         </div>
       </div>`;
   }).join('');
+}
+
+// Builds a wa.me deep link to the guide's own WhatsApp number, pre-filled
+// with the new booking's details, so the admin can alert them with one tap
+// instead of typing a message from scratch. No WhatsApp API/account needed.
+function buildGuideNotifyLink(b) {
+  const digits = String(b.guideWhatsapp || '').replace(/[^0-9]/g, '');
+  const msg = `Hi ${b.guideName}, you have a new Waypoint booking request:\n\n`
+    + `${b.date}, ${b.start}-${b.end}\n`
+    + `${b.visitorName} (party of ${b.partySize})${b.note ? `\nNote: ${b.note}` : ''}\n\n`
+    + `Please confirm or decline via your Waypoint guide portal link.`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
 }
 
 async function recordPayment(id) {

@@ -701,7 +701,14 @@ app.get('/api/admin/guide-bookings', requireAdmin, (req, res) => {
   const byId = new Map(guides.map((g) => [g.id, g]));
   const results = [...guideBookings]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .map((b) => ({ ...b, guideName: byId.get(b.guideId)?.name || '(deleted guide)' }));
+    .map((b) => {
+      const guide = byId.get(b.guideId);
+      return {
+        ...b,
+        guideName: guide?.name || '(deleted guide)',
+        guideWhatsapp: guide?.whatsapp || '',
+      };
+    });
   res.json({ bookings: results });
 });
 
