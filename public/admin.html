@@ -123,7 +123,11 @@
         <input type="checkbox" id="guideSampleCheckbox">
         Sample / placeholder profile (shows a "Sample profile" note instead of a WhatsApp button -- only takes effect if you leave the WhatsApp number above blank)
       </label>
-      <div style="margin-top:10px"><button onclick="createGuide()">Add guide</button></div>
+      <div id="guideFormStatus" style="color:#93c5fd;font-size:13px;margin-top:8px;display:none"></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button id="guideSubmitBtn" onclick="createGuide()">Add guide</button>
+        <button id="guideCancelEditBtn" class="secondary" onclick="cancelEditGuide()" style="display:none">Cancel edit</button>
+      </div>
       <div id="guideCreateStatus" style="color:#f87171;font-size:13px;margin-top:8px;"></div>
     </div>
     <div class="card">
@@ -193,9 +197,13 @@ async function loadGuideLandmarks() {
   }
 }
 
+let guidesCache = [];
+let editingGuideId = null;
+
 async function loadGuides() {
   try {
     const { guides } = await api('/api/admin/guides');
+    guidesCache = guides;
     renderGuides(guides);
   } catch (err) {
     document.getElementById('guideList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
@@ -221,11 +229,49 @@ function renderGuides(guides) {
           <div class="invite-meta ${g.active ? '' : 'revoked'}">${g.active ? `${escapeHtml(meta)} · ${contactState}` : 'disabled'}</div>
         </div>
         <div class="invite-actions">
+          <button class="secondary" onclick="editGuide('${g.id}')">Edit</button>
           <button class="secondary" onclick="toggleGuide('${g.id}')">${g.active ? 'Disable' : 'Enable'}</button>
           <button class="danger" onclick="deleteGuide('${g.id}')">Delete</button>
         </div>
       </div>`;
   }).join('');
+}
+
+function editGuide(id) {
+  const g = guidesCache.find((x) => x.id === id);
+  if (!g) return;
+  editingGuideId = id;
+  document.getElementById('guideNameInput').value = g.name || '';
+  document.getElementById('guideSpecialtyInput').value = g.specialty || '';
+  document.getElementById('guideLanguagesInput').value = (g.languages || []).join(', ');
+  document.getElementById('guideWhatsappInput').value = g.whatsapp || '';
+  document.getElementById('guideNoteInput').value = g.note || '';
+  document.getElementById('guideSampleCheckbox').checked = Boolean(g.sample);
+  const select = document.getElementById('guideLandmarkSelect');
+  const landmarkSet = new Set(g.landmarks || []);
+  Array.from(select.options).forEach((o) => { o.selected = landmarkSet.has(o.value); });
+  document.getElementById('guideSubmitBtn').textContent = 'Save changes';
+  document.getElementById('guideCancelEditBtn').style.display = '';
+  const formStatus = document.getElementById('guideFormStatus');
+  formStatus.textContent = `Editing "${g.name}" -- changes save to this guide, not a new one.`;
+  formStatus.style.display = '';
+  document.getElementById('guideCreateStatus').textContent = '';
+  document.getElementById('guideNameInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function cancelEditGuide() {
+  editingGuideId = null;
+  document.getElementById('guideNameInput').value = '';
+  document.getElementById('guideSpecialtyInput').value = '';
+  document.getElementById('guideLanguagesInput').value = '';
+  document.getElementById('guideWhatsappInput').value = '';
+  document.getElementById('guideNoteInput').value = '';
+  document.getElementById('guideSampleCheckbox').checked = false;
+  Array.from(document.getElementById('guideLandmarkSelect').options).forEach((o) => { o.selected = false; });
+  document.getElementById('guideSubmitBtn').textContent = 'Add guide';
+  document.getElementById('guideCancelEditBtn').style.display = 'none';
+  document.getElementById('guideFormStatus').style.display = 'none';
+  document.getElementById('guideCreateStatus').textContent = '';
 }
 
 async function createGuide() {
@@ -242,23 +288,33 @@ async function createGuide() {
   const landmarks = Array.from(select.selectedOptions).map((o) => o.value);
   if (!name) { statusEl.textContent = 'Name is required'; return; }
   if (!landmarks.length) { statusEl.textContent = 'Pick at least one landmark'; return; }
+  const payload = {
+    name,
+    specialty: specialtyInput.value.trim(),
+    languages: languagesInput.value.split(',').map((l) => l.trim()).filter(Boolean),
+    whatsapp: whatsappInput.value.trim(),
+    note: noteInput.value.trim(),
+    landmarks,
+    sample: sampleCheckbox.checked,
+  };
   try {
-    await api('/api/admin/guides', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name,
-        specialty: specialtyInput.value.trim(),
-        languages: languagesInput.value.split(',').map((l) => l.trim()).filter(Boolean),
-        whatsapp: whatsappInput.value.trim(),
-        note: noteInput.value.trim(),
-        landmarks,
-        sample: sampleCheckbox.checked,
-      }),
-    });
-    nameInput.value = ''; specialtyInput.value = ''; languagesInput.value = '';
-    whatsappInput.value = ''; noteInput.value = ''; sampleCheckbox.checked = false;
-    Array.from(select.options).forEach((o) => { o.selected = false; });
+    if (editingGuideId) {
+      await api(`/api/admin/guides/${editingGuideId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      cancelEditGuide();
+    } else {
+      await api('/api/admin/guides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      nameInput.value = ''; specialtyInput.value = ''; languagesInput.value = '';
+      whatsappInput.value = ''; noteInput.value = ''; sampleCheckbox.checked = false;
+      Array.from(select.options).forEach((o) => { o.selected = false; });
+    }
     loadGuides();
   } catch (err) {
     statusEl.textContent = err.message;

@@ -565,6 +565,28 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
   res.json({ guide });
 });
 
+app.put('/api/admin/guides/:id', requireAdmin, (req, res) => {
+  const g = guides.find((x) => x.id === req.params.id);
+  if (!g) return res.status(404).json({ error: 'not found' });
+  const name = (req.body?.name || '').trim();
+  const landmarks = Array.isArray(req.body?.landmarks) ? req.body.landmarks.filter((k) => GUIDE_LANDMARKS[k]) : [];
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  if (!landmarks.length) return res.status(400).json({ error: 'pick at least one valid landmark' });
+  const languages = Array.isArray(req.body?.languages)
+    ? req.body.languages.map((l) => String(l).trim()).filter(Boolean)
+    : String(req.body?.languages || '').split(',').map((l) => l.trim()).filter(Boolean);
+  g.name = name;
+  g.specialty = (req.body?.specialty || '').trim();
+  g.languages = languages;
+  g.landmarks = landmarks;
+  g.whatsapp = (req.body?.whatsapp || '').replace(/[^0-9]/g, '');
+  g.verified = req.body?.verified !== false;
+  g.note = (req.body?.note || '').trim();
+  g.sample = req.body?.sample === true;
+  saveGuides();
+  res.json({ guide: g });
+});
+
 app.post('/api/admin/guides/:id/toggle', requireAdmin, (req, res) => {
   const g = guides.find((x) => x.id === req.params.id);
   if (!g) return res.status(404).json({ error: 'not found' });
