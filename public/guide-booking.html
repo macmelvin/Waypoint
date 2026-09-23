@@ -57,7 +57,17 @@
       <div style="font-weight:600;margin-bottom:10px">Your details</div>
       <input type="text" id="nameInput" placeholder="Your name">
       <input type="text" id="phoneInput" placeholder="Phone number (e.g. 91234567)">
-      <input type="text" id="partySizeInput" placeholder="Party size (e.g. 2)" value="1">
+      <div style="display:flex;gap:10px">
+        <div style="flex:1">
+          <label style="display:block;font-size:12px;color:#5C6A70;margin-bottom:4px">Adults (15+)</label>
+          <input type="text" inputmode="numeric" id="adultsInput" value="1" oninput="updateEstimate()">
+        </div>
+        <div style="flex:1">
+          <label style="display:block;font-size:12px;color:#5C6A70;margin-bottom:4px">Children (under 15)</label>
+          <input type="text" inputmode="numeric" id="childrenInput" value="0" oninput="updateEstimate()">
+        </div>
+      </div>
+      <div id="estimateLine" style="font-size:13px;color:#5C6A70;margin:-4px 0 10px"></div>
       <textarea id="noteInput" placeholder="Anything the guide should know? (optional)" rows="2"></textarea>
       <button class="primary" id="submitBtn" onclick="submitBooking()">Request this slot</button>
       <div id="error"></div>
@@ -76,6 +86,16 @@ const params = new URLSearchParams(location.search);
 const guideId = params.get('guide') || '';
 let slots = [];
 let selectedSlot = null;
+let pricePerAdult = 0;
+
+function updateEstimate() {
+  const adults = Math.max(0, parseInt(document.getElementById('adultsInput').value, 10) || 0);
+  const children = Math.max(0, parseInt(document.getElementById('childrenInput').value, 10) || 0);
+  const line = document.getElementById('estimateLine');
+  if (!pricePerAdult) { line.textContent = ''; return; }
+  const total = adults * pricePerAdult;
+  line.textContent = `Estimated: S$${total.toFixed(2)} (S$${pricePerAdult.toFixed(2)}/adult${children ? ', children under 15 free' : ''}) — confirmed with your guide directly, no payment taken here.`;
+}
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -97,7 +117,9 @@ async function load() {
     document.getElementById('guideName').textContent = data.guide.name;
     document.getElementById('guideSpecialty').textContent = data.guide.specialty || '';
     slots = data.slots || [];
+    pricePerAdult = Number(data.pricePerAdult) || 0;
     renderSlots();
+    updateEstimate();
   } catch (err) {
     document.getElementById('loading').textContent = 'Could not load availability — please try again.';
   }
@@ -138,7 +160,8 @@ async function submitBooking() {
   if (!selectedSlot) { errorEl.textContent = 'Pick a time slot first.'; return; }
   const visitorName = document.getElementById('nameInput').value.trim();
   const visitorPhone = document.getElementById('phoneInput').value.trim();
-  const partySize = parseInt(document.getElementById('partySizeInput').value, 10) || 1;
+  const adults = Math.max(1, parseInt(document.getElementById('adultsInput').value, 10) || 1);
+  const children = Math.max(0, parseInt(document.getElementById('childrenInput').value, 10) || 0);
   const note = document.getElementById('noteInput').value.trim();
   if (!visitorName) { errorEl.textContent = 'Your name is required.'; return; }
   if (!visitorPhone) { errorEl.textContent = 'Your phone number is required.'; return; }
@@ -148,7 +171,7 @@ async function submitBooking() {
     const res = await fetch(`/api/guides/${encodeURIComponent(guideId)}/book`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: selectedSlot.date, start: selectedSlot.start, end: selectedSlot.end, visitorName, visitorPhone, partySize, note }),
+      body: JSON.stringify({ date: selectedSlot.date, start: selectedSlot.start, end: selectedSlot.end, visitorName, visitorPhone, adults, children, note }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {

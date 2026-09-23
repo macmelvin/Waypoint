@@ -392,6 +392,13 @@ if (guidesTokenBackfilled) saveGuides();
 const GUIDE_BOOKINGS_FILE = process.env.GUIDE_BOOKINGS_FILE || '/data/guide-bookings.json';
 const REVENUE_SHARE_RATE = 0.10;
 const BOOKING_LOOKAHEAD_DAYS = 21;
+// Flat per-adult walk price used to show visitors a live estimate at booking
+// time (adults x this rate; children under 15 ride free). This is only ever
+// a starting point for admin's "amount paid" field, never written straight
+// to paymentAmount/revenueShare -- the actual amount collected can differ
+// (a discount, a no-show, an extra guest on the day), so a human still
+// confirms it. Override via ADULT_PRICE_SGD if the rate ever changes.
+const ADULT_PRICE_SGD = Number(process.env.ADULT_PRICE_SGD) > 0 ? Number(process.env.ADULT_PRICE_SGD) : 20;
 
 function loadGuideBookings() {
   try {
@@ -1131,6 +1138,7 @@ app.get('/api/guides/:id/available-slots', (req, res) => {
   res.json({
     guide: { id: guide.id, name: guide.name, specialty: guide.specialty },
     slots: computeAvailableSlots(guide),
+    pricePerAdult: ADULT_PRICE_SGD,
   });
 });
 
@@ -1149,7 +1157,16 @@ app.post('/api/guides/:id/book', (req, res) => {
   const visitorPhone = String(req.body?.visitorPhone || '').trim();
   if (!visitorName) return res.status(400).json({ error: 'name is required' });
   if (!visitorPhone) return res.status(400).json({ error: 'phone number is required' });
-  const partySize = Math.max(1, Math.min(20, parseInt(req.body?.partySize, 10) || 1));
+  // Adults (15+) are charged per head; children under 15 ride free -- this
+  // mirrors how STGS actually prices a walk, so the visitor sees a real
+  // estimate before requesting, and the guide/admin see the same breakdown
+  // later rather than a single opaque "party of N". ADULT_PRICE_SGD is
+  // snapshotted onto the booking at request time, so a later rate change
+  // never rewrites the price on a booking that already went out.
+  const adults = Math.max(1, Math.min(20, parseInt(req.body?.adults, 10) || 1));
+  const children = Math.max(0, Math.min(20, parseInt(req.body?.children, 10) || 0));
+  if (adults + children > 20) return res.status(400).json({ error: 'party size is too large -- please contact the guide directly' });
+  const estimatedTotal = Math.round(adults * ADULT_PRICE_SGD * 100) / 100;
   const booking = {
     id: crypto.randomUUID(),
     guideId: guide.id,
@@ -1158,7 +1175,11 @@ app.post('/api/guides/:id/book', (req, res) => {
     end,
     visitorName,
     visitorPhone,
-    partySize,
+    partySize: adults + children,
+    adults,
+    children,
+    pricePerAdult: ADULT_PRICE_SGD,
+    estimatedTotal,
     note: String(req.body?.note || '').trim(),
     status: 'requested',
     paymentAmount: null,
@@ -1172,7 +1193,7 @@ app.post('/api/guides/:id/book', (req, res) => {
   // Fire-and-forget push alerts -- the visitor's response above doesn't wait
   // on these, and both helpers already swallow their own errors so a push
   // failure (or nobody having subscribed) never affects the booking itself.
-  const pushBody = `${visitorName} · ${date} ${start}-${end} · party of ${partySize}`;
+  const pushBody = `${visitorName} · ${date} ${start}-${end} · ${adults} adult${adults === 1 ? '' : 's'}${children ? ` + ${children} child${children === 1 ? '' : 'ren'}` : ''} · est. S$${estimatedTotal.toFixed(2)}`;
   sendGuidePush(guide.id, {
     title: 'New booking request',
     body: pushBody,
