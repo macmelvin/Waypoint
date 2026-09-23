@@ -179,7 +179,7 @@ function renderBookings(bookings) {
   }
   list.innerHTML = bookings.map((b) => `
     <div class="booking">
-      <div class="booking-name">${escapeHtml(b.visitorName)} <span class="status-badge" style="background:${STATUS_COLOR[b.status] || '#334155'};color:#0f172a">${STATUS_LABEL[b.status] || b.status}</span></div>
+      <div class="booking-name">${escapeHtml(b.visitorName)}${b.landmarkLabel ? ` <span style="color:#94a3b8;font-weight:400">(${escapeHtml(b.landmarkLabel)})</span>` : ''} <span class="status-badge" style="background:${STATUS_COLOR[b.status] || '#334155'};color:#0f172a">${STATUS_LABEL[b.status] || b.status}</span></div>
       <div class="booking-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · ${b.adults != null ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}` : `party of ${b.partySize}`}${b.estimatedTotal != null ? ` · est. S$${b.estimatedTotal.toFixed(2)}` : ''} · ${escapeHtml(b.visitorPhone)}</div>
       ${b.note ? `<div class="booking-note">"${escapeHtml(b.note)}"</div>` : ''}
       ${b.status === 'requested' ? `
