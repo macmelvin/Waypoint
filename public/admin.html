@@ -731,7 +731,10 @@ async function deleteBooking(id) {
 // with the new booking's details, so the admin can alert them with one tap
 // instead of typing a message from scratch. No WhatsApp API/account needed.
 function buildGuideNotifyLink(b) {
-  const digits = String(b.guideWhatsapp || '').replace(/[^0-9]/g, '');
+  // WhatsApp's click-to-chat / app deep link needs the full international
+  // number (country code + local number). The web fallback page tolerates a
+  // bare local number, but "Open app" does not, so always ensure a leading 65.
+  const digits = String(b.guideWhatsapp || '').replace(/\D/g, '').replace(/^65(?=\d{8}$)/, '');
   const headcount = b.adults != null
     ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}`
     : `party of ${b.partySize}`;
@@ -752,7 +755,7 @@ function buildGuideNotifyLink(b) {
     + `${b.date}, ${b.start}-${b.end}\n`
     + `${b.visitorName} (${headcount})${estimateLine}${b.note ? `\nNote: ${b.note}` : ''}\n\n`
     + outro;
-  return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+  return `https://wa.me/65${digits}?text=${encodeURIComponent(msg)}`;
 }
 
 async function recordPayment(id) {
