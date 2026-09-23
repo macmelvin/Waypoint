@@ -2602,6 +2602,70 @@ app.post('/api/erp-crossings', async (req, res) => {
   }
 });
 
+// ---- Speed camera alerts along a driving route ------------------------------
+// SPF's own published Speed Enforcement Camera Locations dataset via
+// data.gov.sg — same "official static dataset, live-fetched and cached"
+// shape as the ERP gantry list above. Includes Fixed Speed Cameras plus
+// historical Mobile Speed Camera / Police Speed Laser Camera spots (kept
+// distinct via `type` since only the fixed ones are a permanent camera at
+// that exact location — the others are just places enforcement has been
+// known to set up). Worth noting: this is SPF's last-published list, not a
+// live feed, so a brand-new camera site may not show up immediately.
+
+let speedCameraCache = null;
+let speedCameraCacheAt = 0;
+const SPEED_CAMERA_TTL_MS = 24 * 60 * 60 * 1000;
+const SPEED_CAMERA_DATASET_ID = 'd_983804de2bc016f53e44031d85d1ec8a';
+
+async function getSpeedCameras() {
+  if (speedCameraCache && Date.now() - speedCameraCacheAt < SPEED_CAMERA_TTL_MS) return speedCameraCache;
+
+  const res = await fetch(
+    `https://data.gov.sg/api/action/datastore_search?resource_id=${SPEED_CAMERA_DATASET_ID}&limit=500`
+  );
+  if (!res.ok) throw new Error(`speed camera dataset responded ${res.status}`);
+  const data = await res.json();
+  const records = data?.result?.records || [];
+
+  const cameras = records
+    .map((r) => ({
+      location: r.location || 'Unknown location',
+      type: r.type_of_speed_camera || 'Speed Camera',
+      // The API hands these back as strings despite the numeric column type.
+      lat: parseFloat(r.location_latitude),
+      lon: parseFloat(r.location_longitude),
+    }))
+    .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon));
+
+  if (cameras.length) {
+    speedCameraCache = cameras;
+    speedCameraCacheAt = Date.now();
+  }
+  return speedCameraCache || [];
+}
+
+app.post('/api/speed-camera-crossings', async (req, res) => {
+  const coords = req.body?.coordinates; // [[lon, lat], ...] — e.g. OSRM route geometry
+  if (!Array.isArray(coords) || coords.length < 2) {
+    return res.status(400).json({ error: 'coordinates array is required' });
+  }
+  try {
+    const cameras = await getSpeedCameras();
+    // Wider than the ERP gantry threshold (30m) since a gantry is a fixed
+    // overhead structure spanning the exact road, while a camera's published
+    // lat/lon can sit a little off the route polyline's own simplification.
+    const THRESHOLD_METERS = 60;
+    const matched = cameras
+      .filter((c) => coords.some(([lon, lat]) => haversineMeters(lat, lon, c.lat, c.lon) < THRESHOLD_METERS))
+      .map(({ location, type, lat, lon }) => ({ location, type, lat, lon }));
+    res.json({ cameras: matched });
+  } catch (err) {
+    console.error('speed-camera-crossings error:', err.message);
+    // Fail quietly — this is informational, not core routing.
+    res.json({ cameras: null });
+  }
+});
+
 // ---- Live traffic speed on a driving route (LTA DataMall TrafficSpeedBandsv2) ----
 // LTA publishes near-real-time speed bands (refreshed roughly every 5 min) for
 // road links across Singapore. This fetches the full island-wide dataset,

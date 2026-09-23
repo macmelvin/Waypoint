@@ -71,6 +71,7 @@ const els = {
   evChargingInfo: document.getElementById('evChargingInfo'),
   petrolInfo: document.getElementById('petrolInfo'),
   erpInfo: document.getElementById('erpInfo'),
+  speedCameraInfo: document.getElementById('speedCameraInfo'),
   trafficInfo: document.getElementById('trafficInfo'),
   cyclingExtra: document.getElementById('cyclingExtra'),
   startNavBtn: document.getElementById('startNavBtn'),
@@ -122,6 +123,9 @@ const els = {
   installBanner: document.getElementById('installBanner'),
   installBtn: document.getElementById('installBtn'),
   installDismissBtn: document.getElementById('installDismissBtn'),
+  alertNudgeBanner: document.getElementById('alertNudgeBanner'),
+  alertNudgeBtn: document.getElementById('alertNudgeBtn'),
+  alertNudgeDismissBtn: document.getElementById('alertNudgeDismissBtn'),
   nearbyStopsBtn: document.getElementById('nearbyStopsBtn'),
   nearbyArrivalsList: document.getElementById('nearbyArrivalsList'),
   nearbyArrivalsHint: document.getElementById('nearbyArrivalsHint'),
@@ -1282,6 +1286,7 @@ const I18N = {
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
     install_banner_text: '📲 Add Waypoint to your home screen for quick access', install: 'Install', not_now: 'Not now',
+    alert_nudge_text: '🔔 Get notified about MRT/LRT disruptions and major traffic incidents?', alert_nudge_turn_on: 'Turn on',
     dismiss: 'Dismiss', ride_hailing_label: 'Or book a ride',
   },
   zh: {
@@ -1310,6 +1315,7 @@ const I18N = {
     fav_empty_hint: '在上方搜索巴士车站并添加，即可随时查看实时到站时间 — 无需先规划行程。',
     share_footer: '💙 如果觉得好用，欢迎分享给朋友', support_footer: '☕ 请我喝杯咖啡 — 支持 Waypoint 持续运作',
     install_banner_text: '📲 将 Waypoint 添加到主屏幕，方便快速使用', install: '安装', not_now: '暂不安装',
+    alert_nudge_text: '🔔 接收地铁/轻轨故障和重大交通事故通知？', alert_nudge_turn_on: '开启',
     dismiss: '关闭', ride_hailing_label: '或预订叫车',
   },
   ms: {
@@ -1338,6 +1344,7 @@ const I18N = {
     fav_empty_hint: 'Cari perhentian bas di atas dan tambahkannya untuk semak ketibaan langsung di sini bila-bila masa — tidak perlu rancang perjalanan dahulu.',
     share_footer: '💙 Kongsikan aplikasi ini jika berguna', support_footer: '☕ Belanja saya kopi — bantu kekalkan Waypoint berjalan',
     install_banner_text: '📲 Tambah Waypoint ke skrin utama untuk akses pantas', install: 'Pasang', not_now: 'Bukan sekarang',
+    alert_nudge_text: '🔔 Dapatkan pemberitahuan tentang gangguan MRT/LRT dan insiden trafik besar?', alert_nudge_turn_on: 'Hidupkan',
     dismiss: 'Tutup', ride_hailing_label: 'Atau tempah kenderaan',
   },
   ta: {
@@ -1366,6 +1373,7 @@ const I18N = {
     fav_empty_hint: 'மேலே ஒரு பேருந்து நிறுத்தத்தைத் தேடி சேர்த்து, எப்போது வேண்டுமானாலும் நேரலை வருகையைச் சரிபார்க்கலாம் — முதலில் பயணத்தைத் திட்டமிட வேண்டியதில்லை.',
     share_footer: '💙 இது பயனுள்ளதாக இருந்தால் இந்த ஆப்பைப் பகிரவும்', support_footer: '☕ எனக்கு ஒரு காபி வாங்கிக் கொடுங்கள் — Waypoint செயல்பட உதவுங்கள்',
     install_banner_text: '📲 விரைவு அணுகலுக்காக Waypoint-ஐ உங்கள் முகப்புத் திரையில் சேர்க்கவும்', install: 'நிறுவு', not_now: 'இப்போது வேண்டாம்',
+    alert_nudge_text: '🔔 MRT/LRT தடங்கல்கள் மற்றும் பெரிய போக்குவரத்து சம்பவங்கள் குறித்து அறிவிப்பு பெற விரும்புகிறீர்களா?', alert_nudge_turn_on: 'இயக்கு',
     dismiss: 'மூடு', ride_hailing_label: 'அல்லது ஒரு வாகனத்தை முன்பதிவு செய்யுங்கள்',
   },
   ja: {
@@ -1394,6 +1402,7 @@ const I18N = {
     fav_empty_hint: '上でバス停を検索して追加すると、いつでもリアルタイムの到着時刻を確認できます — 先にルートを計画する必要はありません。',
     share_footer: '💙 便利だと思ったらこのアプリをシェアしてください', support_footer: '☕ コーヒーをおごる — Waypointの運営を支援',
     install_banner_text: '📲 Waypointをホーム画面に追加してすぐにアクセス', install: 'インストール', not_now: '今はしない',
+    alert_nudge_text: '🔔 MRT/LRTの運行障害や重大な交通事故の通知を受け取りますか？', alert_nudge_turn_on: 'オンにする',
     dismiss: '閉じる', ride_hailing_label: 'または配車サービスを予約',
   },
   ko: {
@@ -1422,6 +1431,7 @@ const I18N = {
     fav_empty_hint: '위에서 버스 정류장을 검색해 추가하면 언제든지 실시간 도착 정보를 확인할 수 있습니다 — 먼저 경로를 계획할 필요가 없습니다.',
     share_footer: '💙 유용하다면 이 앱을 공유해 주세요', support_footer: '☕ 커피 한 잔 사주세요 — Waypoint 운영에 도움이 됩니다',
     install_banner_text: '📲 빠른 접근을 위해 Waypoint를 홈 화면에 추가하세요', install: '설치', not_now: '나중에',
+    alert_nudge_text: '🔔 MRT/LRT 운행 장애 및 주요 교통사고 알림을 받으시겠습니까?', alert_nudge_turn_on: '켜기',
     dismiss: '닫기', ride_hailing_label: '또는 차량 예약하기',
   },
 };
@@ -1802,6 +1812,24 @@ async function checkNavRainProactive(lat, lon) {
   }
 }
 
+// One-time heads-up per camera as you actually approach it while driving —
+// navSpeedCameras is the list matched against this route back in
+// loadSpeedCameraInfo; navAlertedCameraIdxs tracks which ones this session
+// has already announced so it doesn't repeat on every position tick.
+const SPEED_CAMERA_ALERT_RADIUS_M = 500;
+
+function checkNavSpeedCameras(lat, lon) {
+  if (selectedMode !== 'driving' || !navSpeedCameras.length) return;
+  navSpeedCameras.forEach((cam, i) => {
+    if (navAlertedCameraIdxs.has(i)) return;
+    if (haversineMeters(lat, lon, cam.lat, cam.lon) <= SPEED_CAMERA_ALERT_RADIUS_M) {
+      navAlertedCameraIdxs.add(i);
+      speakNav('Speed camera ahead.');
+      showToast(`📷 Speed camera ahead — ${cam.location}`, 6000);
+    }
+  });
+}
+
 const runFromSearch = debounce(async (q) => {
   const results = await geocode(q);
   renderResultList(els.fromResults, results, (r) => {
@@ -1883,6 +1911,9 @@ function hideDrivingExtras() {
   els.petrolInfo.innerHTML = '';
   els.erpInfo.classList.add('hidden');
   els.erpInfo.innerHTML = '';
+  els.speedCameraInfo.classList.add('hidden');
+  els.speedCameraInfo.innerHTML = '';
+  navSpeedCameras = [];
   els.trafficInfo.classList.add('hidden');
   els.trafficInfo.innerHTML = '';
   navTrafficOverlays = [];
@@ -2051,6 +2082,40 @@ async function loadErpInfo(coordinates) {
   }
 }
 
+// Speed camera alerts — see /api/speed-camera-crossings. Same "flag it on the
+// route summary" treatment as ERP gantries above, plus this also stashes the
+// matched cameras into navSpeedCameras so live turn-by-turn navigation (see
+// handleNavPosition/checkNavSpeedCameras) can give a one-time heads-up as you
+// actually approach each one while driving.
+async function loadSpeedCameraInfo(coordinates) {
+  els.speedCameraInfo.classList.remove('hidden');
+  els.speedCameraInfo.innerHTML = '<div class="driving-extra-title">📷 Speed Cameras</div><div class="driving-extra-row">Checking route…</div>';
+  navSpeedCameras = [];
+  try {
+    const res = await fetch('/api/speed-camera-crossings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coordinates }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.cameras == null) {
+      els.speedCameraInfo.classList.add('hidden');
+      return;
+    }
+    navSpeedCameras = data.cameras;
+    if (!data.cameras.length) {
+      els.speedCameraInfo.innerHTML = '<div class="driving-extra-title">📷 Speed Cameras</div><div class="driving-extra-row">No known speed cameras on this route.</div>';
+    } else {
+      els.speedCameraInfo.innerHTML = '<div class="driving-extra-title">📷 Speed Cameras</div>'
+        + data.cameras.map((c) => `<div class="driving-extra-row"><span>${escapeHtml(c.location)}</span><span class="driving-extra-lots">${escapeHtml(c.type)}</span></div>`).join('')
+        + '<div class="driving-extra-note">From SPF\'s published camera locations (data.gov.sg) — may not include the newest sites. We\'ll also give you a heads-up as you approach one during live navigation.</div>';
+    }
+  } catch (err) {
+    console.error('speed camera info failed:', err);
+    els.speedCameraInfo.classList.add('hidden');
+  }
+}
+
 // Checks LTA's live speed-band data against the route and, if any stretch is
 // jammed or slow-moving, both shows a summary here and stashes the matched
 // segments in navTrafficOverlays so the nav map can draw them in red/amber
@@ -2145,6 +2210,7 @@ async function getDirections() {
       loadEvChargingInfo(toCoords);
       loadPetrolInfo(toCoords);
       loadErpInfo(route.geometry.coordinates);
+      loadSpeedCameraInfo(route.geometry.coordinates);
       loadRouteTraffic(route.geometry.coordinates);
     } else if (selectedMode === 'cycling') {
       showCyclingExtra();
@@ -2200,6 +2266,8 @@ let navTargetIndex = 1; // index into navRouteSteps we're currently heading towa
 let navMuted = false;
 let navLastOffRouteWarnAt = 0;
 let navLastFix = null; // { lat, lon, t } — previous GPS fix, used to derive speed/heading when the browser doesn't report them directly
+let navSpeedCameras = []; // cameras matched against the current driving route — see loadSpeedCameraInfo
+let navAlertedCameraIdxs = new Set(); // indexes into navSpeedCameras already announced this nav session, so we don't repeat
 
 // The pre-trip rain banner (checkRainAlert, below the Directions form) only
 // checks once, at your fixed start/end points, before you've even left — it
@@ -2965,6 +3033,7 @@ function handleNavPosition(pos) {
   highlightNavStep(navTargetIndex);
   navLastFix = { lat, lon, t: pos.timestamp };
   checkNavRainProactive(lat, lon);
+  checkNavSpeedCameras(lat, lon);
 
   const offRoute = distanceToRouteLine(lat, lon) > NAV_OFFROUTE_THRESHOLD_M;
   if (offRoute && Date.now() - navLastOffRouteWarnAt > NAV_OFFROUTE_COOLDOWN_MS) {
@@ -3004,6 +3073,7 @@ async function startNavigation() {
   navLastOffRouteWarnAt = 0;
   navLastRainCheckAt = 0;
   navRainWarned = false;
+  navAlertedCameraIdxs = new Set();
 
   // Must be called synchronously, directly from this click handler — iOS
   // only shows the compass permission prompt when requested straight from
@@ -4836,6 +4906,57 @@ if (els.notifyBtn) {
 }
 updateNotifyButton();
 
+// ---------- Alert nudge banner (encourage turning on the 🔔 button) --------
+// The bell button above is opt-in and easy to miss on first visit, so most
+// people never discover MRT/LRT disruption and major traffic incident
+// alerts exist at all. This nudges once per visit (throttled like the
+// install banner below, same "Not now" for ~2 weeks convention) rather than
+// leaving it undiscovered forever.
+
+const ALERT_NUDGE_DISMISS_KEY = 'waypoint_alert_nudge_dismissed_at';
+const ALERT_NUDGE_DISMISS_DAYS = 14;
+
+function alertNudgeDismissedRecently() {
+  const raw = localStorage.getItem(ALERT_NUDGE_DISMISS_KEY);
+  if (!raw) return false;
+  const daysSince = (Date.now() - parseInt(raw, 10)) / (1000 * 60 * 60 * 24);
+  return daysSince < ALERT_NUDGE_DISMISS_DAYS;
+}
+
+function maybeShowAlertNudge() {
+  if (!els.alertNudgeBanner) return;
+  const alreadyEnabled = localStorage.getItem(PUSH_ENABLED_KEY) === '1';
+  // Don't stack this on top of the install banner (same fixed bottom-of-
+  // screen spot) — whichever shows first wins, the other waits its turn.
+  const installBannerShowing = els.installBanner && !els.installBanner.classList.contains('hidden');
+  // A brand-new visitor (no localStorage yet, not arriving via a deep link)
+  // is about to get the "Buy Melvin a coffee" full-screen popup at 2500ms
+  // (see paynowCoffeePopup below) — skip the nudge on this exact load rather
+  // than stack two prompts on someone's very first visit. It'll show
+  // normally on their next visit instead, un-throttled since we never set
+  // the dismiss key here.
+  const incomingParams = new URLSearchParams(window.location.search);
+  const coffeePopupPending = !localStorage.getItem('paynow_coffee_popup_shown_v1') && !incomingParams.has('dest_lat');
+  if (alreadyEnabled || !pushSupported() || alertNudgeDismissedRecently() || installBannerShowing || coffeePopupPending) return;
+  els.alertNudgeBanner.classList.remove('hidden');
+}
+
+if (els.alertNudgeBtn) {
+  els.alertNudgeBtn.addEventListener('click', () => {
+    els.alertNudgeBanner.classList.add('hidden');
+    enablePushAlerts();
+  });
+}
+if (els.alertNudgeDismissBtn) {
+  els.alertNudgeDismissBtn.addEventListener('click', () => {
+    els.alertNudgeBanner.classList.add('hidden');
+    localStorage.setItem(ALERT_NUDGE_DISMISS_KEY, String(Date.now()));
+  });
+}
+// Small delay so it doesn't compete with the browser's own permission-prompt
+// UI or other on-load toasts for attention.
+setTimeout(maybeShowAlertNudge, 1800);
+
 // ---------- PWA install banner ----------
 // Chrome/Edge (Android + desktop) fire "beforeinstallprompt" when the app
 // qualifies for install (has a manifest + icons, which we already set up).
@@ -4859,7 +4980,8 @@ function installDismissedRecently() {
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
-  if (isStandalone() || installDismissedRecently()) return;
+  const alertNudgeShowing = els.alertNudgeBanner && !els.alertNudgeBanner.classList.contains('hidden');
+  if (isStandalone() || installDismissedRecently() || alertNudgeShowing) return;
   deferredInstallPrompt = e;
   els.installBanner.classList.remove('hidden');
 });
