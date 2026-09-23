@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waypoint — Guide Portal</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, sans-serif;
+    background: #0f172a; color: #e2e8f0; padding: 24px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 28px 0 4px; }
+  .sub { color: #94a3b8; font-size: 14px; margin: 0 0 24px; }
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  select, input[type=text], input[type=time] {
+    padding: 8px 10px; border-radius: 8px; border: 1px solid #334155;
+    background: #0f172a; color: #e2e8f0; font-size: 14px;
+  }
+  button {
+    background: #2563eb; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #334155; }
+  button.secondary:hover { background: #475569; }
+  button.danger { background: #7f1d1d; }
+  button.danger:hover { background: #991b1b; }
+  .avail-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .avail-row select { flex: 1; }
+  .booking {
+    padding: 12px 0; border-bottom: 1px solid #334155;
+  }
+  .booking:last-child { border-bottom: none; }
+  .booking-name { font-weight: 600; font-size: 15px; }
+  .booking-meta { color: #94a3b8; font-size: 12px; margin-top: 2px; }
+  .booking-note { color: #cbd5e1; font-size: 13px; margin-top: 6px; font-style: italic; }
+  .booking-actions { margin-top: 8px; display: flex; gap: 8px; }
+  .status-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
+  .empty { color: #64748b; font-size: 14px; text-align: center; padding: 20px 0; }
+  #error { color: #f87171; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loading" class="card"><div class="empty">Loading…</div></div>
+  <div id="content" style="display:none">
+    <h1 id="guideName"></h1>
+    <p class="sub" id="guideSpecialty"></p>
+
+    <h2>Your weekly availability</h2>
+    <p class="sub" style="margin-top:0">Set the times you're generally free for a guided walk. Visitors will only be able to request slots that match this template and aren't already booked.</p>
+    <div class="card">
+      <div id="availRows"></div>
+      <button class="secondary" onclick="addAvailRow()">+ Add a time window</button>
+      <div style="margin-top:14px"><button onclick="saveAvailability()">Save availability</button></div>
+      <div id="availStatus" style="color:#4ade80;font-size:13px;margin-top:8px"></div>
+    </div>
+
+    <h2>Booking requests</h2>
+    <div class="card">
+      <div id="bookingList"></div>
+    </div>
+  </div>
+  <div id="error" style="display:none"></div>
+</div>
+
+<script>
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const params = new URLSearchParams(location.search);
+const token = params.get('t') || '';
+let guideData = null;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function load() {
+  if (!token) {
+    showError('This link is missing its access token — ask Waypoint for your portal link again.');
+    return;
+  }
+  try {
+    const res = await fetch(`/api/guide-portal/${encodeURIComponent(token)}`);
+    if (!res.ok) throw new Error(res.status === 404 ? 'This link is no longer valid — ask Waypoint for a fresh one.' : `HTTP ${res.status}`);
+    guideData = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('guideName').textContent = guideData.guide.name;
+    document.getElementById('guideSpecialty').textContent = guideData.guide.specialty || '';
+    renderAvailability(guideData.guide.availability || []);
+    renderBookings(guideData.bookings || []);
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  const el = document.getElementById('error');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+function renderAvailability(availability) {
+  const rows = document.getElementById('availRows');
+  rows.innerHTML = '';
+  if (!availability.length) {
+    addAvailRow();
+    return;
+  }
+  availability.forEach((w) => addAvailRow(w.day, w.start, w.end));
+}
+
+function addAvailRow(day, start, end) {
+  const rows = document.getElementById('availRows');
+  const row = document.createElement('div');
+  row.className = 'avail-row';
+  row.innerHTML = `
+    <select class="avail-day">${DAY_NAMES.map((d, i) => `<option value="${i}" ${i === day ? 'selected' : ''}>${d}</option>`).join('')}</select>
+    <input type="time" class="avail-start" value="${start || '09:00'}">
+    <span style="color:#64748b">to</span>
+    <input type="time" class="avail-end" value="${end || '12:00'}">
+    <button class="danger" style="padding:6px 10px;font-size:12px" onclick="this.parentElement.remove()">Remove</button>
+  `;
+  rows.appendChild(row);
+}
+
+async function saveAvailability() {
+  const rows = Array.from(document.querySelectorAll('.avail-row'));
+  const availability = rows.map((r) => ({
+    day: Number(r.querySelector('.avail-day').value),
+    start: r.querySelector('.avail-start').value,
+    end: r.querySelector('.avail-end').value,
+  }));
+  const statusEl = document.getElementById('availStatus');
+  statusEl.style.color = '#4ade80';
+  statusEl.textContent = '';
+  try {
+    const res = await fetch(`/api/guide-portal/${encodeURIComponent(token)}/availability`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ availability }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    statusEl.textContent = 'Saved.';
+    setTimeout(() => { statusEl.textContent = ''; }, 2500);
+  } catch (err) {
+    statusEl.style.color = '#f87171';
+    statusEl.textContent = err.message;
+  }
+}
+
+const STATUS_COLOR = { requested: '#facc15', confirmed: '#60a5fa', declined: '#f87171', completed: '#4ade80' };
+const STATUS_LABEL = { requested: 'Requested', confirmed: 'Confirmed', declined: 'Declined', completed: 'Completed' };
+
+function renderBookings(bookings) {
+  const list = document.getElementById('bookingList');
+  if (!bookings.length) {
+    list.innerHTML = '<div class="empty">No booking requests yet.</div>';
+    return;
+  }
+  list.innerHTML = bookings.map((b) => `
+    <div class="booking">
+      <div class="booking-name">${escapeHtml(b.visitorName)} <span class="status-badge" style="background:${STATUS_COLOR[b.status] || '#334155'};color:#0f172a">${STATUS_LABEL[b.status] || b.status}</span></div>
+      <div class="booking-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · party of ${b.partySize} · ${escapeHtml(b.visitorPhone)}</div>
+      ${b.note ? `<div class="booking-note">"${escapeHtml(b.note)}"</div>` : ''}
+      ${b.status === 'requested' ? `
+        <div class="booking-actions">
+          <button onclick="respond('${b.id}','confirmed')">Confirm</button>
+          <button class="secondary" onclick="respond('${b.id}','declined')">Decline</button>
+        </div>` : ''}
+    </div>
+  `).join('');
+}
+
+async function respond(bookingId, status) {
+  try {
+    const res = await fetch(`/api/guide-portal/${encodeURIComponent(token)}/bookings/${bookingId}/respond`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    load();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

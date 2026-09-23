@@ -133,6 +133,16 @@
     <div class="card">
       <div id="guideList"><div class="empty">Loading…</div></div>
     </div>
+
+    <h1 style="margin-top:36px">Guide bookings</h1>
+    <p class="sub">Requests visitors submit against a guide's availability. Waypoint never charges anyone -- once a guide tells you what a walk was actually paid, record it here and the 10% STGS share is calculated for you.</p>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div id="bookingSummary" style="color:#94a3b8;font-size:13px"></div>
+        <button class="secondary" onclick="loadGuideBookings()">Refresh</button>
+      </div>
+      <div id="bookingList"><div class="empty">Loading…</div></div>
+    </div>
   </div>
 </div>
 
@@ -168,6 +178,7 @@ async function loadInvites() {
     loadPartners();
     loadGuideLandmarks();
     loadGuides();
+    loadGuideBookings();
   } catch (err) {
     statusEl.textContent = err.message;
   }
@@ -230,11 +241,28 @@ function renderGuides(guides) {
         </div>
         <div class="invite-actions">
           <button class="secondary" onclick="editGuide('${g.id}')">Edit</button>
+          <button class="secondary" onclick="showGuidePortalLink('${g.id}', '${g.accessToken}')">Portal link</button>
           <button class="secondary" onclick="toggleGuide('${g.id}')">${g.active ? 'Disable' : 'Enable'}</button>
           <button class="danger" onclick="deleteGuide('${g.id}')">Delete</button>
         </div>
       </div>`;
   }).join('');
+}
+
+// The guide's own booking portal -- set weekly availability, confirm/
+// decline requests. No login: the token in the URL is the credential, so
+// this link should only ever be sent privately to that one guide.
+function showGuidePortalLink(id, token) {
+  const url = `${location.origin}/guide-portal.html?t=${token}`;
+  const box = document.getElementById(`portalLink-${id}`);
+  if (box) { box.style.display = box.style.display === 'none' ? 'block' : 'none'; return; }
+  const list = document.getElementById('guideList');
+  const div = document.createElement('div');
+  div.id = `portalLink-${id}`;
+  div.className = 'link-box';
+  div.textContent = url;
+  div.onclick = () => copyLink(div, url);
+  list.appendChild(div);
 }
 
 function editGuide(id) {
@@ -511,6 +539,62 @@ async function revokeAll() {
   } catch (err) {
     statusEl.style.color = '#f87171';
     statusEl.textContent = err.message;
+  }
+}
+
+const BOOKING_STATUS_LABEL = { requested: 'Requested', confirmed: 'Confirmed', declined: 'Declined', completed: 'Completed' };
+const BOOKING_STATUS_COLOR = { requested: '#facc15', confirmed: '#60a5fa', declined: '#f87171', completed: '#4ade80' };
+
+async function loadGuideBookings() {
+  try {
+    const { bookings } = await api('/api/admin/guide-bookings');
+    renderGuideBookings(bookings);
+  } catch (err) {
+    document.getElementById('bookingList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderGuideBookings(bookings) {
+  const list = document.getElementById('bookingList');
+  const summaryEl = document.getElementById('bookingSummary');
+  if (!bookings.length) {
+    list.innerHTML = '<div class="empty">No booking requests yet.</div>';
+    summaryEl.textContent = '';
+    return;
+  }
+  const totalOwed = bookings.reduce((sum, b) => sum + (b.revenueShare || 0), 0);
+  const completedCount = bookings.filter((b) => b.status === 'completed').length;
+  summaryEl.textContent = `${completedCount} completed · S$${totalOwed.toFixed(2)} owed to STGS (10% of recorded payments)`;
+  list.innerHTML = bookings.map((b) => {
+    const color = BOOKING_STATUS_COLOR[b.status] || '#94a3b8';
+    const paymentLine = b.paymentAmount != null
+      ? `Paid S$${b.paymentAmount.toFixed(2)} · STGS share S$${b.revenueShare.toFixed(2)}`
+      : (b.status === 'declined' ? '' : `<input type="text" inputmode="decimal" placeholder="Amount paid (SGD)" id="pay-${b.id}" style="width:140px;margin:0;display:inline-block;padding:6px 8px;font-size:13px">
+         <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="recordPayment('${b.id}')">Record payment</button>`);
+    return `
+      <div class="invite">
+        <div style="flex:1;min-width:0">
+          <div class="invite-name">${escapeHtml(b.guideName)} <span style="color:${color};font-weight:600;font-size:12px">${BOOKING_STATUS_LABEL[b.status] || b.status}</span></div>
+          <div class="invite-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · ${escapeHtml(b.visitorName)} (${escapeHtml(b.visitorPhone)}) · party of ${b.partySize}${b.note ? ` · "${escapeHtml(b.note)}"` : ''}</div>
+          <div class="invite-meta" style="margin-top:6px">${paymentLine}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function recordPayment(id) {
+  const input = document.getElementById(`pay-${id}`);
+  const amount = parseFloat(input.value);
+  if (!Number.isFinite(amount) || amount < 0) { alert('Enter a valid amount'); return; }
+  try {
+    await api(`/api/admin/guide-bookings/${id}/payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount }),
+    });
+    loadGuideBookings();
+  } catch (err) {
+    alert(err.message);
   }
 }
 
