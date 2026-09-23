@@ -463,6 +463,20 @@ async function loadAttractionInfo(r) {
 
   const nearby = nearbyAttractions(key, entry.lat, entry.lon);
 
+  // Certified STGS guides tagged to this landmark (see /api/guides-for-landmark
+  // in server.js) -- fetched alongside the MRT/LRT lookup below so both are
+  // ready by the time the card renders. Fails soft to an empty list: a guide
+  // fetch problem shouldn't block the rest of the place card from showing.
+  let guideList = [];
+  try {
+    const guidesRes = await fetch(`/api/guides-for-landmark?key=${encodeURIComponent(key)}`);
+    if (token !== attractionInfoToken) return;
+    const guidesData = await guidesRes.json().catch(() => ({}));
+    if (guidesRes.ok && Array.isArray(guidesData.guides)) guideList = guidesData.guides;
+  } catch (err) {
+    console.error('guides-for-landmark lookup failed:', err);
+  }
+
   let stationHtml = '';
   try {
     const res = await fetch(`/api/nearest-station?lat=${entry.lat}&lon=${entry.lon}`);
@@ -499,6 +513,36 @@ async function loadAttractionInfo(r) {
       </div>`
     : '';
 
+  // Guide cards: name, verified badge, specialty/languages, a short curated
+  // "insider tip" preview from the guide (feature: guide-curated previews),
+  // and -- where the guide has a WhatsApp number on file -- a "Message on
+  // WhatsApp" button that pre-fills an enquiry (feature: direct booking, as
+  // an enquiry-to-book MVP rather than a live calendar). Sample profiles
+  // (seeded before any real STGS guide is added) have no WhatsApp number,
+  // so that button just doesn't render for them.
+  const guidesHtml = guideList.length
+    ? `
+      <div class="attraction-guides">
+        <h4>${t('attraction_guides_title')} <span class="attraction-guides-badge">STGS</span></h4>
+        ${guideList.map((g) => {
+          const contactUrl = guideContact(g.whatsapp, g.name, entry.label);
+          const languages = (g.languages || []).join(', ');
+          return `
+            <div class="attraction-guide-card">
+              <div class="attraction-guide-head">
+                <span class="attraction-guide-name">${escapeHtml(g.name)}</span>
+                ${g.verified ? `<span class="attraction-guide-verified">✓ ${t('attraction_guide_verified')}</span>` : ''}
+              </div>
+              ${g.specialty || languages ? `<div class="attraction-guide-meta">${escapeHtml([g.specialty, languages].filter(Boolean).join(' · '))}</div>` : ''}
+              ${g.note ? `<p class="attraction-guide-note">“${escapeHtml(g.note)}”</p>` : ''}
+              ${contactUrl
+                ? `<a class="attraction-guide-contact" href="${contactUrl}" target="_blank" rel="noopener">💬 ${t('attraction_guide_message')}</a>`
+                : (g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : '')}
+            </div>`;
+        }).join('')}
+      </div>`
+    : '';
+
   // Only rendered for landmarks that are actually paid/ticketed attractions
   // (see TICKET_LINKS) — a free spot like Merlion Park has nothing to book.
   const ticketUrl = tagAffiliateUrl(TICKET_LINKS[key]);
@@ -522,7 +566,7 @@ async function loadAttractionInfo(r) {
     : '';
 
   if (token !== attractionInfoToken) return;
-  els.attractionInfo.innerHTML = `${stationHtml}${nearbyHtml}${ticketHtml}${foodHighlightHtml}${foodHtml}`;
+  els.attractionInfo.innerHTML = `${stationHtml}${nearbyHtml}${guidesHtml}${ticketHtml}${foodHighlightHtml}${foodHtml}`;
   els.attractionInfo.querySelectorAll('.attraction-nearby-chip').forEach((btn) => {
     btn.addEventListener('click', () => {
       const landmark = LANDMARKS[btn.dataset.landmark];
@@ -706,6 +750,18 @@ function petCafeTodayHours(hours) {
 }
 // Singapore mobiles (8xxx / 9xxx xxxx) can open a WhatsApp chat; landlines (6xxx) can't,
 // so those just dial. Returns { text, href } or null.
+// Same idea as petCafeContact() below, but WhatsApp-only (a guide enquiry
+// isn't a phone call) and with its own pre-filled message naming the guide
+// and the landmark, so the guide opens the chat already knowing who's
+// asking and about what. Returns a wa.me URL, or null when there's no
+// usable SG mobile number on file (the button then just doesn't render).
+function guideContact(whatsapp, guideName, landmarkLabel) {
+  const digits = String(whatsapp || '').replace(/\D/g, '').replace(/^65(?=\d{8}$)/, '');
+  if (!/^[89]\d{7}$/.test(digits)) return null;
+  const msg = encodeURIComponent(`Hi ${guideName}, I'm exploring ${landmarkLabel} on Waypoint and would like to book a guided walk.`);
+  return `https://wa.me/65${digits}?text=${msg}`;
+}
+
 function petCafeContact(phone) {
   const digits = String(phone || '').replace(/\D/g, '').replace(/^65(?=\d{8}$)/, '');
   if (!digits) return null;
@@ -1224,7 +1280,7 @@ const I18N = {
     fav_section_divider: 'Or save a specific stop to check anytime',
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
-    attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:',
+    attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:', attraction_guides_title: 'Certified local guides', attraction_guide_verified: 'Verified', attraction_guide_message: 'Message on WhatsApp', attraction_guide_sample: 'Sample profile — contact number not yet added',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',

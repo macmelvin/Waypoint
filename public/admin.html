@@ -102,6 +102,29 @@
     <div class="card">
       <div id="partnerList"><div class="empty">Loading…</div></div>
     </div>
+
+    <h1 style="margin-top:36px">Tourist guides (STGS pilot)</h1>
+    <p class="sub">Guides shown on a landmark's place card, with a "Message on WhatsApp" button that opens a pre-filled enquiry. Sample profiles ship with no WhatsApp number so that button stays hidden until a real one is added here.</p>
+    <div class="card">
+      <div class="row">
+        <input type="text" id="guideNameInput" placeholder="Guide name" style="margin-bottom:0">
+        <input type="text" id="guideSpecialtyInput" placeholder="Specialty (e.g. Heritage & Colonial History)" style="margin-bottom:0">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="guideLanguagesInput" placeholder="Languages, comma separated" style="margin-bottom:0">
+        <input type="text" id="guideWhatsappInput" placeholder="WhatsApp number (e.g. 91234567)" style="margin-bottom:0">
+      </div>
+      <select id="guideLandmarkSelect" multiple size="4" style="width:100%;margin-top:10px;padding:8px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:13px">
+        <option disabled>Loading landmarks…</option>
+      </select>
+      <div style="color:#64748b;font-size:11px;margin-top:4px">Cmd/Ctrl-click to pick more than one landmark.</div>
+      <textarea id="guideNoteInput" placeholder="Guide's curated tip / preview (shown on the place card)" rows="2" style="width:100%;margin-top:10px;padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+      <div style="margin-top:10px"><button onclick="createGuide()">Add guide</button></div>
+      <div id="guideCreateStatus" style="color:#f87171;font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <div id="guideList"><div class="empty">Loading…</div></div>
+    </div>
   </div>
 </div>
 
@@ -135,6 +158,8 @@ async function loadInvites() {
     document.getElementById('panel').style.display = 'block';
     render(invites);
     loadPartners();
+    loadGuideLandmarks();
+    loadGuides();
   } catch (err) {
     statusEl.textContent = err.message;
   }
@@ -146,6 +171,110 @@ async function loadPartners() {
     renderPartners(partners);
   } catch (err) {
     document.getElementById('partnerList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+let guideLandmarks = {};
+
+async function loadGuideLandmarks() {
+  try {
+    const { landmarks } = await api('/api/admin/guide-landmarks');
+    guideLandmarks = landmarks || {};
+    const select = document.getElementById('guideLandmarkSelect');
+    select.innerHTML = Object.entries(guideLandmarks)
+      .map(([key, label]) => `<option value="${key}">${escapeHtml(label)}</option>`)
+      .join('');
+  } catch (err) {
+    console.error('failed to load guide landmarks:', err);
+  }
+}
+
+async function loadGuides() {
+  try {
+    const { guides } = await api('/api/admin/guides');
+    renderGuides(guides);
+  } catch (err) {
+    document.getElementById('guideList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderGuides(guides) {
+  const list = document.getElementById('guideList');
+  if (!guides.length) {
+    list.innerHTML = '<div class="empty">No guides yet — add one above.</div>';
+    return;
+  }
+  const sorted = [...guides].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  list.innerHTML = sorted.map((g) => {
+    const landmarkLabels = (g.landmarks || []).map((k) => guideLandmarks[k] || k).join(', ');
+    const meta = [g.specialty, (g.languages || []).join('/'), landmarkLabels].filter(Boolean).join(' · ');
+    const sampleBadge = g.sample ? '<span class="new-visitor-badge" style="background:#7c3aed">sample</span>' : '';
+    const contactState = g.whatsapp ? `WhatsApp on file` : '<span style="color:#f87171">no WhatsApp number yet</span>';
+    return `
+      <div class="invite">
+        <div style="flex:1;min-width:0">
+          <div class="invite-name">${escapeHtml(g.name)} ${sampleBadge}</div>
+          <div class="invite-meta ${g.active ? '' : 'revoked'}">${g.active ? `${escapeHtml(meta)} · ${contactState}` : 'disabled'}</div>
+        </div>
+        <div class="invite-actions">
+          <button class="secondary" onclick="toggleGuide('${g.id}')">${g.active ? 'Disable' : 'Enable'}</button>
+          <button class="danger" onclick="deleteGuide('${g.id}')">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function createGuide() {
+  const nameInput = document.getElementById('guideNameInput');
+  const specialtyInput = document.getElementById('guideSpecialtyInput');
+  const languagesInput = document.getElementById('guideLanguagesInput');
+  const whatsappInput = document.getElementById('guideWhatsappInput');
+  const noteInput = document.getElementById('guideNoteInput');
+  const select = document.getElementById('guideLandmarkSelect');
+  const statusEl = document.getElementById('guideCreateStatus');
+  statusEl.textContent = '';
+  const name = nameInput.value.trim();
+  const landmarks = Array.from(select.selectedOptions).map((o) => o.value);
+  if (!name) { statusEl.textContent = 'Name is required'; return; }
+  if (!landmarks.length) { statusEl.textContent = 'Pick at least one landmark'; return; }
+  try {
+    await api('/api/admin/guides', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        specialty: specialtyInput.value.trim(),
+        languages: languagesInput.value.split(',').map((l) => l.trim()).filter(Boolean),
+        whatsapp: whatsappInput.value.trim(),
+        note: noteInput.value.trim(),
+        landmarks,
+      }),
+    });
+    nameInput.value = ''; specialtyInput.value = ''; languagesInput.value = '';
+    whatsappInput.value = ''; noteInput.value = '';
+    Array.from(select.options).forEach((o) => { o.selected = false; });
+    loadGuides();
+  } catch (err) {
+    statusEl.textContent = err.message;
+  }
+}
+
+async function toggleGuide(id) {
+  try {
+    await api(`/api/admin/guides/${id}/toggle`, { method: 'POST' });
+    loadGuides();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function deleteGuide(id) {
+  if (!confirm('Delete this guide permanently? This cannot be undone.')) return;
+  try {
+    await api(`/api/admin/guides/${id}`, { method: 'DELETE' });
+    loadGuides();
+  } catch (err) {
+    alert(err.message);
   }
 }
 

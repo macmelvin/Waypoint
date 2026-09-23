@@ -169,6 +169,104 @@ function savePartners() {
 
 let partners = loadPartners();
 
+// ---- Tourist guide directory (STGS pilot) -----------------------------------
+// Curated list of certified Society of Tourist Guides (Singapore) guides,
+// each tagged to one or more of Waypoint's existing LANDMARKS (see
+// GUIDE_LANDMARKS below -- the subset of app.js's LANDMARKS that make sense
+// for a guided walk). Same persisted-JSON-on-the-Railway-Volume pattern as
+// partners above, managed from /admin rather than requiring a redeploy to
+// add/edit a guide.
+const GUIDES_FILE = process.env.GUIDES_FILE || '/data/guides.json';
+
+// Keep in sync with the LANDMARKS a guide could plausibly lead a walk
+// around -- heritage, culture and nature spots rather than e.g. Changi
+// Airport or a carpark. Used to validate admin input and to label a guide's
+// landmark tags in the admin panel; the public site's actual place names
+// still come from app.js's own LANDMARKS -- this is just the guide-eligible
+// subset, kept in server.js so the admin panel can render a picker without
+// duplicating the whole LANDMARKS object.
+const GUIDE_LANDMARKS = {
+  chinatown: 'Chinatown',
+  littleindia: 'Little India',
+  kampongglam: 'Kampong Glam',
+  botanicgardens: 'Singapore Botanic Gardens',
+  hawparvilla: 'Haw Par Villa',
+  macritchie: 'MacRitchie Reservoir',
+  clarkequay: 'Clarke Quay',
+  sentosa: 'Sentosa Island',
+  nationalgallery: 'National Gallery Singapore',
+  esplanade: 'Esplanade',
+};
+
+// Seeds the feature with a few example profiles the first time it runs (no
+// /data/guides.json yet) so there's something to look at before any real
+// STGS guide has been added from /admin. Each is flagged sample:true and
+// ships with no WhatsApp number, so the "Message on WhatsApp" button hides
+// itself client-side rather than pointing at a made-up contact. Replace or
+// remove these from /admin once real guides are added -- they're here so
+// the feature isn't empty on first look, not meant to go in front of real
+// visitors as-is.
+const SAMPLE_GUIDES = [
+  {
+    id: 'sample-heritage-1',
+    name: 'Sample guide — Heritage & Colonial History',
+    specialty: 'Heritage & Colonial History',
+    languages: ['English', 'Malay'],
+    landmarks: ['kampongglam'],
+    whatsapp: '',
+    verified: true,
+    active: true,
+    note: 'Most visitors walk past the old shophouses without knowing which ones hid wartime radio transmitters — on the full walk I’ll show you where.',
+    sample: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'sample-nature-1',
+    name: 'Sample guide — Nature & Botanic Trails',
+    specialty: 'Nature & Botanic Trails',
+    languages: ['English', 'Mandarin'],
+    landmarks: ['botanicgardens'],
+    whatsapp: '',
+    verified: true,
+    active: true,
+    note: 'The National Orchid Garden looks best about an hour after opening, before the tour buses arrive — I always start walks there.',
+    sample: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'sample-peranakan-1',
+    name: 'Sample guide — Peranakan Culture',
+    specialty: 'Peranakan Culture',
+    languages: ['English', 'Hokkien'],
+    landmarks: ['chinatown'],
+    whatsapp: '',
+    verified: true,
+    active: true,
+    note: 'A handful of the shophouses on this street are still lived in by the families who tiled them a century ago — I’ll point out which.',
+    sample: true,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+function loadGuides() {
+  try {
+    return JSON.parse(fs.readFileSync(GUIDES_FILE, 'utf8'));
+  } catch (err) {
+    return SAMPLE_GUIDES;
+  }
+}
+
+function saveGuides() {
+  try {
+    fs.mkdirSync(path.dirname(GUIDES_FILE), { recursive: true });
+    fs.writeFileSync(GUIDES_FILE, JSON.stringify(guides, null, 2));
+  } catch (err) {
+    console.error('failed to persist guides:', err.message);
+  }
+}
+
+let guides = loadGuides();
+
 function slugify(name) {
   return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
@@ -431,6 +529,57 @@ app.post('/api/admin/invites/revoke-all', requireAdmin, (req, res) => {
   res.json({ ok: true, revoked: count });
 });
 
+// ---- Tourist guide admin (STGS pilot) ---------------------------------------
+app.get('/api/admin/guide-landmarks', requireAdmin, (req, res) => {
+  res.json({ landmarks: GUIDE_LANDMARKS });
+});
+
+app.get('/api/admin/guides', requireAdmin, (req, res) => {
+  res.json({ guides });
+});
+
+app.post('/api/admin/guides', requireAdmin, (req, res) => {
+  const name = (req.body?.name || '').trim();
+  const specialty = (req.body?.specialty || '').trim();
+  const landmarks = Array.isArray(req.body?.landmarks) ? req.body.landmarks.filter((k) => GUIDE_LANDMARKS[k]) : [];
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  if (!landmarks.length) return res.status(400).json({ error: 'pick at least one valid landmark' });
+  const languages = Array.isArray(req.body?.languages)
+    ? req.body.languages.map((l) => String(l).trim()).filter(Boolean)
+    : String(req.body?.languages || '').split(',').map((l) => l.trim()).filter(Boolean);
+  const guide = {
+    id: crypto.randomUUID(),
+    name,
+    specialty,
+    languages,
+    landmarks,
+    whatsapp: (req.body?.whatsapp || '').replace(/[^0-9]/g, ''),
+    verified: req.body?.verified !== false,
+    active: true,
+    note: (req.body?.note || '').trim(),
+    sample: false,
+    createdAt: new Date().toISOString(),
+  };
+  guides.push(guide);
+  saveGuides();
+  res.json({ guide });
+});
+
+app.post('/api/admin/guides/:id/toggle', requireAdmin, (req, res) => {
+  const g = guides.find((x) => x.id === req.params.id);
+  if (!g) return res.status(404).json({ error: 'not found' });
+  g.active = !g.active;
+  saveGuides();
+  res.json({ guide: g });
+});
+
+app.delete('/api/admin/guides/:id', requireAdmin, (req, res) => {
+  const before = guides.length;
+  guides = guides.filter((x) => x.id !== req.params.id);
+  if (guides.length !== before) saveGuides();
+  res.json({ ok: true });
+});
+
 // Express's static middleware ignores dotfiles (like .well-known) by
 // default, which would 404 the Android app's Digital Asset Links file —
 // serve that one path explicitly before the catch-all static handler.
@@ -685,6 +834,29 @@ app.get('/api/geocode', async (req, res) => {
   }
 
   res.json({ results: finalResults });
+});
+
+// ---- Tourist guides for a landmark (STGS pilot) -----------------------------
+// Public read of the curated guide list above, filtered to one landmark and
+// stripped to only what the place card needs (no admin-only fields). Guides
+// are matched to a LANDMARKS key rather than searched by lat/lon nearby --
+// they're tagged to specific named attractions, not a live radius search.
+app.get('/api/guides-for-landmark', (req, res) => {
+  const key = String(req.query.key || '');
+  if (!GUIDE_LANDMARKS[key]) return res.json({ guides: [] });
+  const results = guides
+    .filter((g) => g.active && Array.isArray(g.landmarks) && g.landmarks.includes(key))
+    .map((g) => ({
+      id: g.id,
+      name: g.name,
+      specialty: g.specialty,
+      languages: g.languages || [],
+      verified: Boolean(g.verified),
+      whatsapp: g.whatsapp || '',
+      note: g.note || '',
+      sample: Boolean(g.sample),
+    }));
+  res.json({ guides: results });
 });
 
 // ---- Nearby places by category (Waze-style "Categories" quick search) ------
