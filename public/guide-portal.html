@@ -54,6 +54,14 @@
     <h1 id="guideName"></h1>
     <p class="sub" id="guideSpecialty"></p>
 
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-weight:600">Booking notifications</div>
+        <div class="sub" style="margin:2px 0 0" id="pushSub">Get an alert on this phone the moment a visitor requests a slot.</div>
+      </div>
+      <button id="pushBtn" class="secondary" onclick="togglePush()">Enable</button>
+    </div>
+
     <h2>Your weekly availability</h2>
     <p class="sub" style="margin-top:0">Set the times you're generally free for a guided walk. Visitors will only be able to request slots that match this template and aren't already booked.</p>
     <div class="card">
@@ -200,6 +208,85 @@ async function respond(bookingId, status) {
   }
 }
 
+// ---- Booking-request push notifications ------------------------------------
+// Same Web Push mechanism as the rest of the app (see public/sw.js), but a
+// separate, guide-scoped subscriber pool on the server -- opting in here only
+// alerts THIS guide about THEIR OWN bookings, nothing else.
+const PUSH_KEY = `waypoint_guide_push_${token}`;
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+function updatePushButton() {
+  const btn = document.getElementById('pushBtn');
+  const sub = document.getElementById('pushSub');
+  if (!btn) return;
+  const enabled = localStorage.getItem(PUSH_KEY) === '1';
+  btn.textContent = enabled ? 'Disable' : 'Enable';
+  if (sub) sub.textContent = enabled
+    ? "You'll get an alert on this device for new booking requests."
+    : 'Get an alert on this phone the moment a visitor requests a slot.';
+}
+
+async function togglePush() {
+  const enabled = localStorage.getItem(PUSH_KEY) === '1';
+  if (enabled) { await disablePush(); } else { await enablePush(); }
+}
+
+async function enablePush() {
+  if (!pushSupported()) { alert("Push notifications aren't supported in this browser. On iPhone, add this page to your Home Screen first (Share -> Add to Home Screen), then try again from there."); return; }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { alert('Notification permission was not granted.'); return; }
+    const { publicKey, enabled: serverEnabled } = await (await fetch('/api/push/vapid-public-key')).json();
+    if (!serverEnabled || !publicKey) { alert("Notifications aren't set up on the server yet."); return; }
+    await navigator.serviceWorker.register('/sw.js');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+    await fetch(`/api/guide-portal/${encodeURIComponent(token)}/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub }),
+    });
+    localStorage.setItem(PUSH_KEY, '1');
+    updatePushButton();
+  } catch (err) {
+    console.error(err);
+    alert(`Could not enable notifications: ${err.message || err.name || err}`);
+  }
+}
+
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await fetch(`/api/guide-portal/${encodeURIComponent(token)}/push/unsubscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+      await sub.unsubscribe();
+    }
+  } catch (err) {
+    console.error(err);
+  }
+  localStorage.removeItem(PUSH_KEY);
+  updatePushButton();
+}
+
+updatePushButton();
 load();
 </script>
 </body>

@@ -74,6 +74,106 @@ async function broadcastPush(payload) {
   if (changed) savePushSubscriptions();
 }
 
+// ---- Push notifications: guide booking alerts --------------------------------
+// Two more subscriber pools, kept separate from the general public
+// pushSubscriptions above (MRT/traffic/haze alerts everyone can opt into):
+//   - guidePushSubscriptions: per-guide, keyed by guide id, so a booking
+//     request only pings the guide it's actually for (subscribed from that
+//     guide's own portal page).
+//   - adminPushSubscriptions: a single pool for whoever has admin.html open
+//     and opted in, so you can also get pinged the moment a request lands.
+// Reuses the same VAPID keys/service-worker as the public alerts -- it's the
+// same Web Push mechanism, just a different, narrower subscriber list.
+
+const GUIDE_PUSH_SUBSCRIPTIONS_FILE = process.env.GUIDE_PUSH_SUBSCRIPTIONS_FILE || '/data/guide-push-subscriptions.json';
+const ADMIN_PUSH_SUBSCRIPTIONS_FILE = process.env.ADMIN_PUSH_SUBSCRIPTIONS_FILE || '/data/admin-push-subscriptions.json';
+
+function loadGuidePushSubscriptions() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(GUIDE_PUSH_SUBSCRIPTIONS_FILE, 'utf8'));
+    return new Map(Object.entries(raw).map(([guideId, subs]) => [guideId, subs]));
+  } catch (err) {
+    return new Map();
+  }
+}
+
+function saveGuidePushSubscriptions() {
+  try {
+    fs.mkdirSync(path.dirname(GUIDE_PUSH_SUBSCRIPTIONS_FILE), { recursive: true });
+    const obj = Object.fromEntries(guidePushSubscriptions);
+    fs.writeFileSync(GUIDE_PUSH_SUBSCRIPTIONS_FILE, JSON.stringify(obj, null, 2));
+  } catch (err) {
+    console.error('failed to persist guide push subscriptions:', err.message);
+  }
+}
+
+const guidePushSubscriptions = loadGuidePushSubscriptions();
+
+function loadAdminPushSubscriptions() {
+  try {
+    const arr = JSON.parse(fs.readFileSync(ADMIN_PUSH_SUBSCRIPTIONS_FILE, 'utf8'));
+    return new Map(arr.map((sub) => [sub.endpoint, sub]));
+  } catch (err) {
+    return new Map();
+  }
+}
+
+function saveAdminPushSubscriptions() {
+  try {
+    fs.mkdirSync(path.dirname(ADMIN_PUSH_SUBSCRIPTIONS_FILE), { recursive: true });
+    fs.writeFileSync(ADMIN_PUSH_SUBSCRIPTIONS_FILE, JSON.stringify([...adminPushSubscriptions.values()]));
+  } catch (err) {
+    console.error('failed to persist admin push subscriptions:', err.message);
+  }
+}
+
+const adminPushSubscriptions = loadAdminPushSubscriptions();
+
+async function sendGuidePush(guideId, payload) {
+  if (!PUSH_ENABLED) return;
+  const subs = guidePushSubscriptions.get(guideId);
+  if (!subs || !subs.length) return;
+  const body = JSON.stringify(payload);
+  let changed = false;
+  const survivors = [];
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(sub, body);
+      survivors.push(sub);
+    } catch (err) {
+      if (err.statusCode === 404 || err.statusCode === 410) {
+        changed = true; // expired/revoked -- drop it
+      } else {
+        survivors.push(sub);
+        console.error('guide push send failed:', err.statusCode, err.message);
+      }
+    }
+  }
+  if (changed) {
+    guidePushSubscriptions.set(guideId, survivors);
+    saveGuidePushSubscriptions();
+  }
+}
+
+async function sendAdminPush(payload) {
+  if (!PUSH_ENABLED || !adminPushSubscriptions.size) return;
+  const body = JSON.stringify(payload);
+  let changed = false;
+  for (const [endpoint, sub] of adminPushSubscriptions) {
+    try {
+      await webpush.sendNotification(sub, body);
+    } catch (err) {
+      if (err.statusCode === 404 || err.statusCode === 410) {
+        adminPushSubscriptions.delete(endpoint);
+        changed = true;
+      } else {
+        console.error('admin push send failed:', err.statusCode, err.message);
+      }
+    }
+  }
+  if (changed) saveAdminPushSubscriptions();
+}
+
 // Internal Railway private-network address of the transit-router (OpenTripPlanner) service.
 const TRANSIT_API_URL = process.env.TRANSIT_API_URL || 'http://transit-router.railway.internal:8080';
 
@@ -1068,6 +1168,21 @@ app.post('/api/guides/:id/book', (req, res) => {
   guideBookings.push(booking);
   saveGuideBookings();
   res.json({ booking });
+
+  // Fire-and-forget push alerts -- the visitor's response above doesn't wait
+  // on these, and both helpers already swallow their own errors so a push
+  // failure (or nobody having subscribed) never affects the booking itself.
+  const pushBody = `${visitorName} · ${date} ${start}-${end} · party of ${partySize}`;
+  sendGuidePush(guide.id, {
+    title: 'New booking request',
+    body: pushBody,
+    url: `/guide-portal.html?t=${guide.accessToken}`,
+  });
+  sendAdminPush({
+    title: `New booking: ${guide.name}`,
+    body: pushBody,
+    url: '/admin.html',
+  });
 });
 
 // ---- Guide portal (token-authed, no admin login) ----------------------------
@@ -1113,6 +1228,53 @@ app.post('/api/guide-portal/:token/bookings/:bookingId/respond', (req, res) => {
   booking.status = status;
   saveGuideBookings();
   res.json({ booking });
+});
+
+// A guide opts their own device into push alerts from their portal page --
+// separate from the public MRT/traffic/haze subscriber pool, and scoped to
+// only their own bookings via the guideId key.
+app.post('/api/guide-portal/:token/push/subscribe', (req, res) => {
+  const guide = findGuideByToken(req.params.token);
+  if (!guide) return res.status(404).json({ error: 'invalid link' });
+  const sub = req.body && req.body.subscription;
+  if (!sub || !sub.endpoint) return res.status(400).json({ error: 'subscription is required' });
+  const existing = guidePushSubscriptions.get(guide.id) || [];
+  const next = existing.filter((s) => s.endpoint !== sub.endpoint);
+  next.push(sub);
+  guidePushSubscriptions.set(guide.id, next);
+  saveGuidePushSubscriptions();
+  res.json({ ok: true });
+});
+
+app.post('/api/guide-portal/:token/push/unsubscribe', (req, res) => {
+  const guide = findGuideByToken(req.params.token);
+  if (!guide) return res.status(404).json({ error: 'invalid link' });
+  const endpoint = req.body && req.body.endpoint;
+  if (endpoint) {
+    const existing = guidePushSubscriptions.get(guide.id) || [];
+    guidePushSubscriptions.set(guide.id, existing.filter((s) => s.endpoint !== endpoint));
+    saveGuidePushSubscriptions();
+  }
+  res.json({ ok: true });
+});
+
+// Admin opts their own device into push alerts for every new booking request,
+// across all guides -- separate pool from the guide-scoped one above.
+app.post('/api/admin/push/subscribe', requireAdmin, (req, res) => {
+  const sub = req.body && req.body.subscription;
+  if (!sub || !sub.endpoint) return res.status(400).json({ error: 'subscription is required' });
+  adminPushSubscriptions.set(sub.endpoint, sub);
+  saveAdminPushSubscriptions();
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/push/unsubscribe', requireAdmin, (req, res) => {
+  const endpoint = req.body && req.body.endpoint;
+  if (endpoint) {
+    adminPushSubscriptions.delete(endpoint);
+    saveAdminPushSubscriptions();
+  }
+  res.json({ ok: true });
 });
 
 // ---- Nearby places by category (Waze-style "Categories" quick search) ------
