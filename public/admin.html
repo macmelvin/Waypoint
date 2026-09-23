@@ -668,8 +668,19 @@ function renderGuideBookings(bookings) {
           <div class="invite-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · ${escapeHtml(b.visitorName)} (${escapeHtml(b.visitorPhone)}) · ${b.adults != null ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}` : `party of ${b.partySize}`}${b.note ? ` · "${escapeHtml(b.note)}"` : ''}</div>
           <div class="invite-meta" style="margin-top:6px">${paymentLine}${notifyBtn}</div>
         </div>
+        <button class="secondary" style="padding:6px 10px;font-size:12px;flex-shrink:0" onclick="deleteBooking('${b.id}')">Delete</button>
       </div>`;
   }).join('');
+}
+
+async function deleteBooking(id) {
+  if (!confirm('Delete this booking permanently? This cannot be undone.')) return;
+  try {
+    await api(`/api/admin/guide-bookings/${id}`, { method: 'DELETE' });
+    loadGuideBookings();
+  } catch (err) {
+    alert(err.message);
+  }
 }
 
 // Builds a wa.me deep link to the guide's own WhatsApp number, pre-filled
