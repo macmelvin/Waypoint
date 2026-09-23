@@ -437,6 +437,28 @@ function dateToISO(d) {
 // Concrete upcoming dates (next BOOKING_LOOKAHEAD_DAYS days) that match a
 // guide's weekly availability template and don't already have a live
 // booking (requested or confirmed -- declined ones free the slot back up).
+// Bookable slots are fixed SLOT_DURATION_HOURS chunks, not whole availability
+// windows -- a guide sets one broad window (e.g. 09:00-18:00) and this splits
+// it into separate 09:00-12:00 / 12:00-15:00 / 15:00-18:00 slots a visitor
+// can pick individually, rather than one giant slot that blocks out the
+// guide's entire day for a single booking. A window that isn't an exact
+// multiple of the block size only offers full blocks (no partial leftover
+// slot); the guide can always add a second, differently-sized window if they
+// want to offer an odd-length block too.
+const SLOT_DURATION_HOURS = 3;
+const SLOT_DURATION_MINUTES = SLOT_DURATION_HOURS * 60;
+
+function hhmmToMinutes(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minutesToHHMM(mins) {
+  const h = Math.floor(mins / 60).toString().padStart(2, '0');
+  const m = (mins % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 function computeAvailableSlots(guide) {
   const slots = [];
   const now = new Date();
@@ -451,9 +473,15 @@ function computeAvailableSlots(guide) {
     const day = d.getDay();
     for (const w of guide.availability || []) {
       if (w.day !== day) continue;
-      const key = `${iso}|${w.start}|${w.end}`;
-      if (takenKeys.has(key)) continue;
-      slots.push({ date: iso, start: w.start, end: w.end });
+      const windowStart = hhmmToMinutes(w.start);
+      const windowEnd = hhmmToMinutes(w.end);
+      for (let blockStart = windowStart; blockStart + SLOT_DURATION_MINUTES <= windowEnd; blockStart += SLOT_DURATION_MINUTES) {
+        const start = minutesToHHMM(blockStart);
+        const end = minutesToHHMM(blockStart + SLOT_DURATION_MINUTES);
+        const key = `${iso}|${start}|${end}`;
+        if (takenKeys.has(key)) continue;
+        slots.push({ date: iso, start, end });
+      }
     }
   }
   slots.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
