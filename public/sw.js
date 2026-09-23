@@ -15,7 +15,7 @@
 // Without a bump, the fetch handler switching to network-first (see below)
 // is the real fix for staleness, but bumping this too guarantees today's
 // deploy self-heals immediately instead of waiting for a natural change.
-const SHELL_CACHE = 'waypoint-shell-v79';
+const SHELL_CACHE = 'waypoint-shell-v80';
 const RUNTIME_CACHE = 'waypoint-runtime-v1';
 
 const SHELL_ASSETS = [
@@ -68,7 +68,17 @@ function networkFirst(request, cacheName) {
   return fetch(request)
     .then((networkResponse) => {
       if (networkResponse && networkResponse.ok) {
-        caches.open(cacheName).then((cache) => cache.put(request, networkResponse.clone()));
+        // Clone synchronously, right here, before any await/.then gap. The
+        // previous version called networkResponse.clone() *inside* the
+        // caches.open().then() callback -- since caches.open() is async,
+        // that clone() ran after this same Response had already started
+        // being streamed to the page (via the `return networkResponse`
+        // below), which throws "Response body is already used" and skips
+        // the cache write entirely. A Response body can only be read once
+        // across ALL branches, so clone() must happen before either branch
+        // starts consuming it.
+        const responseToCache = networkResponse.clone();
+        caches.open(cacheName).then((cache) => cache.put(request, responseToCache));
       }
       return networkResponse;
     })
