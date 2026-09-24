@@ -527,7 +527,7 @@ async function loadAttractionInfo(r) {
   const guidesHtml = guideList.length
     ? `
       <div class="attraction-guides">
-        <h4>${t('attraction_guides_title')} <span class="attraction-guides-badge">STGS</span></h4>
+        <h4>${t('attraction_guides_title')} <span class="attraction-guides-badge">Society Of Tourist Guides (Singapore)</span></h4>
         ${guideList.map((g) => {
           const languages = (g.languages || []).join(', ');
           return `
