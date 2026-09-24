@@ -1107,6 +1107,14 @@ const TICKET_LINKS = {
 // upcoming-concert listings change constantly, so rather than maintain our
 // own (inevitably stale) list of shows, this links straight to SISTIC's own
 // live Concerts genre page — same reasoning as the LTA MRT map link.
+//
+// "carrental" is the same kind of exception: KKday's own car-rental page is a
+// generic worldwide search landing page with no clear Singapore-specific
+// listing, so rather than send people somewhere that might not even surface
+// local pickup locations, this links straight to Hertz's Singapore site --
+// a globally recognised brand with Changi Airport and downtown counters, so
+// a visitor can book (and often reuse an existing Hertz account/status) the
+// same way they would back home.
 const BOOK_ONLINE_LINKS = {
   concerts: 'https://www.sistic.com.sg/events?genre=64',
   attractiontickets: 'https://www.kkday.com/en-sg/category/sg-singapore/attraction-tickets/list?cid=26927&ud1=AttractionTickets',
@@ -1116,6 +1124,7 @@ const BOOK_ONLINE_LINKS = {
   airporttransfer: 'https://www.kkday.com/en-sg/category/sg-singapore/airport-transfers/list?cid=26927&ud1=AirportTransfer',
   accommodation: 'https://www.trip.com/t/RqV5cn2vNW2',
   simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
+  carrental: 'https://www.hertz.com.sg/sg/en',
 };
 
 // ---- Travel-agency / distribution-partner referral tagging -------------------
@@ -1511,6 +1520,7 @@ const CHIP_I18N = {
   airporttransfer: { en: 'Airport Transfer', zh: '机场接送', ms: 'Pemindahan Lapangan Terbang', ta: 'விமான நிலைய போக்குவரத்து', ja: '空港送迎', ko: '공항 이동 서비스' },
   accommodation: { en: 'Accommodation', zh: '住宿', ms: 'Penginapan', ta: 'தங்குமிடம்', ja: '宿泊', ko: '숙박' },
   simcards: { en: 'SIM & eSIM', zh: 'Wi-Fi与SIM卡', ms: 'Wi-Fi & Kad SIM', ta: 'வைஃபை & சிம் கார்டுகள்', ja: 'Wi-Fi＆SIMカード', ko: '와이파이 & 유심' },
+  carrental: { en: 'Car Rental', zh: '租车', ms: 'Sewa Kereta', ta: 'கார் வாடகை', ja: 'レンタカー', ko: '렌터카' },
 };
 
 function t(key) {
