@@ -304,6 +304,7 @@ const GUIDE_LANDMARKS = {
   sentosa: 'Sentosa Island',
   nationalgallery: 'National Gallery Singapore',
   esplanade: 'Esplanade',
+  civicdistrict: 'Civic District',
 };
 
 // Seeds the feature with a few example profiles the first time it runs (no

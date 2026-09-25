@@ -592,8 +592,17 @@ async function loadAttractionInfo(r) {
     ? `<p class="attraction-food-tip">🍴 ${t('attraction_try')} <strong>${escapeHtml(foodHighlight)}</strong></p>`
     : '';
 
+  // What a district-style landmark (currently just Civic District) actually
+  // covers — see DISTRICT_COVERAGE above. Shown first, ahead of the nearest
+  // MRT/nearby-attractions info, since "what is this place" matters more
+  // here than it does for a single-building landmark.
+  const coverage = DISTRICT_COVERAGE[key];
+  const coverageHtml = coverage
+    ? `<p class="attraction-coverage-tip">📍 <strong>${t('attraction_covers')}</strong> ${escapeHtml(coverage)}</p>`
+    : '';
+
   if (token !== attractionInfoToken) return;
-  els.attractionInfo.innerHTML = `${stationHtml}${nearbyHtml}${guidesHtml}${ticketHtml}${foodHighlightHtml}${foodHtml}`;
+  els.attractionInfo.innerHTML = `${coverageHtml}${stationHtml}${nearbyHtml}${guidesHtml}${ticketHtml}${foodHighlightHtml}${foodHtml}`;
   els.attractionInfo.querySelectorAll('.attraction-nearby-chip').forEach((btn) => {
     btn.addEventListener('click', () => {
       const landmark = LANDMARKS[btn.dataset.landmark];
@@ -1004,6 +1013,14 @@ const LANDMARKS = {
   chinatown: { label: 'Chinatown', address: 'Chinatown, Singapore', lat: 1.28120, lon: 103.84430 },
   littleindia: { label: 'Little India', address: 'Little India, Singapore', lat: 1.30670, lon: 103.85180 },
   kampongglam: { label: 'Kampong Glam', address: 'Kampong Glam, Singapore', lat: 1.30210, lon: 103.85900 },
+  // Singapore's colonial-era civic core, centred on the Padang -- same
+  // area-style pin as Chinatown/Little India/Kampong Glam above rather than
+  // one specific building, since "Civic District" itself isn't a single
+  // address. See DISTRICT_COVERAGE below for the full list of what it spans
+  // (National Gallery, Asian Civilisations Museum, St Andrew's Cathedral,
+  // etc.) -- shown as an info tip on the place card since a first-time
+  // visitor searching "Civic District" has no way to know that otherwise.
+  civicdistrict: { label: 'Civic District', address: 'Civic District, Singapore', lat: 1.29056, lon: 103.85306 },
   clarkequay: { label: 'Clarke Quay', address: '3 River Valley Rd, Singapore 179024', lat: 1.28840, lon: 103.84650 },
   botanicgardens: { label: 'Singapore Botanic Gardens', address: '1 Cluny Rd, Singapore 259569', lat: 1.31380, lon: 103.81590 },
   nationalgallery: { label: 'National Gallery Singapore', address: "1 St Andrew's Rd, Singapore 178957", lat: 1.29030, lon: 103.85170 },
@@ -1110,6 +1127,16 @@ const FOOD_HIGHLIGHTS = {
   tiongbahrumarket: 'Chwee kueh (steamed rice cakes) and classic local breakfast fare',
   eastcoastlagoon: 'BBQ seafood and stingray, eaten right by the beach',
   amoystreet: 'Budget-friendly rice and noodle stalls popular with the lunchtime office crowd',
+};
+
+// What a "district" landmark actually covers — Chinatown/Little India/
+// Kampong Glam are reasonably self-explanatory by name, but "Civic District"
+// isn't, so tapping it needs to say what's actually there. Shown as an info
+// tip on the place card (see loadAttractionInfo below); only civicdistrict
+// has an entry right now; extend this if another district-style landmark
+// ends up needing the same treatment.
+const DISTRICT_COVERAGE = {
+  civicdistrict: "National Gallery Singapore, the Asian Civilisations Museum, St Andrew's Cathedral, Old Parliament House, Victoria Theatre & Concert Hall, CHIJMES and Raffles Hotel are all a 5-10 min walk from the Padang.",
 };
 
 // Real, Singapore-scoped search URLs — copied directly from KKday's own site
@@ -1346,6 +1373,7 @@ const I18N = {
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
     attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:', attraction_guides_title: 'Certified local guides', attraction_guide_verified: 'Verified', attraction_guide_message: 'Secure a Guided Walk Booking', attraction_guide_sample: 'Sample profile — contact number not yet added', attraction_guide_availability: 'Check availability & book',
+    attraction_covers: 'Covers:',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
