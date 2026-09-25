@@ -146,11 +146,25 @@
       </div>
       <button id="adminPushBtn" class="secondary" onclick="toggleAdminPush()">Enable</button>
     </div>
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:4px">From
+          <input type="date" id="bookingFromDate" onchange="applyBookingFilter()" style="padding:6px 8px;font-size:13px;margin:0">
+        </label>
+        <label style="font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:4px">To
+          <input type="date" id="bookingToDate" onchange="applyBookingFilter()" style="padding:6px 8px;font-size:13px;margin:0">
+        </label>
+        <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="setBookingFilterThisMonth()">This month</button>
+        <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="clearBookingFilter()">All time</button>
+      </div>
+      <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="exportGuideBookingsCsv()">⬇ Export CSV</button>
+    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div id="bookingSummary" style="color:#94a3b8;font-size:13px"></div>
         <button class="secondary" onclick="loadGuideBookings()">Refresh</button>
       </div>
+      <div id="guideBreakdown"></div>
       <div id="bookingList"><div class="empty">Loading…</div></div>
     </div>
   </div>
@@ -596,13 +610,128 @@ async function revokeAll() {
 const BOOKING_STATUS_LABEL = { requested: 'Requested', confirmed: 'Confirmed', declined: 'Declined', completed: 'Completed' };
 const BOOKING_STATUS_COLOR = { requested: '#facc15', confirmed: '#60a5fa', declined: '#f87171', completed: '#4ade80' };
 
+let allGuideBookings = [];
+let lastRenderedBookings = [];
+
 async function loadGuideBookings() {
   try {
     const { bookings } = await api('/api/admin/guide-bookings');
-    renderGuideBookings(bookings);
+    allGuideBookings = bookings;
+    applyBookingFilter();
   } catch (err) {
     document.getElementById('bookingList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
   }
+}
+
+// ---- Date-range filtering for the STGS revenue-share report ----------------
+// Filters by the tour's own date (b.date), not when payment was recorded --
+// "how much did tours between these dates bring in", which is what STGS
+// reporting periods usually mean.
+function getBookingDateRange() {
+  const fromEl = document.getElementById('bookingFromDate');
+  const toEl = document.getElementById('bookingToDate');
+  return { from: (fromEl && fromEl.value) || '', to: (toEl && toEl.value) || '' };
+}
+
+function filterBookingsByDate(bookings, from, to) {
+  return bookings.filter((b) => {
+    if (from && b.date < from) return false;
+    if (to && b.date > to) return false;
+    return true;
+  });
+}
+
+function applyBookingFilter() {
+  const { from, to } = getBookingDateRange();
+  renderGuideBookings(filterBookingsByDate(allGuideBookings, from, to));
+}
+
+function dateToISOLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function setBookingFilterThisMonth() {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  document.getElementById('bookingFromDate').value = dateToISOLocal(first);
+  document.getElementById('bookingToDate').value = dateToISOLocal(last);
+  applyBookingFilter();
+}
+
+function clearBookingFilter() {
+  document.getElementById('bookingFromDate').value = '';
+  document.getElementById('bookingToDate').value = '';
+  applyBookingFilter();
+}
+
+// ---- Per-guide revenue-share breakdown --------------------------------------
+function renderGuideBreakdown(bookings) {
+  const el = document.getElementById('guideBreakdown');
+  if (!el) return;
+  const byGuide = new Map();
+  bookings.forEach((b) => {
+    if (b.revenueShare == null) return; // only tours with a recorded payment count
+    const key = b.guideId || b.guideName || 'unknown';
+    const entry = byGuide.get(key) || { name: b.guideName || '(deleted guide)', count: 0, paid: 0, share: 0 };
+    entry.count += 1;
+    entry.paid += b.paymentAmount || 0;
+    entry.share += b.revenueShare || 0;
+    byGuide.set(key, entry);
+  });
+  if (!byGuide.size) { el.innerHTML = ''; return; }
+  const rows = [...byGuide.values()].sort((a, b) => b.share - a.share);
+  el.innerHTML = `
+    <div style="border:1px solid #334155;border-radius:8px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:#cbd5e1;margin-bottom:6px">Per-guide breakdown</div>
+      ${rows.map((r) => `
+        <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#94a3b8;padding:3px 0">
+          <span>${escapeHtml(r.name)} · ${r.count} tour${r.count === 1 ? '' : 's'}</span>
+          <span>Paid S$${r.paid.toFixed(2)} · STGS S$${r.share.toFixed(2)}</span>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+// ---- CSV export --------------------------------------------------------------
+function csvEscape(val) {
+  const s = String(val == null ? '' : val);
+  return /["\,\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportGuideBookingsCsv() {
+  const rows = lastRenderedBookings;
+  if (!rows.length) { alert('No bookings to export in the current range.'); return; }
+  const headers = ['Date', 'Start', 'End', 'Guide', 'Tour', 'Visitor Name', 'Visitor Phone', 'Adults', 'Children', 'Status', 'Amount Paid (SGD)', 'STGS Share (SGD)', 'Payment Recorded At'];
+  const csvRows = [headers.join(',')];
+  rows.forEach((b) => {
+    const cells = [
+      b.date, b.start, b.end,
+      b.guideName || '', b.landmarkLabel || '',
+      b.visitorName || '', b.visitorPhone || '',
+      b.adults != null ? b.adults : '', b.children != null ? b.children : '',
+      b.status,
+      b.paymentAmount != null ? b.paymentAmount.toFixed(2) : '',
+      b.revenueShare != null ? b.revenueShare.toFixed(2) : '',
+      b.paymentRecordedAt || '',
+    ].map(csvEscape);
+    csvRows.push(cells.join(','));
+  });
+  const csv = csvRows.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const { from, to } = getBookingDateRange();
+  const suffix = (from || to) ? `_${from || 'start'}_to_${to || 'now'}` : '_all';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `waypoint-guide-bookings${suffix}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ---- Booking-request push notifications (admin side) -----------------------
@@ -686,14 +815,18 @@ async function disableAdminPush() {
 function renderGuideBookings(bookings) {
   const list = document.getElementById('bookingList');
   const summaryEl = document.getElementById('bookingSummary');
+  lastRenderedBookings = bookings;
+  renderGuideBreakdown(bookings);
+  const { from, to } = getBookingDateRange();
+  const rangeLabel = (from || to) ? ` · ${from || 'start'} to ${to || 'now'}` : '';
   if (!bookings.length) {
-    list.innerHTML = '<div class="empty">No booking requests yet.</div>';
-    summaryEl.textContent = '';
+    list.innerHTML = (from || to) ? '<div class="empty">No bookings in this date range.</div>' : '<div class="empty">No booking requests yet.</div>';
+    summaryEl.textContent = (from || to) ? `0 completed · S$0.00 owed to STGS${rangeLabel}` : '';
     return;
   }
   const totalOwed = bookings.reduce((sum, b) => sum + (b.revenueShare || 0), 0);
   const completedCount = bookings.filter((b) => b.status === 'completed').length;
-  summaryEl.textContent = `${completedCount} completed · S$${totalOwed.toFixed(2)} owed to STGS (10% of recorded payments)`;
+  summaryEl.textContent = `${completedCount} completed · S$${totalOwed.toFixed(2)} owed to STGS (10% of recorded payments)${rangeLabel}`;
   list.innerHTML = bookings.map((b) => {
     const color = BOOKING_STATUS_COLOR[b.status] || '#94a3b8';
     const estimateAttr = b.estimatedTotal != null ? b.estimatedTotal.toFixed(2) : '';
