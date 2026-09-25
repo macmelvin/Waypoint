@@ -271,26 +271,28 @@ let partners = loadPartners();
 
 // ---- Tourist guide directory (STGS pilot) -----------------------------------
 // Curated list of certified Society of Tourist Guides (Singapore) guides,
-// each tagged to one or more entries in GUIDE_LANDMARKS below -- most of
-// which are real places from app.js's LANDMARKS, plus a handful of theme
-// categories (Family & Thrill Seeker, History & Colonial, Events & Seasonal)
-// that group guides by subject rather than by a single spot -- see the
-// comment on GUIDE_LANDMARKS for why those work as plain tags too. Same
-// persisted-JSON-on-the-Railway-Volume pattern as partners
-// above, managed from /admin rather than requiring a redeploy to add/edit a
-// guide.
+// each tagged to one or more of Waypoint's existing LANDMARKS (see
+// GUIDE_LANDMARKS below -- the subset of app.js's LANDMARKS that make sense
+// for a guided walk). Same persisted-JSON-on-the-Railway-Volume pattern as
+// partners above, managed from /admin rather than requiring a redeploy to
+// add/edit a guide.
+//
+// This briefly also held a few "theme category" keys with no single real
+// place (Nature & Outdoors, Family & Thrill Seeker, History & Colonial,
+// Events & Seasonal), each rendered client-side as a guide-list-only view
+// with no map pin. All four were rolled back shortly after shipping, so
+// every key here is a real landmark again -- if theme categories come back,
+// GUIDE_CATEGORY_INFO/loadGuideCategoryInfo() in app.js (removed along with
+// them) is the pattern to revive.
 const GUIDES_FILE = process.env.GUIDES_FILE || '/data/guides.json';
 
-// Tags a guide can be filtered/booked by on the public site. Most of these
-// are real LANDMARKS a guide could plausibly lead a walk around -- heritage,
-// culture and nature spots rather than e.g. Changi Airport or a carpark --
-// and a few (see the comment further down, above the theme-category
-// entries) are subject-based categories with no single place. Used to
-// validate admin input and to label a guide's tags in the admin panel; the
-// public site's actual place names still come from app.js's own LANDMARKS --
-// this is just the guide-eligible subset plus the theme categories, kept in
-// server.js so the admin panel can render a picker without duplicating the
-// whole LANDMARKS object.
+// Keep in sync with the LANDMARKS a guide could plausibly lead a walk
+// around -- heritage, culture and nature spots rather than e.g. Changi
+// Airport or a carpark. Used to validate admin input and to label a guide's
+// landmark tags in the admin panel; the public site's actual place names
+// still come from app.js's own LANDMARKS -- this is just the guide-eligible
+// subset, kept in server.js so the admin panel can render a picker without
+// duplicating the whole LANDMARKS object.
 const GUIDE_LANDMARKS = {
   chinatown: 'Chinatown',
   littleindia: 'Little India',
@@ -302,20 +304,6 @@ const GUIDE_LANDMARKS = {
   sentosa: 'Sentosa Island',
   nationalgallery: 'National Gallery Singapore',
   esplanade: 'Esplanade',
-  // The three below aren't real single places -- they're theme categories
-  // (a guide might cover several different spots under one theme, e.g. a
-  // History & Colonial guide might do Fort Siloso one day and the Battlebox
-  // the next). They still work as ordinary tags in this same object: nothing
-  // downstream of GUIDE_LANDMARKS (admin picker, pricing overrides, the
-  // guides-for-landmark endpoint, revenue-share reporting) actually requires
-  // a tag to correspond to a real lat/lon place, so no server-side changes
-  // were needed beyond adding these entries. The public site handles the
-  // "no single place to show a pin for" difference entirely in app.js's
-  // GUIDE_CATEGORY_INFO + loadGuideCategoryInfo(), which shows a plain guide
-  // list instead of a map place-card for exactly these three keys.
-  familythrillseeker: 'Family & Thrill Seeker',
-  historycolonial: 'History & Colonial',
-  eventsseasonal: 'Events & Seasonal',
 };
 
 // Seeds the feature with a few example profiles the first time it runs (no
@@ -1207,15 +1195,9 @@ app.get('/api/geocode', async (req, res) => {
   res.json({ results: finalResults });
 });
 
-// ---- Tourist guides for a landmark, or a theme category (STGS pilot) --------
+// ---- Tourist guides for a landmark (STGS pilot) -----------------------------
 // Public read of the curated guide list above, filtered to one GUIDE_LANDMARKS
-// key and stripped to only what the place card / category view needs (no
-// admin-only fields). Despite the name, `key` doesn't have to be a real place
-// -- the three theme categories (familythrillseeker, historycolonial,
-// eventsseasonal) are ordinary entries in the same GUIDE_LANDMARKS object,
-// so this one endpoint serves both the place-card "Certified local guides"
-// section and app.js's category guide-list view without needing a parallel
-// API.
+// key and stripped to only what the place card needs (no admin-only fields).
 app.get('/api/guides-for-landmark', (req, res) => {
   const key = String(req.query.key || '');
   if (!GUIDE_LANDMARKS[key]) return res.json({ guides: [] });
