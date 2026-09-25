@@ -592,13 +592,13 @@ async function loadAttractionInfo(r) {
     ? `<p class="attraction-food-tip">🍴 ${t('attraction_try')} <strong>${escapeHtml(foodHighlight)}</strong></p>`
     : '';
 
-  // What a district-style landmark (currently just Civic District) actually
-  // covers — see DISTRICT_COVERAGE above. Shown first, ahead of the nearest
-  // MRT/nearby-attractions info, since "what is this place" matters more
-  // here than it does for a single-building landmark.
+  // A short "did you know" info tip for every Guided Walk landmark — see
+  // DISTRICT_COVERAGE above. Shown first, ahead of the nearest MRT/nearby-
+  // attractions info, since "what is this place" matters more here than it
+  // does for a landmark whose name is already fully self-explanatory.
   const coverage = DISTRICT_COVERAGE[key];
   const coverageHtml = coverage
-    ? `<p class="attraction-coverage-tip">📍 <strong>${t('attraction_covers')}</strong> ${escapeHtml(coverage)}</p>`
+    ? `<p class="attraction-coverage-tip">📍 ${escapeHtml(coverage)}</p>`
     : '';
 
   if (token !== attractionInfoToken) return;
@@ -1136,14 +1136,26 @@ const FOOD_HIGHLIGHTS = {
   amoystreet: 'Budget-friendly rice and noodle stalls popular with the lunchtime office crowd',
 };
 
-// What a "district" landmark actually covers — Chinatown/Little India/
-// Kampong Glam are reasonably self-explanatory by name, but "Civic
-// District" and "Fort Canning Park" aren't, so tapping either needs to say
-// what's actually there. Shown as an info tip on the place card (see
-// loadAttractionInfo below).
+// A short "did you know" info tip for every Guided Walk landmark, shown on
+// the place card (see loadAttractionInfo below) right where the "Certified
+// local guides" section also lives. Started with just Civic District and
+// Fort Canning Park, whose names alone don't say what's actually there
+// (several separate sub-attractions clustered around one area), then
+// extended to every other Guided Walk chip too -- for the other district-
+// style ones (Chinatown, Little India, Kampong Glam) it's the same "here's
+// what's actually within a few minutes' walk" framing; for the single-site
+// ones (Botanic Gardens, Haw Par Villa, Pulau Ubin & Chek Jawa) it's a
+// quick highlight or a "this is actually two separate stops" clarification
+// instead, since a coverage list doesn't fit a single attraction.
 const DISTRICT_COVERAGE = {
+  chinatown: "Buddha Tooth Relic Temple and Sri Mariamman Temple (Singapore's oldest Hindu temple) are 2 minutes apart on South Bridge Road; Maxwell Food Centre is a couple of blocks further, and Thian Hock Keng Temple a 5-min walk east on Telok Ayer Street.",
+  littleindia: 'Sri Veeramakaliamman Temple, Tekka Centre (wet market and hawker food), Mustafa Centre (24-hour shopping) and the shophouses of Little India Arcade are all spread along and just off Serangoon Road, a 10-15 min walk end to end.',
+  kampongglam: 'Sultan Mosque and the Malay Heritage Centre anchor the district, with the boutiques, cafes and murals of Haji Lane, Bussorah Street and Arab Street all within a couple of minutes’ walk of each other.',
+  botanicgardens: "The National Orchid Garden, Jacob Ballas Children's Garden, Swan Lake and Symphony Lake are all within the gardens — Singapore's only UNESCO World Heritage Site.",
+  hawparvilla: 'Home to over 1,000 statues and dioramas depicting Chinese mythology and folklore, including the famously graphic Ten Courts of Hell — built in 1937 by the Aw brothers of Tiger Balm, and free to enter.',
   civicdistrict: "National Gallery Singapore, the Asian Civilisations Museum, St Andrew's Cathedral, Old Parliament House, Victoria Theatre & Concert Hall, CHIJMES and Raffles Hotel are all a 5-10 min walk from the Padang.",
   fortcanning: 'The Battle Box (the underground WWII command bunker where the surrender of Singapore was decided) is inside the park itself; the Peranakan Museum, Old Hill Street Police Station and Central Fire Station are all a 4-6 min walk away.',
+  pulauubin: "This chip's ferry pin is Changi Point Ferry Terminal — the boat lands on Pulau Ubin itself, and Chek Jawa Wetlands is a further ~3km (cycle or walk) from the main jetty. The German Girl Shrine and a disused granite quarry are also on the island.",
 };
 
 // Real, Singapore-scoped search URLs — copied directly from KKday's own site
@@ -1380,7 +1392,6 @@ const I18N = {
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
     attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:', attraction_guides_title: 'Certified local guides', attraction_guide_verified: 'Verified', attraction_guide_message: 'Secure a Guided Walk Booking', attraction_guide_sample: 'Sample profile — contact number not yet added', attraction_guide_availability: 'Check availability & book',
-    attraction_covers: 'Covers:',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
