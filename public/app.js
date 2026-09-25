@@ -463,6 +463,113 @@ async function walkingRouteTo(fromLat, fromLon, toLat, toLon) {
   }
 }
 
+// Guide cards: name, verified badge, specialty/languages, a short curated
+// "insider tip" preview from the guide (feature: guide-curated previews),
+// and -- where the guide has a WhatsApp number on file -- a "Message on
+// WhatsApp" button that pre-fills an enquiry (feature: direct booking, as
+// an enquiry-to-book MVP rather than a live calendar). Sample profiles
+// (seeded before any real STGS guide is added) have no WhatsApp number, so
+// that button just doesn't render for them.
+//
+// Shared by loadAttractionInfo() below (a real landmark's place card) and
+// loadGuideCategoryInfo() (a theme category's guide-list view, which has no
+// place card at all) -- both just need "here's who's tagged to this key",
+// they differ only in what wraps around it.
+function renderGuidesSection(guideList, key) {
+  return guideList.length
+    ? `
+      <div class="attraction-guides">
+        <h4>${t('attraction_guides_title')} <span class="attraction-guides-badge">Society of Tourist Guides</span></h4>
+        ${guideList.map((g) => {
+          const languages = (g.languages || []).join(', ');
+          return `
+            <div class="attraction-guide-card">
+              <div class="attraction-guide-head">
+                <span class="attraction-guide-name">${escapeHtml(g.name)}</span>
+                ${g.verified ? `<span class="attraction-guide-verified">✓ ${t('attraction_guide_verified')}</span>` : ''}
+              </div>
+              ${g.specialty || languages ? `<div class="attraction-guide-meta">${escapeHtml([g.specialty, languages].filter(Boolean).join(' · '))}</div>` : ''}
+              ${g.pricePerAdult != null ? `<div class="attraction-guide-price">S$${Number(g.pricePerAdult).toFixed(2)} / adult · children under 15 free</div>` : ''}
+              ${g.note ? `<p class="attraction-guide-note">“${escapeHtml(g.note)}”</p>` : ''}
+              ${g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}&landmark=${encodeURIComponent(key)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
+            </div>`;
+        }).join('')}
+      </div>`
+    : '';
+}
+
+// ---------- Guided Walk theme categories ----------
+// A handful of Guided Walk chips (see index.html's `guidedwalk` row) don't
+// map to one single place the way Kampong Glam or National Gallery do -- a
+// "Nature & Outdoors" guide might lead a walk at MacRitchie one day and
+// Sungei Buloh the next. Rather than invent a fake landmark/pin for these
+// (which selectSearchResult()'s place-card flow assumes exists), they get
+// their own lightweight view: no map, no directions, just the category's
+// blurb plus its tagged guides -- reusing the exact same
+// /api/guides-for-landmark lookup and renderGuidesSection() as a real
+// landmark's place card, since these keys are just ordinary entries in
+// server.js's GUIDE_LANDMARKS (see the comment there for why that works).
+const GUIDE_CATEGORY_INFO = {
+  natureoutdoors: {
+    icon: '🌳',
+    label: 'Nature & Outdoors',
+    intro: 'Guides for the Central Catchment/MacRitchie treetop walk, Sungei Buloh wetlands and birdwatching, Southern Ridges hiking, kayaking and cycling tours, and Southern Islands (Kusu, St John’s) boat excursions.',
+  },
+  familythrillseeker: {
+    icon: '🎢',
+    label: 'Family & Thrill Seeker',
+    intro: 'Guides for family days out at the Zoo, River Wonders and Science Centre, plus adventure-sport add-ons like the cable car and adventure parks.',
+  },
+  historycolonial: {
+    icon: '🎖️',
+    label: 'History & Colonial',
+    intro: 'Guides for WWII and the Battle of Singapore (Fort Siloso, Kranji War Memorial, the Battlebox), and Singapore’s post-independence nation-building and HDB heritage.',
+  },
+  eventsseasonal: {
+    icon: '🎉',
+    label: 'Events & Seasonal',
+    intro: 'Guides for F1 Singapore Grand Prix weekend, and festival-specific tours for Chinese New Year, Deepavali, Hari Raya and concerts.',
+  },
+};
+
+async function loadGuideCategoryInfo(categoryKey) {
+  const info = GUIDE_CATEGORY_INFO[categoryKey];
+  if (!info) return;
+
+  // There's no real place here, so unlike selectSearchResult() this never
+  // shows the place card (label/address/directions/set-as-home-work) --
+  // only attractionInfo, repurposed to show the category's own card.
+  els.placeCard.classList.add('hidden');
+  const token = ++attractionInfoToken;
+  els.attractionInfo.classList.remove('hidden');
+  els.attractionInfo.innerHTML = `<p class="attraction-loading">${t('attraction_loading')}</p>`;
+
+  let guideList = [];
+  try {
+    const guidesRes = await fetch(`/api/guides-for-landmark?key=${encodeURIComponent(categoryKey)}`);
+    if (token !== attractionInfoToken) return;
+    const guidesData = await guidesRes.json().catch(() => ({}));
+    if (guidesRes.ok && Array.isArray(guidesData.guides)) guideList = guidesData.guides;
+  } catch (err) {
+    console.error('guides-for-landmark lookup failed:', err);
+  }
+
+  if (token !== attractionInfoToken) return;
+
+  const guidesHtml = renderGuidesSection(guideList, categoryKey);
+  const emptyHtml = guideList.length
+    ? ''
+    : `<p class="guide-category-empty">${t('guide_category_empty')}</p>`;
+
+  els.attractionInfo.innerHTML = `
+    <div class="guide-category-card">
+      <h3 class="guide-category-title">${info.icon} ${escapeHtml(info.label)}</h3>
+      <p class="guide-category-intro">${escapeHtml(info.intro)}</p>
+      ${emptyHtml}
+      ${guidesHtml}
+    </div>`;
+}
+
 let attractionInfoToken = 0; // guards against a slow lookup overwriting a newer selection
 
 async function loadAttractionInfo(r) {
@@ -530,33 +637,8 @@ async function loadAttractionInfo(r) {
       </div>`
     : '';
 
-  // Guide cards: name, verified badge, specialty/languages, a short curated
-  // "insider tip" preview from the guide (feature: guide-curated previews),
-  // and -- where the guide has a WhatsApp number on file -- a "Message on
-  // WhatsApp" button that pre-fills an enquiry (feature: direct booking, as
-  // an enquiry-to-book MVP rather than a live calendar). Sample profiles
-  // (seeded before any real STGS guide is added) have no WhatsApp number,
-  // so that button just doesn't render for them.
-  const guidesHtml = guideList.length
-    ? `
-      <div class="attraction-guides">
-        <h4>${t('attraction_guides_title')} <span class="attraction-guides-badge">Society of Tourist Guides</span></h4>
-        ${guideList.map((g) => {
-          const languages = (g.languages || []).join(', ');
-          return `
-            <div class="attraction-guide-card">
-              <div class="attraction-guide-head">
-                <span class="attraction-guide-name">${escapeHtml(g.name)}</span>
-                ${g.verified ? `<span class="attraction-guide-verified">✓ ${t('attraction_guide_verified')}</span>` : ''}
-              </div>
-              ${g.specialty || languages ? `<div class="attraction-guide-meta">${escapeHtml([g.specialty, languages].filter(Boolean).join(' · '))}</div>` : ''}
-              ${g.pricePerAdult != null ? `<div class="attraction-guide-price">S$${Number(g.pricePerAdult).toFixed(2)} / adult · children under 15 free</div>` : ''}
-              ${g.note ? `<p class="attraction-guide-note">“${escapeHtml(g.note)}”</p>` : ''}
-              ${g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}&landmark=${encodeURIComponent(key)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
-            </div>`;
-        }).join('')}
-      </div>`
-    : '';
+  // See renderGuidesSection() above (shared with loadGuideCategoryInfo()).
+  const guidesHtml = renderGuidesSection(guideList, key);
 
   // Only rendered for landmarks that are actually paid/ticketed attractions
   // (see TICKET_LINKS) — a free spot like Merlion Park has nothing to book.
@@ -1233,6 +1315,11 @@ document.querySelectorAll('.category-chip').forEach((btn) => {
     const bookOnlineUrl = tagAffiliateUrl(BOOK_ONLINE_LINKS[category]);
     if (bookOnlineUrl) {
       window.open(bookOnlineUrl, '_blank', 'noopener,noreferrer');
+    } else if (GUIDE_CATEGORY_INFO[category]) {
+      // Guided Walk theme chips (Nature & Outdoors, etc.) — no single place
+      // to show a pin for, so this skips the place-card/GPS-search flow too,
+      // straight to a guide-list view. See loadGuideCategoryInfo() above.
+      loadGuideCategoryInfo(category);
     } else if (LANDMARKS[category]) {
       selectSearchResult(LANDMARKS[category]);
     } else {
@@ -1334,6 +1421,7 @@ const I18N = {
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
     attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:', attraction_guides_title: 'Certified local guides', attraction_guide_verified: 'Verified', attraction_guide_message: 'Secure a Guided Walk Booking', attraction_guide_sample: 'Sample profile — contact number not yet added', attraction_guide_availability: 'Check availability & book',
+    guide_category_empty: 'No guides tagged to this category yet — check back soon.',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',

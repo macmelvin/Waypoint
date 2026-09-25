@@ -1025,6 +1025,21 @@ a:active {
 }
 .attraction-guide-availability:hover { background: var(--accent); color: #fff; }
 
+/* ---- Guided Walk theme-category guide list (Nature & Outdoors, etc.) ----
+   Shown inside #attractionInfo in place of a real place card -- these chips
+   have no single map pin, so there's no .place-card at all here, just this
+   card wrapping the category's blurb plus the same .attraction-guide-card
+   list used elsewhere. */
+.guide-category-card {
+  border: 1px solid var(--border); background: var(--surface-elevated);
+  border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow-1);
+}
+.guide-category-title {
+  margin: 0 0 6px; font-size: 17px; font-weight: 700; letter-spacing: var(--tracking-tight);
+}
+.guide-category-intro { margin: 0 0 4px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.guide-category-empty { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
+
 /* ---- 5 Singapore Must-Eats ---- */
 .must-eats-section { margin: 4px 0 14px; }
 .must-eats-section.hidden { display: none; }
