@@ -1115,6 +1115,15 @@ const TICKET_LINKS = {
 // a globally recognised brand with Changi Airport and downtown counters, so
 // a visitor can book (and often reuse an existing Hertz account/status) the
 // same way they would back home.
+//
+// "avengedsevenfold" is a one-off, time-limited promo chip for a single
+// concert date (13 Oct 2026, Singapore Indoor Stadium -- Avenged Sevenfold's
+// Asia Tour 2026, opened by Nene Royal fresh off her America's Got Talent
+// Season 21 win) rather than an evergreen category. It links straight to the
+// event's own BookMyShow.sg page -- no affiliate deal, same reasoning as the
+// direct SISTIC link for Concerts. REMOVE THIS CHIP (and its CHIP_I18N entry
+// + index.html button) once 13 Oct 2026 has passed; it has no ongoing
+// relevance after the show.
 const BOOK_ONLINE_LINKS = {
   concerts: 'https://www.sistic.com.sg/events?genre=64',
   attractiontickets: 'https://www.kkday.com/en-sg/category/sg-singapore/attraction-tickets/list?cid=26927&ud1=AttractionTickets',
@@ -1125,6 +1134,7 @@ const BOOK_ONLINE_LINKS = {
   accommodation: 'https://www.trip.com/t/RqV5cn2vNW2',
   simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
   carrental: 'https://www.hertz.com.sg/sg/en',
+  avengedsevenfold: 'https://bookmyshow.sg/en/events/avenged-sevenfold-asia-tour-2026/AVSEVENF',
 };
 
 // ---- Travel-agency / distribution-partner referral tagging -------------------
@@ -1521,6 +1531,7 @@ const CHIP_I18N = {
   accommodation: { en: 'Accommodation', zh: '住宿', ms: 'Penginapan', ta: 'தங்குமிடம்', ja: '宿泊', ko: '숙박' },
   simcards: { en: 'SIM & eSIM', zh: 'Wi-Fi与SIM卡', ms: 'Wi-Fi & Kad SIM', ta: 'வைஃபை & சிம் கார்டுகள்', ja: 'Wi-Fi＆SIMカード', ko: '와이파이 & 유심' },
   carrental: { en: 'Car Rental', zh: '租车', ms: 'Sewa Kereta', ta: 'கார் வாடகை', ja: 'レンタカー', ko: '렌터카' },
+  avengedsevenfold: { en: 'Avenged Sevenfold ft. Nene Royal', zh: 'Avenged Sevenfold ft. Nene Royal', ms: 'Avenged Sevenfold ft. Nene Royal', ta: 'Avenged Sevenfold ft. Nene Royal', ja: 'アヴェンジド・セヴンフォールド feat. ネネ・ロイヤル', ko: '어벤지드 세븐폴드 feat. 네네 로열' },
 };
 
 function t(key) {
