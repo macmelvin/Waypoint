@@ -305,6 +305,7 @@ const GUIDE_LANDMARKS = {
   nationalgallery: 'National Gallery Singapore',
   esplanade: 'Esplanade',
   civicdistrict: 'Civic District',
+  fortcanning: 'Fort Canning Park',
 };
 
 // Seeds the feature with a few example profiles the first time it runs (no

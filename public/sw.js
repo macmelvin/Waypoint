@@ -15,7 +15,7 @@
 // Without a bump, the fetch handler switching to network-first (see below)
 // is the real fix for staleness, but bumping this too guarantees today's
 // deploy self-heals immediately instead of waiting for a natural change.
-const SHELL_CACHE = 'waypoint-shell-v95';
+const SHELL_CACHE = 'waypoint-shell-v96';
 const RUNTIME_CACHE = 'waypoint-runtime-v1';
 
 const SHELL_ASSETS = [

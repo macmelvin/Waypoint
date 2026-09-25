@@ -1021,6 +1021,13 @@ const LANDMARKS = {
   // etc.) -- shown as an info tip on the place card since a first-time
   // visitor searching "Civic District" has no way to know that otherwise.
   civicdistrict: { label: 'Civic District', address: 'Civic District, Singapore', lat: 1.29056, lon: 103.85306 },
+  // The old seat of the Malay kings, then colonial Government House --
+  // pinned at the Fort Canning Centre building (also home to the Battle
+  // Box), a real addressable point right in the park, rather than the park
+  // boundary generally. Also has a DISTRICT_COVERAGE entry below for the
+  // same reason as Civic District: several separate sights within a few
+  // minutes' walk that a first-time visitor wouldn't otherwise know about.
+  fortcanning: { label: 'Fort Canning Park', address: '51 Canning Rise, Singapore 179872', lat: 1.296182, lon: 103.846152 },
   clarkequay: { label: 'Clarke Quay', address: '3 River Valley Rd, Singapore 179024', lat: 1.28840, lon: 103.84650 },
   botanicgardens: { label: 'Singapore Botanic Gardens', address: '1 Cluny Rd, Singapore 259569', lat: 1.31380, lon: 103.81590 },
   nationalgallery: { label: 'National Gallery Singapore', address: "1 St Andrew's Rd, Singapore 178957", lat: 1.29030, lon: 103.85170 },
@@ -1130,13 +1137,13 @@ const FOOD_HIGHLIGHTS = {
 };
 
 // What a "district" landmark actually covers — Chinatown/Little India/
-// Kampong Glam are reasonably self-explanatory by name, but "Civic District"
-// isn't, so tapping it needs to say what's actually there. Shown as an info
-// tip on the place card (see loadAttractionInfo below); only civicdistrict
-// has an entry right now; extend this if another district-style landmark
-// ends up needing the same treatment.
+// Kampong Glam are reasonably self-explanatory by name, but "Civic
+// District" and "Fort Canning Park" aren't, so tapping either needs to say
+// what's actually there. Shown as an info tip on the place card (see
+// loadAttractionInfo below).
 const DISTRICT_COVERAGE = {
   civicdistrict: "National Gallery Singapore, the Asian Civilisations Museum, St Andrew's Cathedral, Old Parliament House, Victoria Theatre & Concert Hall, CHIJMES and Raffles Hotel are all a 5-10 min walk from the Padang.",
+  fortcanning: 'The Battle Box (the underground WWII command bunker where the surrender of Singapore was decided) is inside the park itself; the Peranakan Museum, Old Hill Street Police Station and Central Fire Station are all a 4-6 min walk away.',
 };
 
 // Real, Singapore-scoped search URLs — copied directly from KKday's own site
