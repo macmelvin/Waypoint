@@ -136,6 +136,10 @@ const els = {
   favEmptyHint: document.getElementById('favEmptyHint'),
   themeToggle: document.getElementById('themeToggle'),
   themeColorMeta: document.getElementById('themeColorMeta'),
+  routePickingBanner: document.getElementById('routePickingBanner'),
+  routePickingCancelBtn: document.getElementById('routePickingCancelBtn'),
+  planRouteBtn: document.getElementById('planRouteBtn'),
+  routePlanResult: document.getElementById('routePlanResult'),
 };
 
 let currentPlace = null; // last searched place result
@@ -362,6 +366,15 @@ function renderResultList(listEl, results, onPick) {
 }
 
 function selectSearchResult(r) {
+  // Plan a Route hijacks the Search tab to fill one of its 3 destination
+  // slots -- this is the single choke point every search flow (free-text,
+  // a landmark chip, or a "nearby X" category result) already funnels
+  // through, so hooking in here is what makes "pick any place, from any
+  // category" work without duplicating any of that logic.
+  if (routePickingSlot) {
+    setRouteDestination(routePickingSlot, r);
+    return;
+  }
   currentPlace = r;
   els.searchResults.innerHTML = '';
   els.searchInput.value = shortLabel(r);
@@ -1293,6 +1306,7 @@ const I18N = {
     dir_from_placeholder: 'From — postal code, address, or place', dir_to_placeholder: 'To — postal code, address, or place',
     swap: 'Swap', mode_drive: 'Drive', mode_transit: 'Bus / MRT', mode_cycle: 'Cycle', mode_walk: 'Walk',
     get_directions: 'Get Directions', start_navigation: '▶️ Start Navigation',
+    tab_planroute: '🗺️ Plan a Route', planroute_intro: 'Pick any 3 places from Search — attractions, food, MRT stations, anything — and Waypoint works out the best order to visit them from where you are now.', planroute_add_destination: '+ Add Destination', planroute_picking_banner: 'Tap a place, or any category chip, to add it as a stop.', planroute_cancel: 'Cancel', planroute_plan_button: 'Plan My Route', planroute_total_prefix: 'Total (straight-line estimate):', planroute_my_location: 'My Location',
     car_parked: 'Car parked', tap_to_walk_back: 'Tap below to walk back to it', walk_to_car: 'Walk to my car',
     save_parking: '🅿️ Save my parking spot', nearby_stops: '📍 Stops near me',
     nearby_arrivals_title: 'Nearby',
@@ -1322,6 +1336,7 @@ const I18N = {
     dir_from_placeholder: '起点 — 邮区编号、地址或地点', dir_to_placeholder: '终点 — 邮区编号、地址或地点',
     swap: '互换', mode_drive: '驾车', mode_transit: '巴士 / 地铁', mode_cycle: '骑行', mode_walk: '步行',
     get_directions: '获取路线', start_navigation: '▶️ 开始导航',
+    tab_planroute: '🗺️ 路线规划', planroute_intro: '从"搜索"中任选3个地点——景点、美食、地铁站,任何地方都可以——Waypoint会根据您目前的位置,为您规划最佳游览顺序。', planroute_add_destination: '+ 添加目的地', planroute_picking_banner: '点击一个地点,或任意分类图标,将其加入行程。', planroute_cancel: '取消', planroute_plan_button: '规划路线', planroute_total_prefix: '总距离(直线估算):', planroute_my_location: '我的位置',
     car_parked: '停车时间', tap_to_walk_back: '点击下方步行返回车辆位置', walk_to_car: '步行回到我的车',
     save_parking: '🅿️ 保存停车位置', nearby_stops: '📍 附近车站',
     nearby_arrivals_title: '附近',
@@ -1351,6 +1366,7 @@ const I18N = {
     dir_from_placeholder: 'Dari — poskod, alamat, atau tempat', dir_to_placeholder: 'Ke — poskod, alamat, atau tempat',
     swap: 'Tukar', mode_drive: 'Memandu', mode_transit: 'Bas / MRT', mode_cycle: 'Berbasikal', mode_walk: 'Berjalan kaki',
     get_directions: 'Dapatkan Arah', start_navigation: '▶️ Mula Navigasi',
+    tab_planroute: '🗺️ Rancang Laluan', planroute_intro: 'Pilih mana-mana 3 tempat dari Carian — tarikan, makanan, stesen MRT, apa sahaja — dan Waypoint akan mencari susunan terbaik untuk melawatnya dari lokasi anda sekarang.', planroute_add_destination: '+ Tambah Destinasi', planroute_picking_banner: 'Ketik satu tempat, atau mana-mana cip kategori, untuk menambahkannya sebagai perhentian.', planroute_cancel: 'Batal', planroute_plan_button: 'Rancang Laluan Saya', planroute_total_prefix: 'Jumlah (anggaran garis lurus):', planroute_my_location: 'Lokasi Saya',
     car_parked: 'Kereta diletak', tap_to_walk_back: 'Ketik di bawah untuk berjalan kembali ke sana', walk_to_car: 'Berjalan ke kereta saya',
     save_parking: '🅿️ Simpan lokasi tempat letak kereta saya', nearby_stops: '📍 Perhentian berdekatan',
     nearby_arrivals_title: 'Berdekatan',
@@ -1380,6 +1396,7 @@ const I18N = {
     dir_from_placeholder: 'இருந்து — அஞ்சல் குறியீடு, முகவரி அல்லது இடம்', dir_to_placeholder: 'வரை — அஞ்சல் குறியீடு, முகவரி அல்லது இடம்',
     swap: 'மாற்று', mode_drive: 'ஓட்டுதல்', mode_transit: 'பேருந்து / எம்ஆர்டி', mode_cycle: 'சைக்கிள்', mode_walk: 'நடை',
     get_directions: 'வழிகளைப் பெறுக', start_navigation: '▶️ வழிகாட்டலைத் தொடங்கு',
+    tab_planroute: '🗺️ பாதை திட்டமிடல்', planroute_intro: 'தேடலில் இருந்து ஏதேனும் 3 இடங்களைத் தேர்ந்தெடுக்கவும் — சுற்றுலா தலங்கள், உணவு, எம்ஆர்டி நிலையங்கள், எதுவும் — நீங்கள் இப்போது இருக்கும் இடத்திலிருந்து சிறந்த வழியை Waypoint கண்டறியும்.', planroute_add_destination: '+ இலக்கைச் சேர்க்க', planroute_picking_banner: 'ஒரு இடத்தை அல்லது எந்த வகை சின்னத்தையும் தட்டி, அதை நிறுத்தமாகச் சேர்க்கவும்.', planroute_cancel: 'ரத்துசெய்', planroute_plan_button: 'எனது பாதையைத் திட்டமிடு', planroute_total_prefix: 'மொத்தம் (நேர்கோட்டு மதிப்பீடு):', planroute_my_location: 'எனது இடம்',
     car_parked: 'கார் நிறுத்தப்பட்டது', tap_to_walk_back: 'அங்கு நடந்து செல்ல கீழே தட்டவும்', walk_to_car: 'எனது காருக்கு நடந்து செல்',
     save_parking: '🅿️ எனது பார்க்கிங் இடத்தைச் சேமி', nearby_stops: '📍 அருகிலுள்ள நிறுத்தங்கள்',
     nearby_arrivals_title: 'அருகில்',
@@ -1409,6 +1426,7 @@ const I18N = {
     dir_from_placeholder: '出発地 — 郵便番号、住所、または場所', dir_to_placeholder: '目的地 — 郵便番号、住所、または場所',
     swap: '入れ替え', mode_drive: '車', mode_transit: 'バス / MRT', mode_cycle: '自転車', mode_walk: '徒歩',
     get_directions: 'ルートを取得', start_navigation: '▶️ ナビ開始',
+    tab_planroute: '🗺️ ルートプラン', planroute_intro: '検索から観光地、グルメ、MRT駅など好きな3か所を選ぶと、Waypointが現在地から回る最適な順番を提案します。', planroute_add_destination: '+ 目的地を追加', planroute_picking_banner: '場所やカテゴリーのアイコンをタップして、立ち寄り先として追加してください。', planroute_cancel: 'キャンセル', planroute_plan_button: 'ルートを計画', planroute_total_prefix: '合計(直線距離の目安):', planroute_my_location: '現在地',
     car_parked: '駐車済み', tap_to_walk_back: '下をタップして車まで歩いて戻る', walk_to_car: '車まで歩く',
     save_parking: '🅿️ 駐車位置を保存', nearby_stops: '📍 近くのバス停',
     nearby_arrivals_title: '近く',
@@ -1438,6 +1456,7 @@ const I18N = {
     dir_from_placeholder: '출발지 — 우편번호, 주소 또는 장소', dir_to_placeholder: '도착지 — 우편번호, 주소 또는 장소',
     swap: '전환', mode_drive: '운전', mode_transit: '버스 / MRT', mode_cycle: '자전거', mode_walk: '도보',
     get_directions: '경로 가져오기', start_navigation: '▶️ 내비게이션 시작',
+    tab_planroute: '🗺️ 경로 계획', planroute_intro: '검색에서 명소, 음식점, MRT역 등 원하는 장소 3곳을 고르면, Waypoint가 현재 위치에서 방문하기 가장 좋은 순서를 알려드립니다.', planroute_add_destination: '+ 목적지 추가', planroute_picking_banner: '장소나 카테고리 아이콘을 탭하여 경유지로 추가하세요.', planroute_cancel: '취소', planroute_plan_button: '내 경로 계획하기', planroute_total_prefix: '총 거리(직선 거리 추정):', planroute_my_location: '내 위치',
     car_parked: '주차됨', tap_to_walk_back: '아래를 탭하여 차로 걸어서 돌아가기', walk_to_car: '내 차로 걸어가기',
     save_parking: '🅿️ 주차 위치 저장', nearby_stops: '📍 근처 정류장',
     nearby_arrivals_title: '근처',
@@ -1778,6 +1797,171 @@ function setTo(coords) {
 function maybeEnableDirections() {
   els.getDirectionsBtn.disabled = !(fromCoords && toCoords);
 }
+
+// ---------- Plan a Route (multi-stop trip planner) ----------
+// Lets a traveller pick any 3 places -- via the exact same Search tab flow
+// used everywhere else (free-text search, a landmark chip, or a "nearby X"
+// category result) -- and get back the best order to visit them in, starting
+// from wherever they are right now.
+//
+// Ordering is decided using straight-line (haversine) distance between all
+// 4 points (current location + 3 stops) rather than fetching a real route
+// for all 6 possible visiting orders just to throw 5 of them away -- with
+// only 3 stops this is a fine proxy for "which order is shortest" at
+// Singapore's scale, it's instant, and it needs no network call that could
+// fail. Once the order is decided, each leg still hands off to the real
+// Directions tab (via the existing setFrom/setTo/getDirections plumbing) --
+// so the actual walk/drive/transit route you're told to follow always comes
+// from OSRM/OTP, never a straight line.
+let routeDestinations = [null, null, null]; // each: { lat, lon, label } | null
+let routePickingSlot = null; // 1 | 2 | 3 while the Search tab is filling a slot
+let routeSelectedMode = 'transit';
+
+function switchToSearchTab() {
+  document.querySelector('.tab-btn[data-tab="search"]').click();
+}
+
+function switchToPlanRouteTab() {
+  document.querySelector('.tab-btn[data-tab="planroute"]').click();
+}
+
+function renderRouteSlots() {
+  document.querySelectorAll('.route-slot').forEach((btn) => {
+    const slot = parseInt(btn.dataset.slot, 10);
+    const dest = routeDestinations[slot - 1];
+    btn.classList.toggle('filled', !!dest);
+    btn.querySelector('.route-slot-label').textContent = dest ? dest.label : t('planroute_add_destination');
+    btn.querySelector('.route-slot-clear').classList.toggle('hidden', !dest);
+  });
+  els.planRouteBtn.disabled = routeDestinations.some((d) => !d);
+  // A stale plan from before a slot changed would otherwise keep showing a
+  // route that no longer matches the current 3 destinations.
+  els.routePlanResult.classList.add('hidden');
+  els.routePlanResult.innerHTML = '';
+}
+
+function setRouteDestination(slot, r) {
+  const label = shortLabel(r) || addressText(r) || t('planroute_add_destination');
+  routeDestinations[slot - 1] = {
+    lat: typeof r.lat === 'string' ? parseFloat(r.lat) : r.lat,
+    lon: typeof r.lon === 'string' ? parseFloat(r.lon) : r.lon,
+    label,
+  };
+  routePickingSlot = null;
+  els.routePickingBanner.classList.add('hidden');
+  els.searchResults.innerHTML = '';
+  els.searchInput.value = '';
+  els.searchClear.classList.remove('visible');
+  switchToPlanRouteTab();
+  renderRouteSlots();
+  showToast(`Added "${label}" as Destination ${slot}.`, 3000);
+}
+
+document.querySelectorAll('.route-slot').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    const slot = parseInt(btn.dataset.slot, 10);
+    if (e.target.classList.contains('route-slot-clear')) {
+      routeDestinations[slot - 1] = null;
+      renderRouteSlots();
+      return;
+    }
+    routePickingSlot = slot;
+    els.routePickingBanner.classList.remove('hidden');
+    switchToSearchTab();
+    els.searchInput.focus();
+  });
+});
+
+els.routePickingCancelBtn.addEventListener('click', () => {
+  routePickingSlot = null;
+  els.routePickingBanner.classList.add('hidden');
+  switchToPlanRouteTab();
+});
+
+document.querySelectorAll('.route-mode-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.route-mode-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    routeSelectedMode = btn.dataset.mode;
+  });
+});
+
+// Brute-force is fine here -- 3 stops means only 3! = 6 possible visiting
+// orders, trivial to check exhaustively rather than reaching for a real
+// TSP heuristic that would be overkill at this size.
+function permutationsOf3(arr) {
+  const [a, b, c] = arr;
+  return [
+    [a, b, c], [a, c, b],
+    [b, a, c], [b, c, a],
+    [c, a, b], [c, b, a],
+  ];
+}
+
+function bestVisitingOrder(start, destinations) {
+  let best = null;
+  permutationsOf3(destinations).forEach((order) => {
+    let total = haversineMeters(start.lat, start.lon, order[0].lat, order[0].lon);
+    total += haversineMeters(order[0].lat, order[0].lon, order[1].lat, order[1].lon);
+    total += haversineMeters(order[1].lat, order[1].lon, order[2].lat, order[2].lon);
+    if (!best || total < best.total) best = { order, total };
+  });
+  return best;
+}
+
+function renderRoutePlan(start, best) {
+  const points = [start, ...best.order];
+  const rows = best.order.map((dest, i) => {
+    const from = points[i];
+    const legMeters = haversineMeters(from.lat, from.lon, dest.lat, dest.lon);
+    return `
+      <div class="route-plan-leg">
+        <div class="route-plan-leg-title"><span class="route-plan-leg-num">${i + 1}</span>${escapeHtml(dest.label)}</div>
+        <div class="route-plan-leg-sub">${formatDistance(legMeters)} from ${escapeHtml(from.label)}</div>
+        <button class="pill-btn route-plan-leg-btn" type="button" data-leg="${i}">${t('get_directions')}</button>
+      </div>`;
+  }).join('');
+
+  els.routePlanResult.innerHTML = `${rows}<div class="route-plan-total">${t('planroute_total_prefix')} ${formatDistance(best.total)}</div>`;
+  els.routePlanResult.classList.remove('hidden');
+
+  els.routePlanResult.querySelectorAll('.route-plan-leg-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.leg, 10);
+      setFrom({ lat: points[i].lat, lon: points[i].lon, label: points[i].label });
+      setTo({ lat: points[i + 1].lat, lon: points[i + 1].lon, label: points[i + 1].label });
+      const modeBtn = document.querySelector(`.mode-btn[data-mode="${routeSelectedMode}"]`);
+      if (modeBtn) modeBtn.click();
+      switchToDirectionsTab();
+      getDirections();
+    });
+  });
+}
+
+els.planRouteBtn.addEventListener('click', () => {
+  if (routeDestinations.some((d) => !d)) return;
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  const originalLabel = els.planRouteBtn.textContent;
+  els.planRouteBtn.disabled = true;
+  els.planRouteBtn.textContent = '📍 Finding your location…';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const start = { lat: pos.coords.latitude, lon: pos.coords.longitude, label: t('planroute_my_location') };
+      renderRoutePlan(start, bestVisitingOrder(start, routeDestinations));
+      els.planRouteBtn.disabled = false;
+      els.planRouteBtn.textContent = originalLabel;
+    },
+    (err) => {
+      showToast(geoErrorMessage(err));
+      els.planRouteBtn.disabled = false;
+      els.planRouteBtn.textContent = originalLabel;
+    },
+    GEO_OPTIONS
+  );
+});
 
 // ---------- Rain awareness ----------
 // Only relevant when the route includes actual time on foot (walking mode,

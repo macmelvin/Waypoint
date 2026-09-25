@@ -1334,6 +1334,64 @@ a:active {
 .primary-btn:hover:not(:disabled) { background: var(--accent-dark); }
 .primary-btn:disabled { background: var(--gray-300); color: var(--label-tertiary); box-shadow: none; cursor: not-allowed; }
 
+/* ---- Plan a Route (multi-stop trip planner) ---- */
+.planroute-intro { margin: 0 0 14px; color: var(--muted); font-size: 13.5px; line-height: 1.4; }
+
+.route-picking-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--accent-light); color: var(--accent); border-radius: var(--radius-sm);
+  padding: 10px 12px; margin-bottom: 12px; font-size: 13px; font-weight: 600;
+}
+.route-picking-banner.hidden { display: none; }
+.route-picking-banner .pill-btn { flex-shrink: 0; }
+
+.route-slots { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.route-slot {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  border: 1px solid var(--border); background: var(--surface-elevated);
+  border-radius: var(--radius-sm); padding: 12px; cursor: pointer; text-align: left;
+  font-size: 14px; color: var(--label-secondary);
+}
+.route-slot.filled { color: var(--ink); border-color: var(--accent); }
+.route-slot-num {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--surface-secondary); color: var(--label-secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.route-slot.filled .route-slot-num { background: var(--accent); color: white; }
+.route-slot-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route-slot-clear {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--label-tertiary); font-size: 13px;
+}
+.route-slot-clear.hidden { display: none; }
+.route-slot-clear:hover { background: var(--surface-secondary); color: var(--ink); }
+
+.route-mode-select { margin-bottom: 14px; }
+.route-mode-btn {
+  flex: 1; min-height: 38px; padding: 8px 0; border: none; background: none;
+  border-radius: calc(var(--radius-sm) - 3px); color: var(--label-secondary);
+  cursor: pointer; font-size: 17px; display: flex; align-items: center; justify-content: center;
+}
+.route-mode-btn svg { width: 19px; height: 19px; }
+.route-mode-btn.active { background: var(--surface-elevated); color: var(--accent); box-shadow: var(--shadow-1); }
+
+.route-plan-result { margin-top: 16px; }
+.route-plan-result.hidden { display: none; }
+.route-plan-leg {
+  border: 1px solid var(--border); background: var(--surface-elevated);
+  border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;
+}
+.route-plan-leg-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.route-plan-leg-num {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
+  color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.route-plan-leg-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 8px; }
+.route-plan-total { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+
 .itinerary-options-label {
   font-size: 11px;
   font-weight: 700;
