@@ -1024,6 +1024,16 @@ const LANDMARKS = {
   lowerpeirce: { label: 'Lower Peirce Reservoir', address: 'Lower Peirce Reservoir Park, Singapore', lat: 1.36390, lon: 103.82830 },
   upperseletar: { label: 'Upper Seletar Reservoir', address: 'Upper Seletar Reservoir Park, Singapore', lat: 1.40580, lon: 103.81020 },
   bedokreservoir: { label: 'Bedok Reservoir', address: 'Bedok Reservoir Park, Singapore', lat: 1.33620, lon: 103.93190 },
+  // Pulau Ubin has no vehicle/bridge access at all -- getting there means a
+  // bumboat from Changi Point Ferry Terminal ($4/pax each way, departs on
+  // demand 6am-7pm once 12 passengers are aboard), so -- same reasoning as
+  // macritchietreetop above -- this points at the ferry terminal itself, the
+  // actual place a visitor can be routed to by road, rather than a pin out on
+  // the island that Directions could never reach. Chek Jawa Wetlands (free
+  // entry, boardwalk open 9am-5pm) is a further ~3km/40min walk (or
+  // bike/van hire) from Pulau Ubin's main jetty once there, so it's folded
+  // into this one combined chip rather than given its own separate pin.
+  pulauubin: { label: 'Pulau Ubin & Chek Jawa (via Changi Point Ferry Terminal)', address: '51 Lorong Bekukong, Singapore 499172', lat: 1.390871, lon: 103.987559 },
   // Gourmet Food — Singapore's most famous hawker centres and food markets,
   // the kind of "gourmet" food experience tourists specifically travel here
   // for (several Michelin-recognised stalls among them). Same fixed-landmark
@@ -1306,7 +1316,7 @@ const I18N = {
     notify_title: 'Turn on train/traffic/haze alerts', where_am_i: 'Where am I',
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
-    category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online',
+    category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online', category_nature: 'Nature & Islands',
     must_eats_title: '🇸🇬 5 Singapore Must-Eats', find_nearby: '📍 Find nearby',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
@@ -1336,7 +1346,7 @@ const I18N = {
     notify_title: '开启地铁/交通/雾霾提醒', where_am_i: '我的位置',
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
-    category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订',
+    category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订', category_nature: '自然与岛屿',
     must_eats_title: '🇸🇬 5大新加坡必吃美食', find_nearby: '📍 附近寻找',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
     set_home: '🏠 设为住家', set_work: '💼 设为公司',
@@ -1366,7 +1376,7 @@ const I18N = {
     notify_title: 'Hidupkan makluman keretapi/trafik/jerebu', where_am_i: 'Di Mana Saya',
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
-    category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian',
+    category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian', category_nature: 'Alam Semula Jadi & Pulau',
     must_eats_title: '🇸🇬 5 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
     set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
@@ -1396,7 +1406,7 @@ const I18N = {
     notify_title: 'ரயில்/போக்குவரத்து/புகைமூட்ட எச்சரிக்கைகளை இயக்கு', where_am_i: 'நான் எங்கே',
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
-    category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்',
+    category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்', category_nature: 'இயற்கை & தீவுகள்',
     must_eats_title: '🇸🇬 சிங்கப்பூரின் 5 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
     set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
@@ -1426,7 +1436,7 @@ const I18N = {
     notify_title: '電車・交通・ヘイズ情報の通知をオンにする', where_am_i: '現在地',
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
-    category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約',
+    category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約', category_nature: '自然＆離島',
     must_eats_title: '🇸🇬 シンガポール必食5選', find_nearby: '📍 近くを探す',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
     set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
@@ -1456,7 +1466,7 @@ const I18N = {
     notify_title: '열차/교통/실안개 알림 켜기', where_am_i: '내 위치',
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
-    category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약',
+    category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약', category_nature: '자연 & 섬',
     must_eats_title: '🇸🇬 싱가포르 필수 음식 5', find_nearby: '📍 근처에서 찾기',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
     set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
