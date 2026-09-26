@@ -4103,8 +4103,16 @@ async function startWakeAlert(leg, btnEl, statusEl) {
       const dist = haversineMeters(pos.coords.latitude, pos.coords.longitude, leg.toLat, leg.toLon);
 
       let stopsText = '';
+      let atStopText = '';
       if (wakeState.stops) {
-        const { lat, lon } = pos.coords;
+        // NOTE: GeolocationCoordinates uses `.latitude`/`.longitude`, not
+        // `.lat`/`.lon` — a prior version of this destructured `pos.coords`
+        // as `{ lat, lon }`, which is always undefined on a real position
+        // fix. That silently made every haversineMeters() call below return
+        // NaN, so the while loop's `distNext < distCur` compare was always
+        // false and stopCursor could never advance past the boarding stop —
+        // the "N stops to go" countdown was frozen for the whole ride.
+        const { latitude: lat, longitude: lon } = pos.coords;
         const lastIdx = wakeState.stops.length - 1;
         // Advance past any stop we're now clearly closer to the NEXT stop
         // than to it — handles sparse GPS updates (e.g. bus passed 2 stops
@@ -4124,9 +4132,19 @@ async function startWakeAlert(leg, btnEl, statusEl) {
         } else {
           stopsText = ' · next stop';
         }
+        // Name the stop we're currently nearest to (this is derived from OUR
+        // OWN GPS fix against the ride's stop sequence, not a live bus AVL
+        // feed — it's "which stop you're at", which for a passenger riding
+        // the bus is the same thing). Skip it once we've reached the last
+        // entry in the list, since that's just targetName again and the
+        // "to ${targetName}" phrase already says that.
+        const currentStopName = wakeState.stops[wakeState.stopCursor] && wakeState.stops[wakeState.stopCursor].name;
+        if (currentStopName && wakeState.stopCursor < lastIdx) {
+          atStopText = ` · at ${currentStopName}`;
+        }
       }
 
-      wakeState.statusEl.textContent = `📍 ${formatDistance(dist)} to ${targetName}${stopsText}`;
+      wakeState.statusEl.textContent = `📍 ${formatDistance(dist)} to ${targetName}${atStopText}${stopsText}`;
       if (dist <= WAKE_ALERT_THRESHOLD_M && !wakeState.triggered) {
         wakeState.triggered = true;
         triggerWakeAlert(targetName);
