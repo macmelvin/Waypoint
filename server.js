@@ -807,12 +807,28 @@ app.get('/api/admin/guides', requireAdmin, (req, res) => {
   res.json({ guides });
 });
 
+// Loose "looks like an email" check -- not RFC-strict, just enough to catch
+// typos before they end up as a guide's invoice-reminder destination (see
+// the guide-invoice-reminder service, which silently skips a guide with no
+// usable email rather than failing the whole run).
+function sanitizeGuideEmail(raw, res) {
+  const email = String(raw || '').trim();
+  if (!email) return { email: '' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ error: "that doesn't look like a valid email address" });
+    return null;
+  }
+  return { email };
+}
+
 app.post('/api/admin/guides', requireAdmin, (req, res) => {
   const name = (req.body?.name || '').trim();
   const specialty = (req.body?.specialty || '').trim();
   const landmarks = Array.isArray(req.body?.landmarks) ? req.body.landmarks.filter((k) => GUIDE_LANDMARKS[k]) : [];
   if (!name) return res.status(400).json({ error: 'name is required' });
   if (!landmarks.length) return res.status(400).json({ error: 'pick at least one valid landmark' });
+  const emailResult = sanitizeGuideEmail(req.body?.email, res);
+  if (!emailResult) return; // sanitizeGuideEmail already sent the 400
   const languages = Array.isArray(req.body?.languages)
     ? req.body.languages.map((l) => String(l).trim()).filter(Boolean)
     : String(req.body?.languages || '').split(',').map((l) => l.trim()).filter(Boolean);
@@ -823,6 +839,7 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
     languages,
     landmarks,
     whatsapp: (req.body?.whatsapp || '').replace(/[^0-9]/g, ''),
+    email: emailResult.email,
     verified: req.body?.verified !== false,
     active: true,
     note: (req.body?.note || '').trim(),
@@ -845,6 +862,8 @@ app.put('/api/admin/guides/:id', requireAdmin, (req, res) => {
   const landmarks = Array.isArray(req.body?.landmarks) ? req.body.landmarks.filter((k) => GUIDE_LANDMARKS[k]) : [];
   if (!name) return res.status(400).json({ error: 'name is required' });
   if (!landmarks.length) return res.status(400).json({ error: 'pick at least one valid landmark' });
+  const emailResult = sanitizeGuideEmail(req.body?.email, res);
+  if (!emailResult) return; // sanitizeGuideEmail already sent the 400
   const languages = Array.isArray(req.body?.languages)
     ? req.body.languages.map((l) => String(l).trim()).filter(Boolean)
     : String(req.body?.languages || '').split(',').map((l) => l.trim()).filter(Boolean);
@@ -853,6 +872,7 @@ app.put('/api/admin/guides/:id', requireAdmin, (req, res) => {
   g.languages = languages;
   g.landmarks = landmarks;
   g.whatsapp = (req.body?.whatsapp || '').replace(/[^0-9]/g, '');
+  g.email = emailResult.email;
   g.verified = req.body?.verified !== false;
   g.note = (req.body?.note || '').trim();
   g.sample = req.body?.sample === true;
@@ -860,6 +880,54 @@ app.put('/api/admin/guides/:id', requireAdmin, (req, res) => {
   g.landmarkPrices = sanitizeLandmarkPrices(req.body?.landmarkPrices, landmarks);
   saveGuides();
   res.json({ guide: g });
+});
+
+// ---- Guide invoice summary (biweekly reminder cron) --------------------------
+// Read-only summary for the separate `guide-invoice-reminder` Railway
+// service (its own Cron Schedule trigger, own Resend API key) -- same split
+// visit-digest uses for the analytics email: this app just answers "what's
+// owed", the other service decides how/when to actually send mail.
+//
+// Windows by `paymentRecordedAt`, not the booking's tour date, and only
+// counts `completed` bookings -- those are the only ones with a payment/
+// revenueShare recorded at all (see the /payment endpoint above). That
+// means a given booking is counted in exactly one reminder cycle: whichever
+// fortnight its payment happened to be recorded in. There's no separate
+// "already invoiced" flag -- if a cron run is ever missed, the bookings
+// recorded in that gap simply won't appear in the next window (same
+// fail-open behavior visit-digest already has for a missed day).
+app.get('/api/admin/guide-invoice-summary', requireAdmin, (req, res) => {
+  const sinceParam = req.query.since ? new Date(req.query.since) : null;
+  const since = sinceParam && !Number.isNaN(sinceParam.getTime())
+    ? sinceParam
+    : new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const until = new Date();
+  const byGuide = new Map();
+  for (const b of guideBookings) {
+    if (b.status !== 'completed' || !b.paymentRecordedAt) continue;
+    const recordedAt = new Date(b.paymentRecordedAt);
+    if (recordedAt < since || recordedAt > until) continue;
+    if (!byGuide.has(b.guideId)) byGuide.set(b.guideId, { bookings: 0, paidTotal: 0, shareOwed: 0 });
+    const entry = byGuide.get(b.guideId);
+    entry.bookings += 1;
+    entry.paidTotal += b.paymentAmount || 0;
+    entry.shareOwed += b.revenueShare || 0;
+  }
+  const guidesOwed = [...byGuide.entries()]
+    .map(([guideId, entry]) => {
+      const guide = guides.find((g) => g.id === guideId);
+      if (!guide) return null;
+      return {
+        guideId,
+        name: guide.name,
+        email: guide.email || null,
+        bookings: entry.bookings,
+        paidTotal: Math.round(entry.paidTotal * 100) / 100,
+        shareOwed: Math.round(entry.shareOwed * 100) / 100,
+      };
+    })
+    .filter(Boolean);
+  res.json({ since: since.toISOString(), until: until.toISOString(), guides: guidesOwed });
 });
 
 app.post('/api/admin/guides/:id/toggle', requireAdmin, (req, res) => {
