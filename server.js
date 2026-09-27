@@ -811,11 +811,25 @@ app.get('/api/admin/guides', requireAdmin, (req, res) => {
 // typos before they end up as a guide's invoice-reminder destination (see
 // the guide-invoice-reminder service, which silently skips a guide with no
 // usable email rather than failing the whole run).
+//
+// .normalize('NFKC') before validating: a CJK input method left in
+// "fullwidth" mode (common when typing bilingual EN/中文 text -- exactly
+// STGS's guide profiles) can produce a fullwidth "@" (U+FF20) or fullwidth
+// "." (U+FF0E) instead of the plain ASCII character. Both render almost
+// identically to the real thing at normal UI text sizes, so a guide (or
+// Melvin, entering it on their behalf) can type what looks like a perfectly
+// valid address and have it silently rejected. NFKC folds these -- and
+// other full-width/compatibility lookalikes -- back to their standard ASCII
+// form before the regex ever sees them. Confirmed against a real report:
+// "groovyvick@gmail.com" was rejected because the "@" was actually U+FF20.
 function sanitizeGuideEmail(raw, res) {
-  const email = String(raw || '').trim();
+  const email = String(raw || '').normalize('NFKC').trim();
   if (!email) return { email: '' };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    res.status(400).json({ error: "that doesn't look like a valid email address" });
+    // Echoes the exact (normalized) string back in the error -- if some
+    // other exotic character still slips through, the value itself makes
+    // that immediately diagnosable instead of another guessing round.
+    res.status(400).json({ error: `that doesn't look like a valid email address (got: ${JSON.stringify(email)})` });
     return null;
   }
   return { email };
