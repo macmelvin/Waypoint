@@ -26,6 +26,36 @@ if (PUSH_ENABLED) {
   }
 }
 
+// ---- Email (Resend) ----------------------------------------------------------
+// Same Resend account/pattern already used by the visit-digest and
+// guide-invoice-reminder services, reused here so a single admin action (the
+// "Notify guide by Email" button) can send a booking notice immediately
+// instead of waiting for the biweekly reminder cycle. Until RESEND_API_KEY is
+// set on this service, the endpoint below returns a clear 502 rather than
+// crashing or silently no-op'ing -- an admin clicking the button needs to know
+// it didn't go out.
+const RESEND_API_KEY = (process.env.RESEND_API_KEY || '').trim();
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Waypoint <onboarding@resend.dev>';
+
+async function sendResendEmail({ to, subject, text, html }) {
+  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured on this service');
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: RESEND_FROM_EMAIL, to, subject, text, html }),
+  });
+  if (!res.ok) {
+    throw new Error(`${res.status} ${await res.text()}`);
+  }
+}
+
+// Minimal HTML-escaping for free text (visitor name/note) that ends up inside
+// an email's HTML body -- admin.html has its own copy of this for the same
+// reason, but nothing in server.js needed it before now.
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 // Subscription store, kept in memory for fast access but persisted to a JSON
 // file on a Railway Volume mounted at /data — so subscriptions survive
 // redeploys/restarts instead of silently vanishing every time this service
@@ -972,6 +1002,7 @@ app.get('/api/admin/guide-bookings', requireAdmin, (req, res) => {
         ...b,
         guideName: guide?.name || '(deleted guide)',
         guideWhatsapp: guide?.whatsapp || '',
+        guideEmail: guide?.email || '',
         landmarkLabel: b.landmark ? (GUIDE_LANDMARKS[b.landmark] || b.landmark) : '',
       };
     });
@@ -1007,6 +1038,64 @@ app.post('/api/admin/guide-bookings/:id/payment', requireAdmin, (req, res) => {
   b.paymentRecordedAt = new Date().toISOString();
   saveGuideBookings();
   res.json({ booking: b });
+});
+
+// Real-time backup to the WhatsApp "Notify guide" link for the same booking
+// -- sends an actual email right now via Resend rather than waiting for the
+// biweekly invoice reminder. Mirrors buildGuideNotifyLink()'s status-dependent
+// intro/outro wording in admin.html so a guide gets a consistent message
+// whichever channel the admin picks.
+app.post('/api/admin/guide-bookings/:id/notify-email', requireAdmin, async (req, res) => {
+  const b = guideBookings.find((x) => x.id === req.params.id);
+  if (!b) return res.status(404).json({ error: 'not found' });
+  const guide = guides.find((g) => g.id === b.guideId);
+  if (!guide) return res.status(400).json({ error: 'this booking\'s guide no longer exists' });
+  if (!guide.email) return res.status(400).json({ error: 'no email on file for this guide' });
+
+  const landmarkLabel = b.landmark ? (GUIDE_LANDMARKS[b.landmark] || b.landmark) : '';
+  const tourLine = landmarkLabel ? ` (${landmarkLabel})` : '';
+  const headcount = b.adults != null
+    ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}`
+    : `party of ${b.partySize}`;
+  const estimateLine = b.estimatedTotal != null ? `\nEst. S$${b.estimatedTotal.toFixed(2)}` : '';
+
+  let subject, intro, outro;
+  if (b.status === 'completed') {
+    subject = `Waypoint: payment recorded for your booking${tourLine}`;
+    intro = `Hi ${guide.name}, payment has been recorded for your Waypoint booking${tourLine}:`;
+    outro = `This booking is marked completed. Let us know if anything looks off.`;
+  } else if (b.status === 'confirmed') {
+    subject = `Waypoint: your confirmed booking${tourLine}`;
+    intro = `Hi ${guide.name}, here are the details for your confirmed Waypoint booking${tourLine}:`;
+    outro = `Please go to your unique portal link and confirm/decline the booking and contact the traveller to proceed/cancel the guided walk arrangement.`;
+  } else {
+    subject = `Waypoint: new booking request${tourLine}`;
+    intro = `Hi ${guide.name}, you have a new Waypoint booking request${tourLine}:`;
+    outro = `Please confirm or decline via your Waypoint guide portal link.`;
+  }
+
+  const detailLines = `${b.date}, ${b.start}-${b.end}\n`
+    + `${b.visitorName} (${headcount})${estimateLine}${b.note ? `\nNote: ${b.note}` : ''}`;
+  const text = `${intro}\n\n${detailLines}\n\n${outro}`;
+  const html = `
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;">
+      <p>${escapeHtml(intro)}</p>
+      <table style="border-collapse:collapse;width:100%;margin:12px 0;">
+        <tr><td style="padding:4px 12px;">Date</td><td style="padding:4px 12px;font-weight:600;">${escapeHtml(b.date)}, ${escapeHtml(b.start)}-${escapeHtml(b.end)}</td></tr>
+        <tr><td style="padding:4px 12px;">Visitor</td><td style="padding:4px 12px;font-weight:600;">${escapeHtml(b.visitorName)} (${escapeHtml(headcount)})</td></tr>
+        ${b.estimatedTotal != null ? `<tr><td style="padding:4px 12px;">Estimate</td><td style="padding:4px 12px;font-weight:600;">S$${b.estimatedTotal.toFixed(2)}</td></tr>` : ''}
+        ${b.note ? `<tr><td style="padding:4px 12px;">Note</td><td style="padding:4px 12px;">${escapeHtml(b.note)}</td></tr>` : ''}
+      </table>
+      <p style="color:#666;">${escapeHtml(outro)}</p>
+    </div>
+  `;
+
+  try {
+    await sendResendEmail({ to: guide.email, subject, text, html });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(502).json({ error: `email send failed: ${err.message}` });
+  }
 });
 
 // Lets admin permanently remove a booking -- mainly for clearing out test
