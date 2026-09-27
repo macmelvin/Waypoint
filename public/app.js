@@ -5721,15 +5721,25 @@ setInterval(checkTrainAlerts, TRAIN_ALERTS_POLL_MS);
   function showPopup() {
     const payload = buildPayNowPayload();
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(payload)}`;
+    // WhatsApp's wa.me share link only supports pre-filled TEXT, not an
+    // attached image -- there's no click-to-chat parameter for media. The
+    // closest equivalent to "share this QR" is a link to the QR image
+    // itself, which the recipient can tap to open/view. Omitting a number
+    // from the wa.me URL opens WhatsApp's own contact picker instead of a
+    // fixed recipient, since this is meant to be forwarded to whoever the
+    // sharer chooses, not sent to one hardcoded number.
+    const shareText = `If Waypoint's been useful, you can buy Melvin a coffee via PayNow (totally optional) -- scan or open this QR: ${qrUrl}`;
+    const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
     const style = document.createElement('style');
     style.textContent = `
       .coffee-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
       .coffee-card { background: #fff; border-radius: 14px; padding: 24px 22px; max-width: 320px; width: 100%; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.25); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-      .coffee-card h3 { margin: 4px 0 6px; font-size: 18px; }
-      .coffee-card p { margin: 0 0 14px; font-size: 13.5px; color: #555; }
+      .coffee-card p { margin: 4px 0 14px; font-size: 13.5px; color: #555; }
       .coffee-card img { width: 100%; max-width: 220px; border-radius: 8px; margin-bottom: 14px; }
+      .coffee-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
       .coffee-close { background: #111; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+      .coffee-share { background: #25D366; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
       .coffee-dismiss { display: block; margin: 10px auto 0; background: none; border: none; color: #888; font-size: 12.5px; cursor: pointer; text-decoration: underline; }
     `;
     document.head.appendChild(style);
@@ -5738,10 +5748,12 @@ setInterval(checkTrainAlerts, TRAIN_ALERTS_POLL_MS);
     overlay.className = 'coffee-overlay';
     overlay.innerHTML = `
       <div class="coffee-card">
-        <h3>☕ Buy Melvin a coffee?</h3>
         <p>If Waypoint's been useful, scan to send $1 via PayNow — totally optional!</p>
         <img src="${qrUrl}" alt="PayNow QR code">
-        <button class="coffee-close">Close</button>
+        <div class="coffee-actions">
+          <button class="coffee-close">Close</button>
+          <a class="coffee-share" href="${shareUrl}" target="_blank" rel="noopener">Share via WhatsApp</a>
+        </div>
         <button class="coffee-dismiss">Don't show this again</button>
       </div>
     `;
