@@ -935,6 +935,7 @@ app.get('/api/admin/guide-invoice-summary', requireAdmin, (req, res) => {
         guideId,
         name: guide.name,
         email: guide.email || null,
+        whatsapp: guide.whatsapp || null,
         bookings: entry.bookings,
         paidTotal: Math.round(entry.paidTotal * 100) / 100,
         shareOwed: Math.round(entry.shareOwed * 100) / 100,

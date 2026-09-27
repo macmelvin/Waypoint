@@ -168,6 +168,22 @@
       <div id="guideBreakdown"></div>
       <div id="bookingList"><div class="empty">Loading…</div></div>
     </div>
+
+    <h1 style="margin-top:36px">Guide invoices</h1>
+    <p class="sub">Who owes STGS a share this period -- the same figures the biweekly reminder email summarizes for you. That email only goes to you (Melvin), since Resend can't yet deliver to a guide's own inbox; notify each guide directly with one tap on WhatsApp instead.</p>
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:4px">Since
+          <input type="date" id="invoiceSinceDate" onchange="loadGuideInvoices()" style="padding:6px 8px;font-size:13px;margin:0">
+        </label>
+        <button class="secondary" style="padding:6px 10px;font-size:12px" onclick="clearInvoiceFilter()">Trailing 14 days</button>
+      </div>
+      <button class="secondary" onclick="loadGuideInvoices()">Refresh</button>
+    </div>
+    <div class="card">
+      <div id="invoiceSummary" style="color:#94a3b8;font-size:13px;margin-bottom:10px"></div>
+      <div id="invoiceList"><div class="empty">Loading…</div></div>
+    </div>
   </div>
 </div>
 
@@ -212,6 +228,7 @@ async function loadInvites() {
     await loadGuideLandmarks();
     loadGuides();
     loadGuideBookings();
+    loadGuideInvoices();
     updateAdminPushButton();
   } catch (err) {
     statusEl.textContent = err.message;
@@ -919,6 +936,127 @@ async function recordPayment(id) {
   } catch (err) {
     alert(err.message);
   }
+}
+
+// ---- Guide invoices (biweekly STGS share owed) -----------------------------
+// Mirrors the numbers the guide-invoice-reminder cron's admin summary email
+// already shows you -- this view lets you act on them by notifying each
+// guide on WhatsApp with one tap, since that cron can't email a guide
+// directly (Resend's sandbox sender can only deliver to your own address).
+let lastInvoiceWindow = null;
+
+function clearInvoiceFilter() {
+  document.getElementById('invoiceSinceDate').value = '';
+  loadGuideInvoices();
+}
+
+async function loadGuideInvoices() {
+  try {
+    const sinceInput = document.getElementById('invoiceSinceDate').value;
+    const path = sinceInput
+      ? `/api/admin/guide-invoice-summary?since=${encodeURIComponent(new Date(sinceInput).toISOString())}`
+      : '/api/admin/guide-invoice-summary';
+    const data = await api(path);
+    lastInvoiceWindow = { since: data.since, until: data.until };
+    renderGuideInvoices(data.guides || []);
+  } catch (err) {
+    document.getElementById('invoiceList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// ---- PayNow QR with a pre-filled amount -------------------------------------
+// Same SGQR/EMVCo payload format and PayNow number as the "Buy Melvin a
+// coffee" popup in app.js (field 54 is the transaction amount baked into
+// the QR itself, so whoever scans it gets that exact amount pre-filled in
+// their banking app -- not just a link to a plain QR). Duplicated here
+// rather than shared, since the popup's copy is fixed at $1 and this one's
+// amount varies per guide; if the PayNow number ever changes, update both.
+const PAYNOW_MOBILE = '+6581617181';
+const PAYNOW_MERCHANT_NAME = 'Melvin';
+const PAYNOW_MERCHANT_CITY = 'Singapore';
+
+function payNowCrc16ccitt(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= (str.charCodeAt(i) << 8);
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function payNowTlv(tag, value) {
+  return `${tag}${String(value.length).padStart(2, '0')}${value}`;
+}
+
+function buildPayNowPayload(amount) {
+  const payNowInfo =
+    payNowTlv('00', 'SG.PAYNOW') +
+    payNowTlv('01', '0') +   // proxy type: 0 = mobile number
+    payNowTlv('02', PAYNOW_MOBILE) +
+    payNowTlv('03', '0');    // amount not editable (fixed)
+
+  let payload =
+    payNowTlv('00', '01') +
+    payNowTlv('01', '12') +  // dynamic (carries a fixed amount)
+    payNowTlv('26', payNowInfo) +
+    payNowTlv('52', '0000') +
+    payNowTlv('53', '702') + // SGD
+    payNowTlv('54', amount.toFixed(2)) +
+    payNowTlv('58', 'SG') +
+    payNowTlv('59', PAYNOW_MERCHANT_NAME.slice(0, 25)) +
+    payNowTlv('60', PAYNOW_MERCHANT_CITY);
+
+  payload += '6304';
+  payload += payNowCrc16ccitt(payload);
+  return payload;
+}
+
+function buildPayNowQrUrl(amount) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(buildPayNowPayload(amount))}`;
+}
+
+function buildGuideInvoiceNotifyLink(g, windowLabel) {
+  const digits = String(g.whatsapp || '').replace(/\D/g, '').replace(/^65(?=\d{8}$)/, '');
+  const qrUrl = buildPayNowQrUrl(g.shareOwed);
+  const msg = `Hi ${g.name}, here's your Waypoint booking summary for ${windowLabel}:\n\n`
+    + `Completed bookings: ${g.bookings}\n`
+    + `Amount collected: S$${g.paidTotal.toFixed(2)}\n`
+    + `STGS share (10%) due: S$${g.shareOwed.toFixed(2)}\n\n`
+    + `Please arrange payment of the share above at your earliest convenience -- scan this PayNow QR for the exact amount (S$${g.shareOwed.toFixed(2)} pre-filled): ${qrUrl}\n\n`
+    + `Message us on WhatsApp if anything here looks off. Thanks for guiding with Waypoint!`;
+  return `https://wa.me/65${digits}?text=${encodeURIComponent(msg)}`;
+}
+
+function renderGuideInvoices(guides) {
+  const list = document.getElementById('invoiceList');
+  const summaryEl = document.getElementById('invoiceSummary');
+  const owed = guides.filter((g) => g.shareOwed > 0);
+  const windowLabel = lastInvoiceWindow ? `${lastInvoiceWindow.since.slice(0, 10)} to ${lastInvoiceWindow.until.slice(0, 10)}` : '';
+  if (!owed.length) {
+    list.innerHTML = '<div class="empty">No guide has an outstanding STGS share this period.</div>';
+    summaryEl.textContent = windowLabel ? `S$0.00 owed total · ${windowLabel}` : '';
+    return;
+  }
+  const total = owed.reduce((sum, g) => sum + g.shareOwed, 0);
+  summaryEl.textContent = `${owed.length} guide${owed.length === 1 ? '' : 's'} owe S$${total.toFixed(2)} total${windowLabel ? ` · ${windowLabel}` : ''}`;
+  list.innerHTML = owed.map((g) => {
+    const notifyBtn = g.whatsapp
+      ? `<a href="${buildGuideInvoiceNotifyLink(g, windowLabel)}" target="_blank" rel="noopener" class="secondary" style="padding:6px 10px;font-size:12px;display:inline-block;text-decoration:none;margin-left:8px">📲 Notify guide on WhatsApp</a>`
+      : `<span style="color:#f87171;font-size:12px;margin-left:8px">No WhatsApp number on file for this guide</span>`;
+    const qrId = `invoice-qr-${g.guideId}`;
+    return `
+      <div class="invite">
+        <div style="flex:1;min-width:0">
+          <div class="invite-name">${escapeHtml(g.name)}</div>
+          <div class="invite-meta">${g.bookings} booking${g.bookings === 1 ? '' : 's'} · S$${g.paidTotal.toFixed(2)} collected · <span style="color:#f87171;font-weight:600">S$${g.shareOwed.toFixed(2)} owed</span>${notifyBtn}
+            <button class="secondary" style="padding:6px 10px;font-size:12px;margin-left:8px" onclick="document.getElementById('${qrId}').style.display = document.getElementById('${qrId}').style.display === 'none' ? 'block' : 'none'">🔳 View PayNow QR (S$${g.shareOwed.toFixed(2)})</button>
+          </div>
+          <img id="${qrId}" src="${buildPayNowQrUrl(g.shareOwed)}" alt="PayNow QR for S$${g.shareOwed.toFixed(2)}" style="display:none;margin-top:10px;width:160px;height:160px;border-radius:8px">
+        </div>
+      </div>`;
+  }).join('');
 }
 
 document.getElementById('secretInput').addEventListener('keydown', (e) => {
