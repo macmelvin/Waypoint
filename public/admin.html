@@ -115,7 +115,7 @@
         <input type="text" id="guideWhatsappInput" placeholder="WhatsApp number (e.g. 91234567)" style="margin-bottom:0">
       </div>
       <div class="row" style="margin-top:10px">
-        <input type="email" id="guideEmailInput" placeholder="Email (for the biweekly invoice reminder)" style="margin-bottom:0">
+        <input type="email" id="guideEmailInput" placeholder="Email (for the biweekly invoice reminder)" autocomplete="off" style="margin-bottom:0">
         <input type="text" inputmode="decimal" id="guidePriceInput" placeholder="Default price per adult, SGD (e.g. 20)" style="margin-bottom:0">
       </div>
       <div style="color:#64748b;font-size:11px;margin-top:4px">Tick each tour/landmark this guide covers. Leave a tour's price blank to use the default above, or set a specific price for that tour.</div>
@@ -201,7 +201,15 @@ async function loadInvites() {
     document.getElementById('panel').style.display = 'block';
     render(invites);
     loadPartners();
-    loadGuideLandmarks();
+    // Awaited (not fire-and-forget like the others) so the landmark
+    // checkboxes in #guideLandmarkChecks exist before loadGuides() renders
+    // any "Edit" buttons. Without this, clicking Edit on a guide soon after
+    // unlocking could call setLandmarkSelections() against an empty
+    // checkbox list -- nothing gets checked, and saving would then silently
+    // fail client-side with "Pick at least one valid landmark" (visible in
+    // the status text, but easy to miss) even though the edit looked like
+    // it should have gone through.
+    await loadGuideLandmarks();
     loadGuides();
     loadGuideBookings();
     updateAdminPushButton();
