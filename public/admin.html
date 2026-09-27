@@ -852,15 +852,12 @@ function renderGuideBookings(bookings) {
     const notifyBtn = (notifyEligible && b.guideWhatsapp)
       ? `<a href="${buildGuideNotifyLink(b)}" target="_blank" rel="noopener" class="secondary" style="padding:6px 10px;font-size:12px;display:inline-block;text-decoration:none;margin-left:8px">📲 Notify guide on WhatsApp</a>`
       : (notifyEligible ? `<span style="color:#f87171;font-size:12px;margin-left:8px">No WhatsApp number on file for this guide</span>` : '');
-    const notifyEmailBtn = (notifyEligible && b.guideEmail)
-      ? `<button class="secondary" style="padding:6px 10px;font-size:12px;margin-left:8px" id="notify-email-${b.id}" onclick="notifyGuideEmail('${b.id}')">📧 Notify guide by Email</button>`
-      : '';
     return `
       <div class="invite">
         <div style="flex:1;min-width:0">
           <div class="invite-name">${escapeHtml(b.guideName)}${b.landmarkLabel ? ` · ${escapeHtml(b.landmarkLabel)}` : ''} <span style="color:${color};font-weight:600;font-size:12px">${BOOKING_STATUS_LABEL[b.status] || b.status}</span></div>
           <div class="invite-meta">${escapeHtml(b.date)} · ${escapeHtml(b.start)}-${escapeHtml(b.end)} · ${escapeHtml(b.visitorName)} (${escapeHtml(b.visitorPhone)}) · ${b.adults != null ? `${b.adults} adult${b.adults === 1 ? '' : 's'}${b.children ? ` + ${b.children} child${b.children === 1 ? '' : 'ren'}` : ''}` : `party of ${b.partySize}`}${b.note ? ` · "${escapeHtml(b.note)}"` : ''}</div>
-          <div class="invite-meta" style="margin-top:6px">${paymentLine}${notifyBtn}${notifyEmailBtn}</div>
+          <div class="invite-meta" style="margin-top:6px">${paymentLine}${notifyBtn}</div>
         </div>
         <button class="secondary" style="padding:6px 10px;font-size:12px;flex-shrink:0" onclick="deleteBooking('${b.id}')">Delete</button>
       </div>`;
@@ -906,20 +903,6 @@ function buildGuideNotifyLink(b) {
     + `${b.visitorName} (${headcount})${estimateLine}${b.note ? `\nNote: ${b.note}` : ''}\n\n`
     + outro;
   return `https://wa.me/65${digits}?text=${encodeURIComponent(msg)}`;
-}
-
-async function notifyGuideEmail(id) {
-  const btn = document.getElementById(`notify-email-${id}`);
-  const original = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
-  try {
-    await api(`/api/admin/guide-bookings/${id}/notify-email`, { method: 'POST' });
-    if (btn) { btn.textContent = '✅ Sent'; }
-    setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = original; } }, 3000);
-  } catch (err) {
-    alert(`Couldn't send that email: ${err.message}`);
-    if (btn) { btn.disabled = false; btn.textContent = original; }
-  }
 }
 
 async function recordPayment(id) {
