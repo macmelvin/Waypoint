@@ -27,7 +27,7 @@
       sb_desc_ph: 'What was it? e.g. Dinner at Lau Pa Sat', sb_paid_by: 'Paid by',
       sb_svc: '+10% service', sb_gst: '+9% GST',
       sb_save: 'Save expense', sb_settle: 'Settle up', sb_share: '📤 Send to the group', sb_new_bill: 'Start a new bill',
-      sb_no_people: 'Add at least 2 people to get started.',
+      sb_no_people: "Add who was there — before or after scanning the receipt, either works.",
       sb_no_expenses: 'No expenses yet.',
       sb_split_n: 'split {n} ways', sb_split_custom: 'split by items',
       sb_paid: 'paid', sb_share_word: 'share',
@@ -62,6 +62,9 @@
       sb_each: "{amt} each",
       sb_need_items: "Add at least one item with a price.",
       sb_nobody: "nobody",
+      sb_need_people: "Add at least 2 people above so the bill can be split.",
+      sb_scan_found_nopeople: "Found {n} items. Now add who was there ↑",
+      sb_paid_by_ph: "— add people above —",
     },
     zh: {
       tab_splitbill: '💸 分账',
@@ -71,7 +74,7 @@
       sb_desc_ph: '什么费用?例如 老巴刹晚餐', sb_paid_by: '付款人',
       sb_svc: '+10% 服务费', sb_gst: '+9% 消费税',
       sb_save: '保存', sb_settle: '结算', sb_share: '📤 发送到群组', sb_new_bill: '开始新账单',
-      sb_no_people: '至少添加2个人才能开始。',
+      sb_no_people: "添加同行的人——扫描收据之前或之后都可以。",
       sb_no_expenses: '还没有费用。',
       sb_split_n: '{n}人分摊', sb_split_custom: '按项目分摊',
       sb_paid: '已付', sb_share_word: '应付',
@@ -106,6 +109,9 @@
       sb_each: "每人 {amt}",
       sb_need_items: "请至少添加一个有价格的项目。",
       sb_nobody: "无人",
+      sb_need_people: "请先在上方添加至少2个人,才能分账。",
+      sb_scan_found_nopeople: "找到 {n} 个项目。现在添加同行的人 ↑",
+      sb_paid_by_ph: "— 请在上方添加成员 —",
     },
     ms: {
       tab_splitbill: '💸 Bahagi Bil',
@@ -115,7 +121,7 @@
       sb_desc_ph: 'Untuk apa? cth. Makan malam di Lau Pa Sat', sb_paid_by: 'Dibayar oleh',
       sb_svc: '+10% caj servis', sb_gst: '+9% GST',
       sb_save: 'Simpan', sb_settle: 'Selesaikan', sb_share: '📤 Hantar ke kumpulan', sb_new_bill: 'Mula bil baharu',
-      sb_no_people: 'Tambah sekurang-kurangnya 2 orang untuk bermula.',
+      sb_no_people: "Tambah siapa yang hadir — sebelum atau selepas imbas resit, kedua-duanya boleh.",
       sb_no_expenses: 'Belum ada perbelanjaan.',
       sb_split_n: 'dibahagi {n} orang', sb_split_custom: 'dibahagi ikut item',
       sb_paid: 'bayar', sb_share_word: 'bahagian',
@@ -150,6 +156,9 @@
       sb_each: "{amt} seorang",
       sb_need_items: "Tambah sekurang-kurangnya satu item berharga.",
       sb_nobody: "tiada sesiapa",
+      sb_need_people: "Tambah sekurang-kurangnya 2 orang di atas supaya bil boleh dibahagi.",
+      sb_scan_found_nopeople: "{n} item ditemui. Sekarang tambah siapa yang hadir ↑",
+      sb_paid_by_ph: "— tambah orang di atas —",
     },
     ta: {
       tab_splitbill: '💸 பில் பகிர்வு',
@@ -159,7 +168,7 @@
       sb_desc_ph: 'என்ன செலவு? எ.கா. லாவ் பா சாட் இரவு உணவு', sb_paid_by: 'செலுத்தியவர்',
       sb_svc: '+10% சேவைக் கட்டணம்', sb_gst: '+9% GST',
       sb_save: 'சேமி', sb_settle: 'கணக்கைத் தீர்', sb_share: '📤 குழுவுக்கு அனுப்பு', sb_new_bill: 'புதிய பில் தொடங்கு',
-      sb_no_people: 'தொடங்க குறைந்தது 2 பேரைச் சேர்க்கவும்.',
+      sb_no_people: "யார் இருந்தார்கள் என்பதைச் சேர்க்கவும் — ரசீதை ஸ்கேன் செய்வதற்கு முன்போ பின்போ, இரண்டும் சரி.",
       sb_no_expenses: 'இன்னும் செலவுகள் இல்லை.',
       sb_split_n: '{n} பேருக்குப் பிரிக்கப்பட்டது', sb_split_custom: 'பொருட்களின்படி பிரிக்கப்பட்டது',
       sb_paid: 'செலுத்தியது', sb_share_word: 'பங்கு',
@@ -194,6 +203,9 @@
       sb_each: "ஒவ்வொருவருக்கும் {amt}",
       sb_need_items: "விலையுடன் குறைந்தது ஒரு பொருளைச் சேர்க்கவும்.",
       sb_nobody: "யாருமில்லை",
+      sb_need_people: "பில்லைப் பிரிக்க மேலே குறைந்தது 2 பேரைச் சேர்க்கவும்.",
+      sb_scan_found_nopeople: "{n} பொருட்கள் கிடைத்தன. இப்போது யார் இருந்தார்கள் என்பதைச் சேர்க்கவும் ↑",
+      sb_paid_by_ph: "— மேலே நபர்களைச் சேர்க்கவும் —",
     },
     ja: {
       tab_splitbill: '💸 割り勘',
@@ -203,7 +215,7 @@
       sb_desc_ph: '内容は?(例:ラオパサでの夕食)', sb_paid_by: '支払った人',
       sb_svc: '+10% サービス料', sb_gst: '+9% GST',
       sb_save: '保存', sb_settle: '精算', sb_share: '📤 グループに送る', sb_new_bill: '新しい割り勘を始める',
-      sb_no_people: '始めるには2人以上追加してください。',
+      sb_no_people: "メンバーを追加してください。レシートの読み取り前でも後でも大丈夫です。",
       sb_no_expenses: 'まだ支出はありません。',
       sb_split_n: '{n}人で割り勘', sb_split_custom: '注文分で割り勘',
       sb_paid: '支払い', sb_share_word: '負担',
@@ -238,6 +250,9 @@
       sb_each: "1人 {amt}",
       sb_need_items: "金額のある品目を1つ以上追加してください。",
       sb_nobody: "なし",
+      sb_need_people: "割り勘するには、上で2人以上追加してください。",
+      sb_scan_found_nopeople: "{n} 品目が見つかりました。次にメンバーを追加してください ↑",
+      sb_paid_by_ph: "— 上でメンバーを追加 —",
     },
     ko: {
       tab_splitbill: '💸 더치페이',
@@ -247,7 +262,7 @@
       sb_desc_ph: '무엇인가요? 예: 라우파삿 저녁', sb_paid_by: '결제한 사람',
       sb_svc: '+10% 봉사료', sb_gst: '+9% GST',
       sb_save: '저장', sb_settle: '정산', sb_share: '📤 그룹에 보내기', sb_new_bill: '새 계산 시작',
-      sb_no_people: '시작하려면 2명 이상 추가하세요.',
+      sb_no_people: "함께한 사람을 추가하세요. 영수증 스캔 전이나 후 모두 괜찮아요.",
       sb_no_expenses: '아직 지출이 없습니다.',
       sb_split_n: '{n}명이 나눔', sb_split_custom: '항목별로 나눔',
       sb_paid: '결제', sb_share_word: '부담',
@@ -282,6 +297,9 @@
       sb_each: "1인당 {amt}",
       sb_need_items: "가격이 있는 항목을 1개 이상 추가하세요.",
       sb_nobody: "없음",
+      sb_need_people: "나누려면 위에서 2명 이상 추가하세요.",
+      sb_scan_found_nopeople: "{n}개 항목을 찾았습니다. 이제 함께한 사람을 추가하세요 ↑",
+      sb_paid_by_ph: "— 위에서 멤버 추가 —",
     },
   };
   Object.keys(SB_I18N).forEach((lang) => {
@@ -469,10 +487,8 @@
   }
 
   function renderExpenses() {
-    el.addExpenseBtn.disabled = state.people.length < 2;
-    el.scanReceiptBtn.disabled = state.people.length < 2;
     if (!state.expenses.length) {
-      el.expenses.innerHTML = state.people.length >= 2 ? `<p class="hint sb-empty">${escapeHtml(t('sb_no_expenses'))}</p>` : '';
+      el.expenses.innerHTML = draft ? '' : `<p class="hint sb-empty">${escapeHtml(t('sb_no_expenses'))}</p>`;
       return;
     }
     el.expenses.innerHTML = state.expenses.map((exp) => {
@@ -557,15 +573,14 @@
   function openForm(exp, split) {
     draft = exp
       ? JSON.parse(JSON.stringify(exp))
-      : { id: null, desc: '', base: 0, paidBy: state.people[0].id, svc: false, gst: false, split: split || 'equal', among: state.people.map((p) => p.id), exact: {}, items: [] };
+      : { id: null, desc: '', base: 0, paidBy: state.people[0] ? state.people[0].id : '', svc: false, gst: false, split: split || 'equal', among: state.people.map((p) => p.id), exact: {}, items: [] };
     if (!draft.items) draft.items = [];
     if (!draft.exact) draft.exact = {};
     el.desc.value = draft.desc;
     el.amount.value = centsToInput(draft.base);
     el.svc.checked = draft.svc;
     el.gst.checked = draft.gst;
-    el.paidBy.innerHTML = state.people.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-    el.paidBy.value = draft.paidBy;
+    renderPaidBy();
     el.form.classList.remove('hidden');
     el.addRow.classList.add('hidden');
     renderDraft();
@@ -633,7 +648,15 @@
     }
   }
 
-  el.addExpenseBtn.addEventListener('click', () => { if (state.people.length >= 2) openForm(null); });
+  el.addExpenseBtn.addEventListener('click', () => openForm(null));
+
+  function renderPaidBy() {
+    if (!draft) return;
+    if (!draft.paidBy && state.people[0]) draft.paidBy = state.people[0].id;
+    el.paidBy.innerHTML = state.people.length
+      ? state.people.map((p) => `<option value="${p.id}"${p.id === draft.paidBy ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('')
+      : `<option value="">${escapeHtml(t('sb_paid_by_ph'))}</option>`;
+  }
   el.cancel.addEventListener('click', closeForm);
 
   el.segBtns.forEach((b) => b.addEventListener('click', () => {
@@ -669,6 +692,13 @@
   el.form.addEventListener('submit', (e) => {
     e.preventDefault();
     if (!draft) return;
+    draft.paidBy = el.paidBy.value;
+    if (state.people.length < 2 || !draft.paidBy) {
+      showToast(t('sb_need_people'), 3500);
+      el.personInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.personInput.focus({ preventScroll: true });
+      return;
+    }
     if (draft.split === 'equal') draft.base = parseCents(el.amount.value);
     if (draft.split === 'items') {
       draft.items = draft.items.filter((it) => it.cents).map((it) => ({ name: (it.name || '').trim() || t('sb_item_ph'), cents: it.cents, among: it.among }));
@@ -814,7 +844,13 @@
       syncBase();
       renderDraft();
       setScanStatus(null);
-      showToast(tf('sb_scan_found', { n: r.items.length }), 3500);
+      if (state.people.length < 2) {
+        showToast(tf('sb_scan_found_nopeople', { n: r.items.length }), 4000);
+        el.personInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.personInput.focus({ preventScroll: true });
+      } else {
+        showToast(tf('sb_scan_found', { n: r.items.length }), 3500);
+      }
     } catch (err) {
       console.error('Receipt scan failed', err);
       setScanStatus(null);
@@ -833,7 +869,6 @@
   el.receiptInput.addEventListener('change', () => handleReceipt(el.receiptInput.files && el.receiptInput.files[0]));
 
   el.scanReceiptBtn.addEventListener('click', () => {
-    if (state.people.length < 2) return;
     openForm(null, 'items');
     el.receiptInput.click(); // same tap, so mobile browsers allow the picker
   });
@@ -853,7 +888,7 @@
     el.personInput.value = '';
     save();
     renderAll();
-    if (draft) el.paidBy.innerHTML = state.people.map((p) => `<option value="${p.id}"${p.id === draft.paidBy ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+    renderPaidBy();
     el.personInput.focus();
   });
 
@@ -865,7 +900,6 @@
         : x.split === 'exact' ? (x.exact || {})[id] > 0 : x.among.includes(id)));
     if (used) { showToast(tf('sb_person_in_use', { name: personName(id) }), 3500); return; }
     state.people = state.people.filter((p) => p.id !== id);
-    if (state.people.length < 2) closeForm();
     save();
     renderAll();
   });
