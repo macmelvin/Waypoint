@@ -738,18 +738,30 @@ a:active {
 }
 
 .tab-btn {
-  flex: 1;
-  padding: 14px 4px;
+  flex: 1 1 0;
+  min-width: 0;
+  /* Icon on top, label underneath — every tab gets the same layout so the
+     row lines up whether a label fits on one line or wraps to two. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 9px 2px 8px;
   min-height: 44px;
   border: none;
   background: none;
-  font-size: 13px;
-  line-height: 1.25;
+  font-size: 12px;
+  line-height: 1.2;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
   border-bottom: 3px solid transparent;
 }
+.tab-icon { font-size: 19px; line-height: 1; }
+.tab-label { display: block; max-width: 100%; text-align: center; overflow-wrap: anywhere; text-wrap: balance; }
+:lang(ko) .tab-label { word-break: keep-all; } /* wrap Korean at spaces, not mid-word */
+.tab-btn:not(.active) .tab-icon { filter: grayscale(0.35); opacity: 0.85; }
 
 .tab-btn.active {
   color: var(--accent);

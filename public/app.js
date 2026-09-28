@@ -1398,7 +1398,7 @@ const I18N = {
     dir_from_placeholder: 'From — postal code, address, or place', dir_to_placeholder: 'To — postal code, address, or place',
     swap: 'Swap', mode_drive: 'Drive', mode_transit: 'Bus / MRT', mode_cycle: 'Cycle', mode_walk: 'Walk',
     get_directions: 'Get Directions', start_navigation: '▶️ Start Navigation',
-    tab_planroute: '🗺️ Plan a Route', planroute_intro: 'Pick any 3 places from Search — attractions, food, MRT stations, anything — and Waypoint works out the best order to visit them from where you are now.', planroute_add_destination: '+ Add Destination', planroute_picking_banner: 'Tap a place, or any category chip, to add it as a stop.', planroute_cancel: 'Cancel', planroute_plan_button: 'Plan My Route', planroute_total_prefix: 'Total (straight-line estimate):', planroute_my_location: 'My Location',
+    tab_planroute: '🗺️ Plan Route', planroute_intro: 'Pick any 3 places from Search — attractions, food, MRT stations, anything — and Waypoint works out the best order to visit them from where you are now.', planroute_add_destination: '+ Add Destination', planroute_picking_banner: 'Tap a place, or any category chip, to add it as a stop.', planroute_cancel: 'Cancel', planroute_plan_button: 'Plan My Route', planroute_total_prefix: 'Total (straight-line estimate):', planroute_my_location: 'My Location',
     car_parked: 'Car parked', tap_to_walk_back: 'Tap below to walk back to it', walk_to_car: 'Walk to my car',
     save_parking: '🅿️ Save my parking spot', nearby_stops: '📍 Stops near me',
     nearby_arrivals_title: 'Nearby',
@@ -1654,6 +1654,9 @@ function t(key) {
 
 function applyTranslations() {
   document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.getAttribute('data-i18n')); });
+  // Tab labels sit under their own icon (.tab-icon), so drop the emoji some
+  // translations lead with — otherwise "🚌 Bus Times" would show the bus twice.
+  document.querySelectorAll('.tab-label').forEach((el) => { el.textContent = el.textContent.replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, ''); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
   document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.getAttribute('data-i18n-title')); });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria'))); });
