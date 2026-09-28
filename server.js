@@ -1280,14 +1280,58 @@ app.get('/api/geocode', async (req, res) => {
   res.json({ results: finalResults });
 });
 
+// ---- Rotating guide listings -------------------------------------------------
+// A popular landmark with many active guides used to show them ALL, in pure
+// array-insertion order -- whichever guides signed up earliest permanently
+// monopolized the top (only) slots forever, with no limit at all. Caps how
+// many appear per landmark and rotates which ones, so every guide gets a
+// fair turn over time instead of the same handful always winning.
+const MAX_GUIDES_PER_LANDMARK = 3;
+
+// Simple string hash (FNV-1a) so each landmark's rotation is offset
+// differently from every other landmark's -- otherwise every landmark would
+// flip to its next set of guides on exactly the same day, which would read
+// as oddly synchronized rather than each landmark rotating independently.
+function hashString(str) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+// Picks which MAX_GUIDES_PER_LANDMARK guides show today for a given landmark,
+// out of all eligible guides passed in (already filtered to active guides
+// covering that landmark). Rotates once per UTC calendar day, jumping to a
+// fresh, non-overlapping group of guides each day (the offset advances by
+// MAX_GUIDES_PER_LANDMARK, not by 1) rather than sliding one guide in/out at
+// a time -- that reaches full coverage of the whole pool within
+// ceil(pool size / cap) days instead of taking as long as the pool itself.
+// A visitor refreshing repeatedly today sees the same set; tomorrow it's a
+// different group. Pure function of (guide list, landmark key, today's
+// date): nothing is persisted, so if a guide is added/removed/reordered the
+// rotation just adapts on the very next request rather than needing a
+// migration or a stored cursor.
+function rotatedGuidesForLandmark(landmarkGuides, key) {
+  if (landmarkGuides.length <= MAX_GUIDES_PER_LANDMARK) return landmarkGuides;
+  const dayIndex = Math.floor(Date.now() / 86400000); // days since epoch (UTC)
+  const offset = (dayIndex * MAX_GUIDES_PER_LANDMARK + hashString(key)) % landmarkGuides.length;
+  const rotated = [];
+  for (let i = 0; i < MAX_GUIDES_PER_LANDMARK; i++) {
+    rotated.push(landmarkGuides[(offset + i) % landmarkGuides.length]);
+  }
+  return rotated;
+}
+
 // ---- Tourist guides for a landmark (STGS pilot) -----------------------------
 // Public read of the curated guide list above, filtered to one GUIDE_LANDMARKS
 // key and stripped to only what the place card needs (no admin-only fields).
 app.get('/api/guides-for-landmark', (req, res) => {
   const key = String(req.query.key || '');
   if (!GUIDE_LANDMARKS[key]) return res.json({ guides: [] });
-  const results = guides
-    .filter((g) => g.active && Array.isArray(g.landmarks) && g.landmarks.includes(key))
+  const eligible = guides.filter((g) => g.active && Array.isArray(g.landmarks) && g.landmarks.includes(key));
+  const results = rotatedGuidesForLandmark(eligible, key)
     .map((g) => ({
       id: g.id,
       name: g.name,
