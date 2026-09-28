@@ -483,10 +483,18 @@
             </div>
             <div id="sbSplitPeople" class="sb-split-people"></div>
             <div id="sbItemsBox" class="sb-items-box hidden">
-              <label class="pill-btn sb-scan-btn">
-                <input id="sbReceiptInput" type="file" accept="image/*" hidden />
-                <span data-i18n="sb_scan">📷 Scan receipt</span>
-              </label>
+              <div class="sb-scan-row">
+                <!-- capture="environment" opens the rear camera directly; without
+                     it many Android phones only offer the photo gallery. -->
+                <label class="pill-btn sb-scan-btn">
+                  <input id="sbReceiptCamera" type="file" accept="image/*" capture="environment" hidden />
+                  <span data-i18n="sb_scan">📷 Take photo</span>
+                </label>
+                <label class="pill-btn sb-scan-btn sb-scan-gallery">
+                  <input id="sbReceiptGallery" type="file" accept="image/*" hidden />
+                  <span data-i18n="sb_gallery">🖼️ From gallery</span>
+                </label>
+              </div>
               <div id="sbScanStatus" class="sb-scan-status hidden">
                 <div class="sb-progress"><span id="sbScanBar"></span></div>
                 <span id="sbScanText"></span>

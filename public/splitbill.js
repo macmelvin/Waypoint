@@ -47,7 +47,7 @@
       sb_split_equal: "Equally",
       sb_split_exact: "By person",
       sb_split_items: "By item",
-      sb_scan: "📷 Scan receipt",
+      sb_scan: "📷 Take photo",
       sb_scan_receipt: "📷 Scan a receipt",
       sb_add_item: "+ Add item",
       sb_item_ph: "Item",
@@ -65,6 +65,7 @@
       sb_need_people: "Add at least 2 people above so the bill can be split.",
       sb_scan_found_nopeople: "Found {n} items. Now add who was there ↑",
       sb_paid_by_ph: "— add people above —",
+      sb_gallery: "🖼️ From gallery",
     },
     zh: {
       tab_splitbill: '💸 分账',
@@ -94,7 +95,7 @@
       sb_split_equal: "平均",
       sb_split_exact: "按人",
       sb_split_items: "按项目",
-      sb_scan: "📷 扫描收据",
+      sb_scan: "📷 拍照",
       sb_scan_receipt: "📷 扫描收据",
       sb_add_item: "+ 添加项目",
       sb_item_ph: "项目",
@@ -112,6 +113,7 @@
       sb_need_people: "请先在上方添加至少2个人,才能分账。",
       sb_scan_found_nopeople: "找到 {n} 个项目。现在添加同行的人 ↑",
       sb_paid_by_ph: "— 请在上方添加成员 —",
+      sb_gallery: "🖼️ 从相册选择",
     },
     ms: {
       tab_splitbill: '💸 Bahagi Bil',
@@ -141,7 +143,7 @@
       sb_split_equal: "Sama rata",
       sb_split_exact: "Ikut orang",
       sb_split_items: "Ikut item",
-      sb_scan: "📷 Imbas resit",
+      sb_scan: "📷 Ambil foto",
       sb_scan_receipt: "📷 Imbas resit",
       sb_add_item: "+ Tambah item",
       sb_item_ph: "Item",
@@ -159,6 +161,7 @@
       sb_need_people: "Tambah sekurang-kurangnya 2 orang di atas supaya bil boleh dibahagi.",
       sb_scan_found_nopeople: "{n} item ditemui. Sekarang tambah siapa yang hadir ↑",
       sb_paid_by_ph: "— tambah orang di atas —",
+      sb_gallery: "🖼️ Dari galeri",
     },
     ta: {
       tab_splitbill: '💸 பில் பகிர்வு',
@@ -188,7 +191,7 @@
       sb_split_equal: "சமமாக",
       sb_split_exact: "நபர்படி",
       sb_split_items: "பொருள்படி",
-      sb_scan: "📷 ரசீதை ஸ்கேன் செய்",
+      sb_scan: "📷 புகைப்படம் எடு",
       sb_scan_receipt: "📷 ரசீதை ஸ்கேன் செய்",
       sb_add_item: "+ பொருளைச் சேர்",
       sb_item_ph: "பொருள்",
@@ -206,6 +209,7 @@
       sb_need_people: "பில்லைப் பிரிக்க மேலே குறைந்தது 2 பேரைச் சேர்க்கவும்.",
       sb_scan_found_nopeople: "{n} பொருட்கள் கிடைத்தன. இப்போது யார் இருந்தார்கள் என்பதைச் சேர்க்கவும் ↑",
       sb_paid_by_ph: "— மேலே நபர்களைச் சேர்க்கவும் —",
+      sb_gallery: "🖼️ கேலரியிலிருந்து",
     },
     ja: {
       tab_splitbill: '💸 割り勘',
@@ -235,7 +239,7 @@
       sb_split_equal: "均等",
       sb_split_exact: "人ごと",
       sb_split_items: "品目ごと",
-      sb_scan: "📷 レシートを読み取る",
+      sb_scan: "📷 撮影する",
       sb_scan_receipt: "📷 レシートを読み取る",
       sb_add_item: "+ 品目を追加",
       sb_item_ph: "品目",
@@ -253,6 +257,7 @@
       sb_need_people: "割り勘するには、上で2人以上追加してください。",
       sb_scan_found_nopeople: "{n} 品目が見つかりました。次にメンバーを追加してください ↑",
       sb_paid_by_ph: "— 上でメンバーを追加 —",
+      sb_gallery: "🖼️ 写真から選ぶ",
     },
     ko: {
       tab_splitbill: '💸 더치페이',
@@ -282,7 +287,7 @@
       sb_split_equal: "균등",
       sb_split_exact: "사람별",
       sb_split_items: "항목별",
-      sb_scan: "📷 영수증 스캔",
+      sb_scan: "📷 사진 찍기",
       sb_scan_receipt: "📷 영수증 스캔",
       sb_add_item: "+ 항목 추가",
       sb_item_ph: "항목",
@@ -300,6 +305,7 @@
       sb_need_people: "나누려면 위에서 2명 이상 추가하세요.",
       sb_scan_found_nopeople: "{n}개 항목을 찾았습니다. 이제 함께한 사람을 추가하세요 ↑",
       sb_paid_by_ph: "— 위에서 멤버 추가 —",
+      sb_gallery: "🖼️ 앨범에서 선택",
     },
   };
   Object.keys(SB_I18N).forEach((lang) => {
@@ -455,7 +461,7 @@
     splitHint: $('sbSplitHint'), cancel: $('sbCancelExpense'),
     addRow: $('sbAddRow'), scanReceiptBtn: $('sbScanReceiptBtn'),
     itemsBox: $('sbItemsBox'), items: $('sbItems'), addItem: $('sbAddItem'),
-    receiptInput: $('sbReceiptInput'), scanStatus: $('sbScanStatus'), scanBar: $('sbScanBar'), scanText: $('sbScanText'),
+    receiptCamera: $('sbReceiptCamera'), receiptGallery: $('sbReceiptGallery'), scanStatus: $('sbScanStatus'), scanBar: $('sbScanBar'), scanText: $('sbScanText'),
     result: $('sbResult'), summary: $('sbSummary'), transfers: $('sbTransfers'),
     shareBtn: $('sbShareBtn'), resetBtn: $('sbResetBtn'),
   };
@@ -858,7 +864,8 @@
     } finally {
       scanning = false;
       el.itemsBox.classList.remove('scanning');
-      el.receiptInput.value = '';
+      el.receiptCamera.value = '';
+      el.receiptGallery.value = '';
     }
   }
 
@@ -866,11 +873,13 @@
     return s.toLowerCase().replace(/(^|[\s(&/-])([a-z])/g, (m, a, b) => a + b.toUpperCase()).slice(0, 40);
   }
 
-  el.receiptInput.addEventListener('change', () => handleReceipt(el.receiptInput.files && el.receiptInput.files[0]));
+  [el.receiptCamera, el.receiptGallery].forEach((input) => {
+    input.addEventListener('change', () => handleReceipt(input.files && input.files[0]));
+  });
 
   el.scanReceiptBtn.addEventListener('click', () => {
     openForm(null, 'items');
-    el.receiptInput.click(); // same tap, so mobile browsers allow the picker
+    el.receiptCamera.click(); // same tap, so mobile browsers allow the camera to open
   });
 
   // ---------- People ----------

@@ -2748,3 +2748,7 @@ select.sb-input { appearance: auto; }
 .sb-face.on { border-color: var(--accent); }
 .sb-item-each { margin-left: auto; font-size: 12px; color: var(--label-secondary); font-variant-numeric: tabular-nums; }
 .sb-add-item { align-self: flex-start; }
+
+.sb-scan-row { display: flex; gap: 8px; }
+.sb-scan-row .sb-scan-btn { flex: 1; min-width: 0; }
+.sb-scan-btn.sb-scan-gallery { border-style: solid; border-color: var(--border); background: var(--surface-elevated); color: var(--ink); }
