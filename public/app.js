@@ -4906,11 +4906,12 @@ const SOS_OLD_DEFAULT_MESSAGES = ['I NEED HELP']; // superseded defaults — upg
 // concurrent high-accuracy fixes rather than running them side by side.
 const GEO_OPTIONS_FAST = { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 };
 
-// Warmed as soon as the Safety sheet opens (see openSosModal), so that by
-// the time someone actually taps SOS a position is very likely already in
-// hand — the send can then happen fully synchronously inside the click
-// instead of waiting on geolocation, which was the main source of the
-// multi-second delay before WhatsApp opened.
+// Warmed as soon as the Safety sheet opens (see openSosModal), so that if a
+// fix happens to land before someone taps SOS, the outgoing message can
+// include real coordinates inline. Purely a nice-to-have now: the SOS send
+// itself (triggerSos/handleSafetySosSend) never waits on this — it sends
+// immediately either way, since the live-tracking link updates on its own
+// the moment a fix comes in via startSosLiveTracking's watchPosition.
 const SOS_FIX_FRESH_MS = 45000;
 let safetySosFix = null; // { lat, lon, t }
 let safetySosFixWarming = false;
@@ -4925,20 +4926,6 @@ function warmSosFix() {
   navigator.geolocation.getCurrentPosition(
     (pos) => { safetySosFix = { lat: pos.coords.latitude, lon: pos.coords.longitude, t: Date.now() }; safetySosFixWarming = false; },
     () => { safetySosFixWarming = false; },
-    GEO_OPTIONS_FAST
-  );
-}
-
-// Resolves a location for an SOS send: the warmed fix if still fresh
-// (synchronous — calls onFix in the same tick), otherwise a fast fallback
-// fetch (asynchronous).
-function getSosFixThen(onFix, onNone) {
-  const cached = getFreshSosFix();
-  if (cached) { onFix(cached.lat, cached.lon); return; }
-  if (!navigator.geolocation) { onNone(); return; }
-  navigator.geolocation.getCurrentPosition(
-    (pos) => onFix(pos.coords.latitude, pos.coords.longitude),
-    (err) => { console.error('SOS geolocation error:', err); onNone(); },
     GEO_OPTIONS_FAST
   );
 }
@@ -5154,6 +5141,7 @@ function postSosPosition(sessionId, lat, lon) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ lat, lon }),
+    keepalive: true, // survive the page being backgrounded/navigated away as WhatsApp opens
   }).catch((err) => console.error('SOS position update failed:', err));
 }
 
@@ -5183,69 +5171,32 @@ function safetyGroupSmsLink(contacts, text) {
   return isIOS ? `sms:/open?addresses=${nums.join(',')}&body=${t}` : `sms:${nums.join(',')}?body=${t}`;
 }
 
-// Single-recipient send: opens the tab synchronously (inside the click
-// handler, before the async geolocation call resolves) so mobile Safari
-// doesn't treat it as an unrequested popup and block it.
+// Single-recipient send: NEVER waits on geolocation. Live tracking (below)
+// kicks off its own watchPosition and posts a fix the moment one resolves,
+// so the recipient's map fills in within moments regardless — the send
+// itself doesn't need to sit around for GPS first. And it navigates the
+// current tab directly (window.location.href), exactly like the standalone
+// ScamGuard app: that's what lets Android/iOS hand off straight to the
+// installed WhatsApp app. A window.open()-created tab often doesn't get
+// that same direct handoff and falls back to wa.me's web page, which is
+// why it used to need an extra "Continue" tap.
 function triggerSos(contact, message) {
   const sessionId = genSosSessionId();
   const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
+  const trackLink = `${window.location.origin}/track/${sessionId}`;
 
-  const buildMessage = (trackingLine) => `${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
-  const withTracking = (lat, lon) => {
-    postSosPosition(sessionId, lat, lon);
-    startSosLiveTracking(sessionId, contact.name);
-    const trackLink = `${window.location.origin}/track/${sessionId}`;
-    return `\nLocation: ${formatLatLon(lat, lon)}\nTrack my live location (updates for up to 1hr): ${trackLink}`;
-  };
+  startSosLiveTracking(sessionId, contact.name);
 
-  // Fast path: a fix was already warmed while the sheet was open, so we can
-  // build the link and hand off to WhatsApp/SMS fully synchronously, inside
-  // this very click — no window.open()-then-redirect dance needed, and none
-  // of the "user activation" is lost, so the OS can hand off straight to the
-  // WhatsApp app instead of falling back to wa.me's web "Continue" button.
+  // Use whatever fix (if any) was already warmed while the sheet was open —
+  // never wait for a fresh one now. No fix yet is fine: the track link
+  // above already reflects the live watch as soon as it resolves.
   const cached = getFreshSosFix();
-  if (cached) {
-    const trackingLine = withTracking(cached.lat, cached.lon);
-    const url = safetyLinkFor(contact, buildMessage(trackingLine));
-    if (contact.app === 'sms') window.location.href = url;
-    else window.open(url, '_blank');
-    closeSosModal();
-    return;
-  }
+  if (cached) postSosPosition(sessionId, cached.lat, cached.lon);
+  const coordsLine = cached ? `\nLocation: ${formatLatLon(cached.lat, cached.lon)}` : '';
 
-  // Fallback: no fresh fix yet — fall back to the blank-tab-then-redirect
-  // trick (to dodge Safari's async-popup-blocking) with a fast, low-accuracy
-  // geolocation request rather than the slow high-accuracy one, so this path
-  // is still as quick as possible.
-  const sendBtn = document.getElementById('safetySosBtn');
-  if (sendBtn) { sendBtn.disabled = true; sendBtn.querySelector('small').textContent = 'Getting your location…'; }
-  const sosTab = window.open('', '_blank');
-  const openTarget = (trackingLine) => {
-    const url = safetyLinkFor(contact, buildMessage(trackingLine));
-    if (contact.app === 'sms') {
-      if (sosTab) sosTab.close();
-      window.location.href = url;
-    } else if (sosTab) {
-      sosTab.location.href = url;
-    } else {
-      window.open(url, '_blank'); // popup was blocked outright — best effort fallback
-    }
-    closeSosModal();
-  };
-
-  if (!navigator.geolocation) {
-    openTarget('');
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    (pos) => openTarget(withTracking(pos.coords.latitude, pos.coords.longitude)),
-    (err) => {
-      console.error('SOS geolocation error:', err);
-      showToast('Could not get your location — sending HELP without it.');
-      openTarget('');
-    },
-    GEO_OPTIONS_FAST
-  );
+  const fullMessage = `${messageText}${coordsLine}\nTrack my live location (updates for up to 1hr): ${trackLink}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+  window.location.href = safetyLinkFor(contact, fullMessage);
+  closeSosModal();
 }
 
 // Multi-recipient send: one shared live-tracking session, then a "tap each
@@ -5267,49 +5218,32 @@ function handleSafetySosSend(mode, message) {
   if (mode === 'groupsms') {
     const sessionId = genSosSessionId();
     const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
-    const send = (trackingLine) => {
-      const fullMessage = `${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
-      window.location.href = safetyGroupSmsLink(contacts, fullMessage);
-      closeSosModal();
-    };
-    const withTracking = (lat, lon) => {
-      postSosPosition(sessionId, lat, lon);
-      startSosLiveTracking(sessionId, `${contacts.length} contacts`);
-      const trackLink = `${window.location.origin}/track/${sessionId}`;
-      return `\nLocation: ${formatLatLon(lat, lon)}\nTrack my live location (updates for up to 1hr): ${trackLink}`;
-    };
+    const trackLink = `${window.location.origin}/track/${sessionId}`;
+    startSosLiveTracking(sessionId, `${contacts.length} contacts`);
     const cached = getFreshSosFix();
-    if (cached) { send(withTracking(cached.lat, cached.lon)); return; }
-    const sendBtn = document.getElementById('safetySosBtn');
-    if (sendBtn) { sendBtn.disabled = true; sendBtn.querySelector('small').textContent = 'Getting your location…'; }
-    getSosFixThen(
-      (lat, lon) => send(withTracking(lat, lon)),
-      () => { showToast('Could not get your location — sending HELP without it.'); send(''); }
-    );
+    if (cached) postSosPosition(sessionId, cached.lat, cached.lon);
+    const coordsLine = cached ? `\nLocation: ${formatLatLon(cached.lat, cached.lon)}` : '';
+    const fullMessage = `${messageText}${coordsLine}\nTrack my live location (updates for up to 1hr): ${trackLink}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+    window.location.href = safetyGroupSmsLink(contacts, fullMessage);
+    closeSosModal();
     return;
   }
 
   // mode === 'all': exactly one contact behaves like the tested single-send
-  // path; more than one opens the send-list sheet.
+  // path; more than one opens the send-list sheet. Neither waits on
+  // geolocation — same reasoning as triggerSos above.
   if (contacts.length === 1) { triggerSos(contacts[0], message); return; }
 
   const sessionId = genSosSessionId();
   const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
-  const withTracking = (lat, lon) => {
-    postSosPosition(sessionId, lat, lon);
-    startSosLiveTracking(sessionId, `${contacts.length} contacts`);
-    const trackLink = `${window.location.origin}/track/${sessionId}`;
-    return `\nLocation: ${formatLatLon(lat, lon)}\nTrack my live location (updates for up to 1hr): ${trackLink}`;
-  };
-  const cachedAll = getFreshSosFix();
-  if (cachedAll) { openSafetySendSheet(contacts, sessionId, messageText, withTracking(cachedAll.lat, cachedAll.lon)); return; }
-
-  const sendBtn = document.getElementById('safetySosBtn');
-  if (sendBtn) { sendBtn.disabled = true; sendBtn.querySelector('small').textContent = 'Getting your location…'; }
-  getSosFixThen(
-    (lat, lon) => openSafetySendSheet(contacts, sessionId, messageText, withTracking(lat, lon)),
-    () => { showToast('Could not get your location — sending HELP without it.'); openSafetySendSheet(contacts, sessionId, messageText, ''); }
-  );
+  const trackLink = `${window.location.origin}/track/${sessionId}`;
+  startSosLiveTracking(sessionId, `${contacts.length} contacts`);
+  const cached = getFreshSosFix();
+  if (cached) postSosPosition(sessionId, cached.lat, cached.lon);
+  const trackingLine = cached
+    ? `\nLocation: ${formatLatLon(cached.lat, cached.lon)}\nTrack my live location (updates for up to 1hr): ${trackLink}`
+    : `\nTrack my live location (updates for up to 1hr): ${trackLink}`;
+  openSafetySendSheet(contacts, sessionId, messageText, trackingLine);
 }
 
 function openSafetySendSheet(contacts, sessionId, messageText, trackingLine) {
