@@ -126,6 +126,7 @@
         <button class="tab-btn" data-tab="directions" role="tab" aria-selected="false" data-i18n="tab_directions">Directions</button>
         <button class="tab-btn" data-tab="favourites" role="tab" aria-selected="false" data-i18n="tab_bus">🚌 Bus Times</button>
         <button class="tab-btn" data-tab="planroute" role="tab" aria-selected="false" data-i18n="tab_planroute">🗺️ Plan a Route</button>
+        <button class="tab-btn" data-tab="splitbill" role="tab" aria-selected="false" data-i18n="tab_splitbill">💸 Split Bill</button>
       </div>
 
       <section id="panel-search" class="panel active">
@@ -441,6 +442,60 @@
         <div id="routePlanResult" class="route-plan-result hidden"></div>
       </section>
 
+      <section id="panel-splitbill" class="panel">
+        <p class="planroute-intro" data-i18n="sb_intro">Add who's in the group and what was paid. Waypoint works out who owes whom — with the fewest transfers — so nobody has to do awkward maths at the table.</p>
+
+        <div class="sb-section">
+          <div class="sb-section-title" data-i18n="sb_people">People</div>
+          <div id="sbPeople" class="sb-people"></div>
+          <form id="sbAddPersonForm" class="sb-inline-form" autocomplete="off">
+            <input id="sbPersonInput" class="sb-input" type="text" maxlength="24" data-i18n-placeholder="sb_add_person_ph" placeholder="Add a name, e.g. Wei Ling" />
+            <button class="pill-btn primary" type="submit" data-i18n="sb_add">Add</button>
+          </form>
+        </div>
+
+        <div class="sb-section">
+          <div class="sb-section-title" data-i18n="sb_expenses">Expenses</div>
+          <div id="sbExpenses" class="sb-expenses"></div>
+          <button id="sbAddExpenseBtn" class="pill-btn nearby-btn" type="button" data-i18n="sb_add_expense">➕ Add an expense</button>
+
+          <form id="sbExpenseForm" class="sb-expense-form hidden" autocomplete="off">
+            <input id="sbDesc" class="sb-input" type="text" maxlength="40" data-i18n-placeholder="sb_desc_ph" placeholder="What was it? e.g. Dinner at Lau Pa Sat" />
+            <div class="sb-row">
+              <label class="sb-amount-wrap"><span class="sb-currency">S$</span>
+                <input id="sbAmount" class="sb-input sb-amount" type="text" inputmode="decimal" placeholder="0.00" />
+              </label>
+              <label class="sb-select-wrap"><span class="sb-mini-label" data-i18n="sb_paid_by">Paid by</span>
+                <select id="sbPaidBy" class="sb-input"></select>
+              </label>
+            </div>
+            <div class="sb-row sb-toggles">
+              <label class="sb-check"><input id="sbSvc" type="checkbox" /> <span data-i18n="sb_svc">+10% service</span></label>
+              <label class="sb-check"><input id="sbGst" type="checkbox" /> <span data-i18n="sb_gst">+9% GST</span></label>
+            </div>
+            <div class="sb-seg" role="tablist">
+              <button type="button" class="sb-seg-btn active" data-split="equal" data-i18n="sb_split_equal">Split equally</button>
+              <button type="button" class="sb-seg-btn" data-split="exact" data-i18n="sb_split_exact">By what each had</button>
+            </div>
+            <div id="sbSplitPeople" class="sb-split-people"></div>
+            <div id="sbSplitHint" class="hint"></div>
+            <div class="sb-row sb-form-actions">
+              <button id="sbCancelExpense" class="pill-btn ghost" type="button" data-i18n="planroute_cancel">Cancel</button>
+              <button id="sbSaveExpense" class="pill-btn primary" type="submit" data-i18n="sb_save">Save expense</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="sbResult" class="sb-section hidden">
+          <div class="sb-section-title" data-i18n="sb_settle">Settle up</div>
+          <div id="sbSummary" class="sb-summary"></div>
+          <div id="sbTransfers" class="sb-transfers"></div>
+          <button id="sbShareBtn" class="primary-btn" type="button" data-i18n="sb_share">📤 Send to the group</button>
+        </div>
+
+        <button id="sbResetBtn" class="pill-btn ghost sb-reset" type="button" data-i18n="sb_new_bill">Start a new bill</button>
+      </section>
+
       <button id="shareBtn" class="share-footer" data-i18n="share_footer">💙 Share this app if you find it useful</button>
 
       <a href="https://buymeacoffee.com/waypointsg" target="_blank" rel="noopener" class="support-footer" data-i18n="support_footer">☕ Buy me a coffee — help keep Waypoint running</a>
@@ -542,5 +597,6 @@
 </a>
 
 <script src="/app.js"></script>
+<script src="/splitbill.js"></script>
 </body>
 </html>
