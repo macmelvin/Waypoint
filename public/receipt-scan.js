@@ -18,8 +18,12 @@
 
   // Money at the END of a line: "12.50", "-2.14", "$8.80", "S$294.80",
   // plus common OCR slips — "5$" for "S$", ":" or "," for the decimal point,
-  // and a trailing tax-code letter some POS systems print ("12.50 A").
-  const PRICE_AT_END = /(-|−)?\s*(?:S\s?\$|5\$|\$)?\s*(-)?(\d{1,3}(?:[ ,]\d{3})*|\d+)[.,:](\d{2})\s*[A-Z*]?\s*$/;
+  // and trailing junk: a tax-code letter some POS systems print ("12.50 A"),
+  // or stray punctuation/letters OCR tacks on past the real digits ("148.50.
+  // |" from a smudged full stop). Still anchored at end-of-string, so a
+  // genuine second number afterward correctly fails to match — only
+  // non-digit trailing noise is tolerated.
+  const PRICE_AT_END = /(-|−)?\s*(?:S\s?\$|5\$|\$)?\s*(-)?(\d{1,3}(?:[ ,]\d{3})*|\d+)[.,:](\d{2})[\s.,:|*A-Za-z]*$/;
 
   const RE = {
     subtotal: /sub[\s-]*tota?l/i,
@@ -133,8 +137,66 @@
     return libPromise;
   }
 
+  // A light 3x3 box blur before thresholding. On its own a plain contrast
+  // stretch (the old approach here) binarizes whatever noise is in the photo
+  // right along with the ink — including the screen-door/moire pattern you
+  // get from photographing a receipt off a SCREEN rather than paper, which
+  // sits at close to the same spatial frequency as the text strokes
+  // themselves. One blur pass knocks that down before it can be mistaken for
+  // ink, at a size small enough not to visibly soften a normal sharp photo.
+  function boxBlur3(grey, w, h) {
+    const tmp = new Float32Array(w * h);
+    const out = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) {
+      const row = y * w;
+      for (let x = 0; x < w; x++) {
+        const x0 = Math.max(0, x - 1), x1 = Math.min(w - 1, x + 1);
+        tmp[row + x] = (grey[row + x0] + grey[row + x] + grey[row + x1]) / 3;
+      }
+    }
+    for (let x = 0; x < w; x++) {
+      for (let y = 0; y < h; y++) {
+        const y0 = Math.max(0, y - 1), y1 = Math.min(h - 1, y + 1);
+        out[y * w + x] = (tmp[y0 * w + x] + tmp[y * w + x] + tmp[y1 * w + x]) / 3;
+      }
+    }
+    return out;
+  }
+
+  // Otsu's method: the single threshold that best splits the image's
+  // brightness histogram into two classes (ink vs. paper), by maximizing the
+  // variance between them. Unlike a min/max contrast stretch, it's driven by
+  // the actual shape of the histogram, so a few outlier pixels (glare, a
+  // dark edge from something outside the receipt in frame) can't drag the
+  // whole stretch off and wash out the real ink/paper contrast — which is
+  // what was happening to badly-lit or off-angle photos before.
+  function otsuThreshold(grey, w, h) {
+    const hist = new Uint32Array(256);
+    const n = w * h;
+    for (let i = 0; i < n; i++) hist[Math.max(0, Math.min(255, Math.round(grey[i])))] += 1;
+    let sumAll = 0;
+    for (let t = 0; t < 256; t++) sumAll += t * hist[t];
+    let sumB = 0, wB = 0, best = 0, bestVar = -1;
+    for (let t = 0; t < 256; t++) {
+      wB += hist[t];
+      if (wB === 0) continue;
+      const wF = n - wB;
+      if (wF === 0) break;
+      sumB += t * hist[t];
+      const meanB = sumB / wB, meanF = (sumAll - sumB) / wF;
+      const between = wB * wF * (meanB - meanF) * (meanB - meanF);
+      if (between > bestVar) { bestVar = between; best = t; }
+    }
+    return best;
+  }
+
   // Phone photos are 3000–4000px wide; OCR is faster and no less accurate
-  // around 1600px. Greyscale + a contrast stretch helps faded thermal paper.
+  // around 1600px. Greyscale, blur, then binarize (ink=black, paper=white) —
+  // see boxBlur3/otsuThreshold above for why, in place of the old plain
+  // min/max contrast stretch. Verified against a real garbled scan (a
+  // photographed screenshot with heavy moire) plus a clean control photo:
+  // this fixes the former without introducing any new misreads on the
+  // latter.
   function prepareImage(file) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -150,17 +212,14 @@
         URL.revokeObjectURL(url);
         try {
           const d = ctx.getImageData(0, 0, w, h), px = d.data;
-          let lo = 255, hi = 0;
-          const grey = new Uint8ClampedArray(w * h);
+          const grey = new Float32Array(w * h);
           for (let i = 0, j = 0; i < px.length; i += 4, j++) {
-            const g = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
-            grey[j] = g;
-            if (g < lo) lo = g;
-            if (g > hi) hi = g;
+            grey[j] = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
           }
-          const range = Math.max(1, hi - lo);
+          const blurred = boxBlur3(grey, w, h);
+          const threshold = otsuThreshold(blurred, w, h);
           for (let i = 0, j = 0; i < px.length; i += 4, j++) {
-            const v = ((grey[j] - lo) * 255) / range;
+            const v = blurred[j] > threshold ? 255 : 0;
             px[i] = px[i + 1] = px[i + 2] = v;
           }
           ctx.putImageData(d, 0, 0);
