@@ -476,12 +476,6 @@
               <label class="sb-check"><input id="sbSvc" type="checkbox" /> <span data-i18n="sb_svc">+10% service</span></label>
               <label class="sb-check"><input id="sbGst" type="checkbox" /> <span data-i18n="sb_gst">+9% GST</span></label>
             </div>
-            <div class="sb-seg" role="tablist">
-              <button type="button" class="sb-seg-btn active" data-split="equal" data-i18n="sb_split_equal">Equally</button>
-              <button type="button" class="sb-seg-btn" data-split="items" data-i18n="sb_split_items">By item</button>
-              <button type="button" class="sb-seg-btn" data-split="exact" data-i18n="sb_split_exact">By person</button>
-            </div>
-            <div id="sbSplitPeople" class="sb-split-people"></div>
             <div id="sbItemsBox" class="sb-items-box hidden">
               <div class="sb-scan-row">
                 <!-- capture="environment" opens the rear camera directly; without
@@ -502,6 +496,11 @@
               <div id="sbItems" class="sb-items"></div>
               <button id="sbAddItem" class="pill-btn ghost sb-add-item" type="button" data-i18n="sb_add_item">+ Add item</button>
             </div>
+            <div class="sb-seg" role="tablist">
+              <button type="button" class="sb-seg-btn active" data-split="equal" data-i18n="sb_split_equal">Equally</button>
+              <button type="button" class="sb-seg-btn" data-split="exact" data-i18n="sb_split_exact">By person</button>
+            </div>
+            <div id="sbSplitPeople" class="sb-split-people"></div>
             <div id="sbSplitHint" class="hint"></div>
             <div class="sb-row sb-form-actions">
               <button id="sbCancelExpense" class="pill-btn ghost" type="button" data-i18n="planroute_cancel">Cancel</button>
