@@ -4927,6 +4927,12 @@ function normalizePhoneNumber(raw) {
 
 // ---- Safety modal shell: tabs ----
 
+let safetySosRefreshTimer = null; // re-renders the "auto-stops in N min" line while it's on screen
+
+function stopSafetySosRefreshTimer() {
+  if (safetySosRefreshTimer != null) { clearInterval(safetySosRefreshTimer); safetySosRefreshTimer = null; }
+}
+
 function openSosModal() {
   els.sosModal.classList.remove('hidden');
   switchSafetyTab(safetyActiveTab);
@@ -4936,6 +4942,7 @@ function openSosModal() {
 function closeSosModal() {
   els.sosModal.classList.add('hidden');
   safetySendSheetContacts = null;
+  stopSafetySosRefreshTimer();
 }
 
 function switchSafetyTab(name) {
@@ -4945,7 +4952,14 @@ function switchSafetyTab(name) {
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-selected', String(active));
   });
+  stopSafetySosRefreshTimer();
   renderSafetyTab(name);
+  if (name === 'sos' && isSosSharingActive()) {
+    safetySosRefreshTimer = setInterval(() => {
+      if (safetyActiveTab === 'sos' && isSosSharingActive()) renderSafetySosTab();
+      else stopSafetySosRefreshTimer();
+    }, 30000);
+  }
 }
 
 function renderSafetyTab(name) {
@@ -5007,7 +5021,17 @@ function renderSafetySosTab() {
       ? 'One SMS to every number'
       : 'Send to each contact in turn';
 
-  const sharing = isSosSharingActive();
+  const session = getSosActiveSession();
+  const sharing = !!session;
+
+  const liveLocationHtml = sharing
+    ? `<div class="safety-local-bar" style="border-color:var(--success);background:color-mix(in srgb, var(--success) 10%, var(--surface-elevated))">
+        <div>
+          <div class="safety-local-label" style="color:var(--success)">🟢 Live location sharing</div>
+          <div class="safety-local-name">Updating automatically${session.contactName ? ` for ${escapeHtml(session.contactName)}` : ''} · auto-stops in ${safetyMinutesLeft(session.expiresAt)} min</div>
+        </div>
+      </div>`
+    : `<p class="safety-sub" style="margin:-4px 0 12px">📍 Tapping SOS shares your live location automatically — it keeps updating on its own for up to 1 hour, so you don't need to resend it. Tap "I'm safe" anytime to stop early.</p>`;
 
   els.sosModalBody.innerHTML = `
     ${safetyLocalBarHtml()}
@@ -5016,6 +5040,7 @@ function renderSafetySosTab() {
         <b>SOS</b><small>${sharing ? 'Sharing…' : 'Tap to alert'}</small>
       </button>
     </div>
+    ${liveLocationHtml}
     <div class="sos-form" style="margin-bottom:10px">
       <div class="safety-sub" style="margin-bottom:6px"><strong style="color:var(--ink)">Sends to:</strong> ${escapeHtml(who)} <span style="color:var(--muted)">· ${escapeHtml(how)}</span></div>
       <div class="safety-seg" role="group" aria-label="Who SOS alerts">
@@ -5041,18 +5066,27 @@ function renderSafetySosTab() {
   const safeBtn = document.getElementById('safetyImSafeBtn');
   if (safeBtn) safeBtn.addEventListener('click', () => {
     stopSosLiveTracking();
+    stopSafetySosRefreshTimer();
     showToast("Stopped sharing your live location.");
     renderSafetySosTab();
   });
 }
 
-function isSosSharingActive() {
+function getSosActiveSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(SOS_ACTIVE_SESSION_KEY) || 'null');
-    return !!(saved && saved.sessionId && Date.now() < saved.expiresAt);
+    return (saved && saved.sessionId && Date.now() < saved.expiresAt) ? saved : null;
   } catch (err) {
-    return false;
+    return null;
   }
+}
+
+function isSosSharingActive() {
+  return !!getSosActiveSession();
+}
+
+function safetyMinutesLeft(expiresAt) {
+  return Math.max(1, Math.round((expiresAt - Date.now()) / 60000));
 }
 
 // Generates an opaque, effectively-unguessable session id for the tracking
