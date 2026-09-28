@@ -3780,6 +3780,106 @@ app.get('/track/:sessionId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'track.html'));
 });
 
+// ---- Safety Center: reverse-geocode + embassy directory --------------------
+// Backs the Hotlines tab of the SOS/Safety sheet (public/app.js, "Safety
+// Center" section). Both are read-only, cached lookups against public data
+// so the tab works offline-of-a-third-party-outage as much as possible and
+// doesn't hammer either upstream source.
+
+// Reverse-geocode a GPS fix to a country, so the Hotlines tab can default to
+// "numbers for where you actually are" instead of only a manual picker.
+// Rounds to 1 decimal place (~11km) for the cache key — plenty precise for
+// "which country" and turns a whole city into one shared cache entry.
+const REVERSE_COUNTRY_CACHE_TTL_MS = 60 * 60 * 1000;
+const REVERSE_COUNTRY_CACHE_MAX_ENTRIES = 500;
+const reverseCountryCache = new Map(); // "lat,lon" (1dp) -> { at, code, name }
+
+app.get('/api/reverse-country', async (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon are required' });
+  }
+  const key = `${lat.toFixed(1)},${lon.toFixed(1)}`;
+  const cached = reverseCountryCache.get(key);
+  if (cached && Date.now() - cached.at < REVERSE_COUNTRY_CACHE_TTL_MS) {
+    return res.json({ code: cached.code, name: cached.name });
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=jsonv2&zoom=3&addressdetails=1`;
+    const r = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; WaypointSG/1.0; +https://waypoint-production-0307.up.railway.app/)',
+        Accept: 'application/json',
+      },
+    });
+    if (!r.ok) throw new Error(`Nominatim reverse responded ${r.status}`);
+    const data = await r.json();
+    const code = (data.address && data.address.country_code || '').toUpperCase();
+    const name = (data.address && data.address.country) || null;
+    if (!code) return res.status(502).json({ error: 'No country found for this location.' });
+    if (reverseCountryCache.size >= REVERSE_COUNTRY_CACHE_MAX_ENTRIES && !reverseCountryCache.has(key)) {
+      reverseCountryCache.delete(reverseCountryCache.keys().next().value);
+    }
+    reverseCountryCache.set(key, { at: Date.now(), code, name });
+    res.json({ code, name });
+  } catch (err) {
+    console.error('reverse-country error:', err.message);
+    res.status(502).json({ error: 'Could not detect your country.', detail: err.message });
+  } finally {
+    clearTimeout(timeout);
+  }
+});
+
+// Embassy/consulate directory, from the open, public-domain Database of
+// Embassies (sourced from Wikidata). Fetched and filtered once, cached for a
+// day, then served back sliced by the requesting country's name — the CSV is
+// a few MB and rarely changes, so there's no reason to re-fetch or re-parse
+// it per request.
+const EMBASSY_CSV_URL = 'https://raw.githubusercontent.com/database-of-embassies/database-of-embassies/master/database_of_embassies.csv';
+const EMBASSY_MISSION_TYPES = new Set(['embassy', 'high commission', 'consulate general', 'consulate', 'de facto embassy', 'de facto consulate']);
+const EMBASSY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+let embassyCache = null; // Record<countryName, mission[]>
+let embassyCacheAt = 0;
+let embassyLoading = null;
+
+async function loadEmbassyData() {
+  if (embassyCache && Date.now() - embassyCacheAt < EMBASSY_CACHE_TTL_MS) return embassyCache;
+  if (!embassyLoading) {
+    embassyLoading = (async () => {
+      const r = await fetch(EMBASSY_CSV_URL);
+      if (!r.ok) throw new Error(`embassy data responded ${r.status}`);
+      const lines = (await r.text()).split('\n').slice(1);
+      const out = {};
+      for (const line of lines) {
+        const f = line.split(';');
+        if (f.length < 25 || !EMBASSY_MISSION_TYPES.has(f[21])) continue;
+        (out[f[0]] ||= []).push({ c: f[4], city: f[6], t: f[21], a: f[8], ph: f[11], em: f[12], w: f[13], j: f[2] });
+      }
+      embassyCache = out;
+      embassyCacheAt = Date.now();
+      return out;
+    })().catch((err) => { embassyLoading = null; throw err; });
+  }
+  return embassyLoading;
+}
+loadEmbassyData().catch((err) => console.error('embassy data preload failed:', err.message));
+
+app.get('/api/embassies', async (req, res) => {
+  try {
+    const data = await loadEmbassyData();
+    const from = req.query.from || '';
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.json(data[from] || []);
+  } catch (err) {
+    console.error('embassies error:', err.message);
+    res.status(503).json({ error: 'Embassy data is temporarily unavailable.' });
+  }
+});
+
 // ---- Push trigger: PSI reaching Unhealthy ----------------------------------
 // Same shape as the MRT/LRT disruption push trigger above: polls the same
 // cached getPsiReading() proactively so an alert goes out even while nobody

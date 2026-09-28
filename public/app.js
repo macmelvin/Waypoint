@@ -4805,46 +4805,92 @@ els.locateBtn.addEventListener('click', () => {
   );
 });
 
-// ---------- SOS ----------
-// A one-tap "send HELP" button to a single designated contact. Deliberately
-// NOT a silent background send: Waypoint has no backend messaging/SMS
-// gateway and no user accounts, so this opens WhatsApp with the HELP
-// message and a link to a live-updating location page already filled in —
-// the contact's phone number is all that's needed, and the person still
-// taps Send themselves inside WhatsApp, which also means a misfire (an
-// accidental tap that gets this far) still can't actually notify anyone
-// without a deliberate second action.
+// ---------- Safety Center (SOS + Contacts + Scam Checker + Hotlines) ----------
+// The SOS icon opens a 4-tab sheet instead of a single send screen:
+//   SOS       — the original one-tap "send HELP with live location" flow,
+//               now able to fan out to several contacts instead of just one.
+//   Contacts  — the emergency-contact list (multiple, each WhatsApp or SMS,
+//               one marked Primary) plus the sender's name and alert text.
+//   Check     — "Is this a scam?": paste a message and get an on-device,
+//               offline-capable red-flag scan. Nothing is uploaded.
+//   Hotlines  — emergency numbers for ~150 countries (auto-detected from GPS,
+//               or picked manually) plus an embassy/consulate lookup for the
+//               visitor's own nationality.
 //
-// The location keeps updating after the message is sent, not just a single
-// pin at send-time: this device posts its position to /api/sos-track/:id
-// every few seconds while sharing is on, and the link in the WhatsApp
-// message (/track/:id) is a plain page — no Waypoint install needed — that
-// polls the same session and redraws the marker, so the contact can
-// actually watch the person move. Sharing auto-stops after 1 hour (matching
-// the server's own session expiry) or whenever "Stop sharing" is pressed,
-// whichever comes first, so it can't keep running forgotten in the
-// background indefinitely; the tracking banner stays visible the whole
-// time as a reminder that location is actively being shared.
+// All of this is local-only except the embassy lookup (a cached, public,
+// read-only directory fetch) and the one-time country reverse-geocode —
+// contacts, messages and the scam-check text never leave the device.
 
-const SOS_CONTACT_KEY = 'waypoint_sos_contact'; // { name, phone } — this device only, never sent anywhere
+const SOS_CONTACT_KEY = 'waypoint_sos_contact'; // legacy single-contact shape, migrated into SOS_CONTACTS_KEY below
+const SOS_CONTACTS_KEY = 'waypoint_sos_contacts'; // [{ name, phone, app: 'whatsapp'|'sms', primary }]
+const SOS_MODE_KEY = 'waypoint_sos_mode'; // 'all' | 'primary' | 'groupsms'
+const SOS_MYNAME_KEY = 'waypoint_sos_myname';
 const SOS_ACTIVE_SESSION_KEY = 'waypoint_sos_active_session'; // { sessionId, contactName, expiresAt } — resumes sharing across a reload
 const SOS_SHARE_DURATION_MS = 60 * 60 * 1000; // 1 hour — must match SOS_SESSION_TTL_MS in server.js
 const SOS_POST_MIN_INTERVAL_MS = 8000; // don't post a new fix more often than this even if GPS updates faster
+const SAFETY_CTY_OVERRIDE_KEY = 'waypoint_safety_cty_override';
+const SAFETY_NAT_KEY = 'waypoint_safety_nat';
 
 let sosWatchId = null;
 let sosStopTimer = null;
 let sosLastPostAt = 0;
+let safetyActiveTab = 'sos';
+let safetyCountry = null; // { code, name, src, unknown? } — cached once detected/chosen
+let safetyCountryDetectInFlight = null;
+let safetyEmbassyCache = {}; // nationality code -> mission[] (this session only; server also caches)
+let safetyEditingContactIndex = null; // index into contacts array while the add/edit form is open, or null for "add new"
+let safetySendSheetContacts = null; // contacts still to notify in the multi-recipient send list, or null when not open
 
-function loadSosContact() {
+// ---- Contacts (multi-recipient, migrated from the old single-contact shape) ----
+
+function loadSosContacts() {
+  let list;
   try {
-    return JSON.parse(localStorage.getItem(SOS_CONTACT_KEY) || 'null');
+    list = JSON.parse(localStorage.getItem(SOS_CONTACTS_KEY) || 'null');
   } catch (err) {
-    return null;
+    list = null;
   }
+  if (Array.isArray(list)) return list;
+
+  // First run since this became multi-contact: migrate the old single
+  // { name, phone } shape (if any) into the new array, then stop looking at
+  // the legacy key.
+  let legacy;
+  try {
+    legacy = JSON.parse(localStorage.getItem(SOS_CONTACT_KEY) || 'null');
+  } catch (err) {
+    legacy = null;
+  }
+  const migrated = legacy && legacy.name && legacy.phone
+    ? [{ name: legacy.name, phone: legacy.phone, app: 'whatsapp', primary: true }]
+    : [];
+  saveSosContacts(migrated);
+  return migrated;
 }
 
-function saveSosContact(name, phone) {
-  localStorage.setItem(SOS_CONTACT_KEY, JSON.stringify({ name, phone }));
+function saveSosContacts(list) {
+  localStorage.setItem(SOS_CONTACTS_KEY, JSON.stringify(list));
+}
+
+function primarySosContact(list) {
+  return list.find((c) => c.primary) || list[0] || null;
+}
+
+function loadSosMode() {
+  const m = localStorage.getItem(SOS_MODE_KEY);
+  return m === 'primary' || m === 'groupsms' ? m : 'all';
+}
+
+function saveSosMode(mode) {
+  try { localStorage.setItem(SOS_MODE_KEY, mode); } catch (err) { /* ignore */ }
+}
+
+function loadSosMyName() {
+  try { return localStorage.getItem(SOS_MYNAME_KEY) || ''; } catch (err) { return ''; }
+}
+
+function saveSosMyName(name) {
+  try { localStorage.setItem(SOS_MYNAME_KEY, name); } catch (err) { /* ignore */ }
 }
 
 const SOS_MESSAGE_KEY = 'waypoint_sos_message'; // last-used SOS text, editable each time, defaults to "I NEED HELP"
@@ -4879,50 +4925,134 @@ function normalizePhoneNumber(raw) {
   return digits;
 }
 
-function renderSosSetupForm(existing) {
-  els.sosModalBody.innerHTML = `
-    <div class="weather-panel-icon">🆘</div>
-    <h3 class="weather-panel-headline">Set up your SOS contact</h3>
-    <p class="weather-panel-now">Stored only on this device — never sent to Waypoint. Pressing SOS opens WhatsApp with a HELP message and your live location, pre-filled to this contact; you still tap Send yourself.</p>
-    <div class="sos-form">
-      <label class="sos-form-label" for="sosContactName">Name</label>
-      <input id="sosContactName" class="sos-form-input" type="text" placeholder="e.g. Mum" value="${existing?.name ? escapeHtml(existing.name) : ''}" />
-      <label class="sos-form-label" for="sosContactPhone">Phone number</label>
-      <input id="sosContactPhone" class="sos-form-input" type="tel" placeholder="e.g. 9123 4567, or +1 415 555 0100 outside Singapore" value="${existing?.phone ? escapeHtml(existing.phone) : ''}" />
-    </div>
-    <button id="sosSaveBtn" class="sos-primary-btn" type="button">Save contact</button>
-  `;
-  document.getElementById('sosSaveBtn').addEventListener('click', () => {
-    const name = document.getElementById('sosContactName').value.trim();
-    const phoneRaw = document.getElementById('sosContactPhone').value.trim();
-    const phone = normalizePhoneNumber(phoneRaw);
-    if (!name) { showToast('Enter a name for this contact.'); return; }
-    if (phone.length < 8 || phone.length > 15) { showToast('Enter a valid phone number, with a country code (+ and the number) if outside Singapore.'); return; }
-    saveSosContact(name, phone);
-    showToast(`SOS contact saved: ${name}`);
-    renderSosConfirm({ name, phone });
-  });
+// ---- Safety modal shell: tabs ----
+
+function openSosModal() {
+  els.sosModal.classList.remove('hidden');
+  switchSafetyTab(safetyActiveTab);
+  detectSafetyCountry(); // kick off in the background; renders update themselves when it resolves
 }
 
-function renderSosConfirm(contact) {
+function closeSosModal() {
+  els.sosModal.classList.add('hidden');
+  safetySendSheetContacts = null;
+}
+
+function switchSafetyTab(name) {
+  safetyActiveTab = name;
+  document.querySelectorAll('.safety-tab').forEach((btn) => {
+    const active = btn.dataset.safetyTab === name;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', String(active));
+  });
+  renderSafetyTab(name);
+}
+
+function renderSafetyTab(name) {
+  if (name === 'contacts') return renderSafetyContactsTab();
+  if (name === 'check') return renderSafetyCheckTab();
+  if (name === 'hotlines') return renderSafetyHotlinesTab();
+  return renderSafetySosTab();
+}
+
+document.querySelectorAll('.safety-tab').forEach((btn) => {
+  btn.addEventListener('click', () => switchSafetyTab(btn.dataset.safetyTab));
+});
+
+// ---- SOS tab ----
+
+function safetyLocalBarHtml() {
+  const c = safetyCountry;
+  if (!c) return '';
+  const primaryNums = (c.l || []).filter((x) => x[2]).slice(0, 2);
+  if (!primaryNums.length) return '';
+  return `
+    <div class="safety-local-bar">
+      <div>
+        <div class="safety-local-label">Emergency in</div>
+        <div class="safety-local-name">${escapeHtml(c.n)}</div>
+      </div>
+      <div class="safety-local-acts">
+        ${primaryNums.map((x) => `<a href="${safetyTelHref(x[1], x[3])}">${escapeHtml(x[0].split(/[ ,&]/)[0])} ${escapeHtml(x[1])}</a>`).join('')}
+      </div>
+    </div>`;
+}
+
+function renderSafetySosTab() {
+  const contacts = loadSosContacts();
+  const mode = loadSosMode();
+
+  if (!contacts.length) {
+    els.sosModalBody.innerHTML = `
+      <div style="text-align:center">
+        <div class="weather-panel-icon">🆘</div>
+        <h3 class="weather-panel-headline">Add a contact to enable SOS</h3>
+        <p class="weather-panel-now">Pressing SOS opens WhatsApp or SMS with a HELP message and your live location, pre-filled to your contacts — stored only on this device, never sent to Waypoint. Add at least one contact to turn it on.</p>
+      </div>
+      <button id="safetyGoToContactsBtn" class="sos-primary-btn" type="button">Add a contact</button>
+    `;
+    document.getElementById('safetyGoToContactsBtn').addEventListener('click', () => switchSafetyTab('contacts'));
+    return;
+  }
+
+  const primary = primarySosContact(contacts);
+  const who = mode === 'primary'
+    ? (primary ? primary.name : 'No contact yet')
+    : mode === 'groupsms'
+      ? `Group SMS to ${contacts.length} contact${contacts.length > 1 ? 's' : ''}`
+      : `Everyone (${contacts.length})`;
+  const how = mode === 'primary'
+    ? (primary ? (primary.app === 'sms' ? 'via SMS' : 'via WhatsApp') : 'Add a contact first')
+    : mode === 'groupsms'
+      ? 'One SMS to every number'
+      : 'Send to each contact in turn';
+
+  const sharing = isSosSharingActive();
+
   els.sosModalBody.innerHTML = `
-    <div class="weather-panel-icon">🆘</div>
-    <h3 class="weather-panel-headline">Send HELP to ${escapeHtml(contact.name)}?</h3>
-    <p class="weather-panel-now">Opens WhatsApp with the message below, your exact coordinates, and a link that keeps updating with your live location for up to 1 hour (or until you tap "Stop sharing"). You tap Send in WhatsApp to actually deliver it.</p>
-    <div class="sos-form">
+    ${safetyLocalBarHtml()}
+    <div class="safety-sos-wrap">
+      <button id="safetySosBtn" class="safety-sos-btn" type="button" aria-label="Send SOS alert with your location">
+        <b>SOS</b><small>${sharing ? 'Sharing…' : 'Tap to alert'}</small>
+      </button>
+    </div>
+    <div class="sos-form" style="margin-bottom:10px">
+      <div class="safety-sub" style="margin-bottom:6px"><strong style="color:var(--ink)">Sends to:</strong> ${escapeHtml(who)} <span style="color:var(--muted)">· ${escapeHtml(how)}</span></div>
+      <div class="safety-seg" role="group" aria-label="Who SOS alerts">
+        <button type="button" data-mode="all" aria-pressed="${mode === 'all'}">Everyone</button>
+        <button type="button" data-mode="primary" aria-pressed="${mode === 'primary'}">Primary</button>
+        <button type="button" data-mode="groupsms" aria-pressed="${mode === 'groupsms'}">Group SMS</button>
+      </div>
       <label class="sos-form-label" for="sosMessageInput">Message</label>
       <input id="sosMessageInput" class="sos-form-input" type="text" value="${escapeHtml(loadSosMessage())}" />
     </div>
-    <button id="sosSendBtn" class="sos-primary-btn sos-send-btn" type="button">🆘 Send HELP via WhatsApp</button>
-    <button id="sosChangeContactBtn" class="sos-secondary-btn" type="button">Change contact</button>
+    ${sharing ? `<button id="safetyImSafeBtn" class="sos-primary-btn" type="button" style="background:var(--success)">✅ I'm safe — stop sharing</button>` : ''}
   `;
-  document.getElementById('sosSendBtn').addEventListener('click', () => {
+
+  els.sosModalBody.querySelectorAll('.safety-seg button').forEach((btn) => {
+    btn.addEventListener('click', () => { saveSosMode(btn.dataset.mode); renderSafetySosTab(); });
+  });
+  document.getElementById('safetySosBtn').addEventListener('click', () => {
     const messageInput = document.getElementById('sosMessageInput');
     const message = (messageInput?.value || '').trim() || SOS_DEFAULT_MESSAGE;
     saveSosMessage(message);
-    triggerSos(contact, message);
+    handleSafetySosSend(mode, message);
   });
-  document.getElementById('sosChangeContactBtn').addEventListener('click', () => renderSosSetupForm(contact));
+  const safeBtn = document.getElementById('safetyImSafeBtn');
+  if (safeBtn) safeBtn.addEventListener('click', () => {
+    stopSosLiveTracking();
+    showToast("Stopped sharing your live location.");
+    renderSafetySosTab();
+  });
+}
+
+function isSosSharingActive() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SOS_ACTIVE_SESSION_KEY) || 'null');
+    return !!(saved && saved.sessionId && Date.now() < saved.expiresAt);
+  } catch (err) {
+    return false;
+  }
 }
 
 // Generates an opaque, effectively-unguessable session id for the tracking
@@ -4953,30 +5083,49 @@ function formatLatLon(lat, lon) {
   return `${Math.abs(lat).toFixed(4)}°${latDir}, ${Math.abs(lon).toFixed(4)}°${lonDir}`;
 }
 
-function triggerSos(contact, message) {
-  const sendBtn = document.getElementById('sosSendBtn');
-  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Getting your location…'; }
+function safetyLinkFor(contact, text) {
+  const t = encodeURIComponent(text);
+  if (contact.app === 'sms') {
+    const sep = /iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?';
+    return `sms:${contact.phone.replace(/[^\d+]/g, '')}${sep}body=${t}`;
+  }
+  return `https://wa.me/${contact.phone}?text=${t}`;
+}
 
-  // Open the tab synchronously, right in the click handler, then point it
-  // at the real wa.me URL once the message is ready. Geolocation is async —
-  // opening a new tab from inside its callback instead of directly from the
-  // click gets treated as an unrequested popup and silently blocked by
-  // several mobile browsers (Safari in particular), which would make this
-  // button appear to do nothing at the exact moment it matters most.
+function safetyGroupSmsLink(contacts, text) {
+  const nums = contacts.map((c) => c.phone.replace(/[^\d+]/g, '')).filter((n) => n.replace('+', '').length >= 8);
+  const t = encodeURIComponent(text);
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  return isIOS ? `sms:/open?addresses=${nums.join(',')}&body=${t}` : `sms:${nums.join(',')}?body=${t}`;
+}
+
+// Single-recipient send: opens the tab synchronously (inside the click
+// handler, before the async geolocation call resolves) so mobile Safari
+// doesn't treat it as an unrequested popup and block it.
+function triggerSos(contact, message) {
+  const sendBtn = document.getElementById('safetySosBtn');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.querySelector('small').textContent = 'Getting your location…'; }
+
   const sosTab = window.open('', '_blank');
   const sessionId = genSosSessionId();
   const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
 
-  const openWhatsapp = (trackingLine) => {
+  const openTarget = (trackingLine) => {
     const fullMessage = `🆘 ${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
-    const url = `https://wa.me/${contact.phone}?text=${encodeURIComponent(fullMessage)}`;
-    if (sosTab) sosTab.location.href = url;
-    else window.open(url, '_blank'); // popup was blocked outright — best effort fallback
+    const url = safetyLinkFor(contact, fullMessage);
+    if (contact.app === 'sms') {
+      if (sosTab) sosTab.close();
+      window.location.href = url;
+    } else if (sosTab) {
+      sosTab.location.href = url;
+    } else {
+      window.open(url, '_blank'); // popup was blocked outright — best effort fallback
+    }
     closeSosModal();
   };
 
   if (!navigator.geolocation) {
-    openWhatsapp('');
+    openTarget('');
     return;
   }
   navigator.geolocation.getCurrentPosition(
@@ -4986,15 +5135,107 @@ function triggerSos(contact, message) {
       startSosLiveTracking(sessionId, contact.name);
       const trackLink = `${window.location.origin}/track/${sessionId}`;
       const coordsLine = `\nLocation: ${formatLatLon(latitude, longitude)}`;
-      openWhatsapp(`${coordsLine}\nTrack my live location (updates for up to 1hr): ${trackLink}`);
+      openTarget(`${coordsLine}\nTrack my live location (updates for up to 1hr): ${trackLink}`);
     },
     (err) => {
       console.error('SOS geolocation error:', err);
       showToast('Could not get your location — sending HELP without it.');
-      openWhatsapp('');
+      openTarget('');
     },
     GEO_OPTIONS
   );
+}
+
+// Multi-recipient send: one shared live-tracking session, then a "tap each
+// one" sheet — mobile browsers only let ONE app-to-app link open per user
+// gesture, so several WhatsApp/SMS sends can't be fired automatically back
+// to back. Every contact still gets the SAME live map link, so whoever taps
+// it can watch the same real-time position, not just a one-off pin.
+function handleSafetySosSend(mode, message) {
+  const contacts = loadSosContacts();
+  if (!contacts.length) return;
+
+  if (mode === 'primary') {
+    const primary = primarySosContact(contacts);
+    if (!primary) { showToast('Add a contact first.'); return; }
+    triggerSos(primary, message);
+    return;
+  }
+
+  if (mode === 'groupsms') {
+    const sendBtn = document.getElementById('safetySosBtn');
+    if (sendBtn) { sendBtn.disabled = true; sendBtn.querySelector('small').textContent = 'Getting your location…'; }
+    const sessionId = genSosSessionId();
+    const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
+    const send = (trackingLine) => {
+      const fullMessage = `🆘 ${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+      window.location.href = safetyGroupSmsLink(contacts, fullMessage);
+      closeSosModal();
+    };
+    if (!navigator.geolocation) { send(''); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        postSosPosition(sessionId, pos.coords.latitude, pos.coords.longitude);
+        startSosLiveTracking(sessionId, `${contacts.length} contacts`);
+        const trackLink = `${window.location.origin}/track/${sessionId}`;
+        send(`\nLocation: ${formatLatLon(pos.coords.latitude, pos.coords.longitude)}\nTrack my live location (updates for up to 1hr): ${trackLink}`);
+      },
+      (err) => { console.error('SOS geolocation error:', err); showToast('Could not get your location — sending HELP without it.'); send(''); },
+      GEO_OPTIONS
+    );
+    return;
+  }
+
+  // mode === 'all': exactly one contact behaves like the tested single-send
+  // path; more than one opens the send-list sheet.
+  if (contacts.length === 1) { triggerSos(contacts[0], message); return; }
+
+  const sendBtn = document.getElementById('safetySosBtn');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.querySelector('small').textContent = 'Getting your location…'; }
+  const sessionId = genSosSessionId();
+  const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
+  if (!navigator.geolocation) {
+    openSafetySendSheet(contacts, sessionId, messageText, '');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      postSosPosition(sessionId, pos.coords.latitude, pos.coords.longitude);
+      startSosLiveTracking(sessionId, `${contacts.length} contacts`);
+      const trackLink = `${window.location.origin}/track/${sessionId}`;
+      const trackingLine = `\nLocation: ${formatLatLon(pos.coords.latitude, pos.coords.longitude)}\nTrack my live location (updates for up to 1hr): ${trackLink}`;
+      openSafetySendSheet(contacts, sessionId, messageText, trackingLine);
+    },
+    (err) => { console.error('SOS geolocation error:', err); showToast('Could not get your location — sending HELP without it.'); openSafetySendSheet(contacts, sessionId, messageText, ''); },
+    GEO_OPTIONS
+  );
+}
+
+function openSafetySendSheet(contacts, sessionId, messageText, trackingLine) {
+  const fullMessage = `🆘 ${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+  safetySendSheetContacts = new Set();
+  els.sosModalBody.innerHTML = `
+    <h3>Send to each contact</h3>
+    <p class="safety-sub">Tap each one — it opens ${contacts.some((c) => c.app === 'sms') ? 'WhatsApp or SMS' : 'WhatsApp'} with your alert and live location ready to send. Come back here for the next person.</p>
+    <div id="safetySendList"></div>
+    <button id="safetySendDoneBtn" class="sos-secondary-btn" type="button">Done</button>
+  `;
+  const list = document.getElementById('safetySendList');
+  contacts.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'safety-send-item';
+    row.innerHTML = `<span>${escapeHtml(c.name)} <span class="safety-contact-phone">${c.app === 'sms' ? 'SMS' : 'WhatsApp'}</span></span>`;
+    const link = document.createElement('a');
+    link.href = safetyLinkFor(c, fullMessage);
+    link.className = 'pill-btn primary';
+    link.textContent = 'Send';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.addEventListener('click', () => { row.classList.add('done'); link.textContent = 'Sent'; });
+    row.appendChild(link);
+    list.appendChild(row);
+  });
+  document.getElementById('safetySendDoneBtn').addEventListener('click', () => { closeSosModal(); });
 }
 
 function startSosLiveTracking(sessionId, contactName) {
@@ -5059,17 +5300,6 @@ function resumeSosLiveTrackingIfActive() {
   startSosLiveTracking(saved.sessionId, saved.contactName);
 }
 
-function openSosModal() {
-  const contact = loadSosContact();
-  els.sosModal.classList.remove('hidden');
-  if (contact) renderSosConfirm(contact);
-  else renderSosSetupForm(null);
-}
-
-function closeSosModal() {
-  els.sosModal.classList.add('hidden');
-}
-
 els.sosBtn.addEventListener('click', openSosModal);
 els.sosModalClose.addEventListener('click', closeSosModal);
 els.sosModal.addEventListener('click', (e) => {
@@ -5078,9 +5308,452 @@ els.sosModal.addEventListener('click', (e) => {
 els.sosTrackingStopBtn.addEventListener('click', () => {
   stopSosLiveTracking();
   showToast('Stopped sharing your live location.');
+  if (!els.sosModal.classList.contains('hidden') && safetyActiveTab === 'sos') renderSafetySosTab();
 });
 
 resumeSosLiveTrackingIfActive();
+
+// ---- Contacts tab ----
+
+function renderSafetyContactsTab() {
+  const contacts = loadSosContacts();
+  els.sosModalBody.innerHTML = `
+    <h3>Emergency contacts</h3>
+    <p class="safety-sub">SOS alerts everyone on this list (or only Primary, if you choose that on the SOS tab). Use the full number with country code, e.g. +65 9123 4567.</p>
+    <div id="safetyContactList" class="safety-list"></div>
+    <div class="sos-form" id="safetyContactFormWrap">
+      <div class="safety-sub" id="safetyContactFormTitle" style="margin:0;font-weight:700;color:var(--ink)">Add contact</div>
+      <label class="sos-form-label" for="sosContactName">Name</label>
+      <input id="sosContactName" class="sos-form-input" type="text" placeholder="e.g. Mum" maxlength="40" />
+      <label class="sos-form-label" for="sosContactPhone">Phone number</label>
+      <input id="sosContactPhone" class="sos-form-input" type="tel" placeholder="e.g. 9123 4567, or +1 415 555 0100 outside Singapore" />
+      <label class="sos-form-label" for="safetyContactApp">Preferred app</label>
+      <select id="safetyContactApp" class="sos-form-input">
+        <option value="whatsapp">WhatsApp</option>
+        <option value="sms">SMS</option>
+      </select>
+    </div>
+    <button id="sosSaveBtn" class="sos-primary-btn" type="button">Save contact</button>
+    <button id="safetyCancelEditBtn" class="sos-secondary-btn hidden" type="button">Cancel</button>
+
+    <div class="sos-form" style="margin-top:18px">
+      <div class="safety-sub" style="margin:0;font-weight:700;color:var(--ink)">Your alert message</div>
+      <label class="sos-form-label" for="safetyMyNameInput">Your name (shown in alerts)</label>
+      <input id="safetyMyNameInput" class="sos-form-input" type="text" maxlength="40" placeholder="e.g. Aunty May" value="${escapeHtml(loadSosMyName())}" />
+    </div>
+  `;
+  renderSafetyContactList(contacts);
+
+  document.getElementById('safetyMyNameInput').addEventListener('input', (e) => saveSosMyName(e.target.value.trim()));
+  document.getElementById('safetyCancelEditBtn').addEventListener('click', resetSafetyContactForm);
+  document.getElementById('sosSaveBtn').addEventListener('click', () => {
+    const nameInput = document.getElementById('sosContactName');
+    const phoneInput = document.getElementById('sosContactPhone');
+    const appSelect = document.getElementById('safetyContactApp');
+    const name = nameInput.value.trim();
+    const phone = normalizePhoneNumber(phoneInput.value.trim());
+    const app = appSelect.value === 'sms' ? 'sms' : 'whatsapp';
+    if (!name) { showToast('Enter a name for this contact.'); return; }
+    if (phone.length < 8 || phone.length > 15) { showToast('Enter a valid phone number, with a country code (+ and the number) if outside Singapore.'); return; }
+
+    const list = loadSosContacts();
+    if (safetyEditingContactIndex != null && list[safetyEditingContactIndex]) {
+      const wasPrimary = list[safetyEditingContactIndex].primary;
+      list[safetyEditingContactIndex] = { name, phone, app, primary: wasPrimary };
+      showToast(`${name} updated`);
+    } else {
+      list.push({ name, phone, app, primary: list.length === 0 });
+      showToast(`${name} added`);
+    }
+    saveSosContacts(list);
+    resetSafetyContactForm();
+    renderSafetyContactList(list);
+  });
+}
+
+function resetSafetyContactForm() {
+  safetyEditingContactIndex = null;
+  document.getElementById('sosContactName').value = '';
+  document.getElementById('sosContactPhone').value = '';
+  document.getElementById('safetyContactApp').value = 'whatsapp';
+  document.getElementById('safetyContactFormTitle').textContent = 'Add contact';
+  document.getElementById('sosSaveBtn').textContent = 'Save contact';
+  document.getElementById('safetyCancelEditBtn').classList.add('hidden');
+}
+
+const SAFETY_EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const SAFETY_DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+const SAFETY_STAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>';
+
+function renderSafetyContactList(contacts) {
+  const wrap = document.getElementById('safetyContactList');
+  if (!contacts.length) {
+    wrap.innerHTML = `<div class="safety-empty">No contacts yet. Add one below.</div>`;
+    return;
+  }
+  wrap.innerHTML = '';
+  contacts.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'safety-contact';
+    row.innerHTML = `
+      <div>
+        <div class="safety-contact-name">${escapeHtml(c.name)} ${c.primary ? '<span class="safety-badge primary">Primary</span>' : ''} <span class="safety-badge">${c.app === 'sms' ? 'SMS' : 'WhatsApp'}</span></div>
+        <div class="safety-contact-phone">+${escapeHtml(c.phone)}</div>
+      </div>
+      <div class="safety-contact-acts">
+        ${!c.primary ? `<button class="safety-icon-btn" type="button" data-act="primary" title="Make primary">${SAFETY_STAR_ICON}</button>` : ''}
+        <button class="safety-icon-btn" type="button" data-act="edit" title="Edit">${SAFETY_EDIT_ICON}</button>
+        <button class="safety-icon-btn" type="button" data-act="delete" title="Delete">${SAFETY_DELETE_ICON}</button>
+      </div>
+    `;
+    row.querySelector('[data-act="edit"]').addEventListener('click', () => {
+      safetyEditingContactIndex = i;
+      document.getElementById('sosContactName').value = c.name;
+      document.getElementById('sosContactPhone').value = c.phone;
+      document.getElementById('safetyContactApp').value = c.app;
+      document.getElementById('safetyContactFormTitle').textContent = `Edit ${c.name}`;
+      document.getElementById('sosSaveBtn').textContent = 'Save changes';
+      document.getElementById('safetyCancelEditBtn').classList.remove('hidden');
+      document.getElementById('safetyContactFormWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    const primaryBtn = row.querySelector('[data-act="primary"]');
+    if (primaryBtn) primaryBtn.addEventListener('click', () => {
+      const list = loadSosContacts();
+      list.forEach((x, j) => { x.primary = j === i; });
+      saveSosContacts(list);
+      renderSafetyContactList(list);
+    });
+    row.querySelector('[data-act="delete"]').addEventListener('click', () => {
+      const list = loadSosContacts();
+      const wasPrimary = list[i].primary;
+      list.splice(i, 1);
+      if (wasPrimary && list.length) list[0].primary = true;
+      saveSosContacts(list);
+      resetSafetyContactForm();
+      renderSafetyContactList(list);
+    });
+    wrap.appendChild(row);
+  });
+}
+
+// ---- Check tab: "Is this a scam?" ----
+// Pure on-device pattern matching — nothing here is ever sent anywhere.
+// w = score weight, hi = whether a hit alone should count as "serious", r = regex.
+
+const SAFETY_RULES = [
+  { w: 3, hi: 1, t: 'Asks for an OTP, PIN or password', d: 'No bank, government agency or delivery company will ever ask for your OTP.', r: /\b(otp|one[- ]time (pass(word|code)?|pin)|pin(code)?|passcode|password|2fa|verification code|tac)\b/gi },
+  { w: 3, hi: 1, t: 'Pretends to be government or police', d: "Scammers often pose as the police, tax office, immigration, central bank, customs or a court. Real officers won't ask you to transfer money.", r: /\b(police|interpol|customs|immigration|tax (office|department|authority)|central bank|monetary authority|government (officer|agency)|embassy|court|warrant|arrest|money laundering|investigation officer|mas|iras|cpf|irs|hmrc)\b/gi },
+  { w: 2, hi: 0, t: 'Creates urgency or threats', d: "Pressure to act 'now' stops you from thinking or checking.", r: /\b(urgent(ly)?|immediately|within \d+ ?(hours?|hrs?|minutes?|mins?)|last chance|final (notice|warning)|act now|expires? (today|soon)|suspended|blocked|frozen|permanent(ly)? clos\w*|legal action)\b/gi },
+  { w: 2, hi: 1, t: 'Asks you to move money', d: "Requests to transfer money, especially to a 'safe account', are a hallmark of scams.", r: /\b(transfer|paynow|pay now|wire|remit|safe account|deposit|top[- ]?up|send (the )?money|bank in|admin fee|processing fee|release fee|clearance fee)\b/gi },
+  { w: 3, hi: 1, t: 'Unusual payment method', d: "Gift cards, crypto and prepaid vouchers can't be traced or reversed.", r: /\b(gift ?cards?|google play card|itunes card|steam card|bitcoin|btc|usdt|crypto(currency)?|binance|wallet address|voucher code)\b/gi },
+  { w: 2, hi: 0, t: 'Contains a link or shortened URL', d: "Don't tap links in unexpected messages. Short links hide where they really go.", r: /\b((https?:\/\/)?(bit\.ly|tinyurl\.com|t\.co|cutt\.ly|rb\.gy|is\.gd|shorturl\.at|t\.ly|s\.id)\/\S+|https?:\/\/\S+|www\.\S+)/gi },
+  { w: 3, hi: 1, t: 'Asks you to install an app or share your screen', d: 'Remote-access apps let scammers control your phone and bank apps.', r: /\b(anydesk|teamviewer|quicksupport|rustdesk|screen ?shar\w*|install (this|the) app|download (this|the) (app|apk)|\.apk)\b/gi },
+  { w: 2, hi: 0, t: 'Too-good-to-be-true reward', d: 'Unexpected prizes, refunds or lucky draws are bait.', r: /\b(congratulations|you (have )?won|winner|lucky draw|prize|reward|cash ?back|refund|free gift|claim (your|now))\b/gi },
+  { w: 2, hi: 0, t: 'Job or investment promise', d: "Easy money for liking videos, 'tasks' or guaranteed returns is a common scam.", r: /\b(earn \$?\d+|per day|daily (income|pay)|part[- ]time|work from home|simple tasks?|like (videos|posts)|guaranteed (returns?|profit)|high returns?|investment opportunity|trading (platform|mentor)|forex)\b/gi },
+  { w: 2, hi: 0, t: 'Asks you to keep it secret', d: "Scammers tell you not to talk to family or the bank so no one can warn you.", r: /\b(don'?t (tell|share (this )?with) (anyone|your family|the bank)|keep (this|it) (secret|confidential)|do not (tell|inform) (anyone|your)|do not share (this )?with anyone|confidential matter)\b/gi },
+  { w: 1, hi: 0, t: 'Asks you to confirm personal or bank details', d: "Real organisations already have your details and won't ask by message.", r: /\b(verify (your )?(identity|account|details)|confirm (your )?(details|account|identity)|update (your )?(details|particulars|account)|nric|passport number|card number|cvv|expiry date|bank (login|account number))\b/gi },
+  { w: 1, hi: 0, t: 'Delivery or parcel problem', d: "Fake 'failed delivery' notices lead to phishing pages.", r: /\b(parcel|package|delivery (failed|attempt|fee)|re-?deliver\w*|shipment (on hold|held)|customs duty)\b/gi },
+  { w: 1, hi: 0, t: 'Unknown number or recorded call', d: 'Messages from unfamiliar international numbers, or recorded voice calls asking you to press a key, need extra care.', r: /(\+\d{1,3}[\s-]?\d{3,}|press 1|press 9|automated (call|message))/gi },
+  { w: 1, hi: 0, t: 'Emotional hook', d: 'A friend or relative suddenly needing money, or fast romance, is a common setup.', r: /\b(new number|changed (my )?number|lost my phone|in trouble|hospital|emergency|my dear|sweetheart|honey|babe)\b/gi },
+];
+
+function safetyCheckMessage(text) {
+  const hits = []; let score = 0; const spans = [];
+  SAFETY_RULES.forEach((rule) => {
+    const m = [...text.matchAll(rule.r)];
+    if (m.length) { hits.push({ ...rule, n: m.length, sample: m[0][0] }); score += rule.w; m.forEach((x) => spans.push([x.index, x.index + x[0].length])); }
+  });
+  return { hits, score, spans };
+}
+
+function safetyHighlight(text, spans) {
+  spans.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  spans.forEach((s) => { const l = merged[merged.length - 1]; if (l && s[0] <= l[1]) l[1] = Math.max(l[1], s[1]); else merged.push([...s]); });
+  let out = ''; let i = 0;
+  merged.forEach(([a, b]) => { out += escapeHtml(text.slice(i, a)) + '<mark>' + escapeHtml(text.slice(a, b)) + '</mark>'; i = b; });
+  return out + escapeHtml(text.slice(i));
+}
+
+const SAFETY_CHECK_DEFAULT_TEXT = "[Bank Security] Dear customer, your bank account has been suspended due to suspicious activity. To avoid permanent closure, verify your identity within 24 hours at bit.ly/bank-verify-now and enter the OTP sent to you. Do not share this with anyone.";
+
+function renderSafetyCheckTab() {
+  els.sosModalBody.innerHTML = `
+    <h3>Is this a scam?</h3>
+    <p class="safety-sub">Paste an SMS, WhatsApp, email or call script. Everything is checked on your phone — nothing is uploaded.</p>
+    <textarea id="safetyCheckText" class="safety-check-textarea">${escapeHtml(SAFETY_CHECK_DEFAULT_TEXT)}</textarea>
+    <div class="safety-row">
+      <button id="safetyCheckBtn" class="pill-btn primary" type="button">Check message</button>
+      <button id="safetyClearBtn" class="pill-btn ghost" type="button">Clear</button>
+    </div>
+    <div id="safetyCheckOut"></div>
+  `;
+  document.getElementById('safetyCheckBtn').addEventListener('click', runSafetyCheck);
+  document.getElementById('safetyClearBtn').addEventListener('click', () => {
+    document.getElementById('safetyCheckText').value = '';
+    document.getElementById('safetyCheckOut').innerHTML = '';
+    document.getElementById('safetyCheckText').focus();
+  });
+  runSafetyCheck();
+}
+
+function safetyHelpButtonHtml() {
+  const c = safetyCountry;
+  const label = c && c.code === 'SG' ? 'Call ScamShield 1799' : c ? `Call ${c.n} police` : 'Find local emergency numbers';
+  const num = c && c.code === 'SG' ? '1799' : c ? c.pol : null;
+  if (!num) return `<div class="safety-row"><button class="pill-btn" type="button" data-jump-hotlines>Find local emergency numbers</button></div>`;
+  return `<div class="safety-row"><a class="pill-btn primary" href="${safetyTelHref(num)}">${escapeHtml(label)}</a></div>`;
+}
+
+function runSafetyCheck() {
+  const text = document.getElementById('safetyCheckText').value.trim();
+  const out = document.getElementById('safetyCheckOut');
+  if (!text) { out.innerHTML = `<div class="safety-empty">Paste a message above to check it.</div>`; return; }
+  const { hits, score, spans } = safetyCheckMessage(text);
+  const pct = Math.min(100, Math.round((score / 9) * 100));
+  const lvl = pct >= 60 ? 'high' : pct >= 25 ? 'mid' : 'low';
+  const head = { high: 'Very likely a scam', mid: 'Be careful', low: 'No obvious red flags' }[lvl];
+  const advice = {
+    high: "Don't reply, click links or send money. Block the sender and contact your bank or the police if you're unsure.",
+    mid: 'Check with the organisation using a number you find yourself, not one in the message.',
+    low: "This doesn't match common scam patterns, but scammers change tactics. If money or codes are involved, check first.",
+  }[lvl];
+  out.innerHTML = `
+    <div class="safety-verdict ${lvl}"><div class="safety-score">${pct}<span style="font-size:16px">%</span></div><div><h4>${head}</h4><p>${advice}</p></div></div>
+    ${hits.length ? `
+      <div class="safety-sub" style="margin-bottom:6px"><strong style="color:var(--ink)">${hits.length} red flag${hits.length > 1 ? 's' : ''} found</strong></div>
+      <ul class="safety-flags">${hits.sort((a, b) => b.w - a.w).map((h) => `<li class="${h.hi ? 'hi' : ''}"><b>${escapeHtml(h.t)}</b><span>${escapeHtml(h.d)}</span></li>`).join('')}</ul>
+      <div class="safety-sub" style="margin-bottom:6px"><strong style="color:var(--ink)">Where we found them</strong></div>
+      <div class="safety-preview">${safetyHighlight(text, spans)}</div>` : ''}
+    ${lvl !== 'low' ? safetyHelpButtonHtml() : ''}
+  `;
+  const jumpBtn = out.querySelector('[data-jump-hotlines]');
+  if (jumpBtn) jumpBtn.addEventListener('click', () => switchSafetyTab('hotlines'));
+}
+
+// ---- Hotlines tab: emergency numbers + embassy lookup ----
+// Emergency numbers by country. e=general, p=police, a=ambulance, f=fire,
+// t=tourist police, x=extras, v=checked against MFA/official sources.
+const SAFETY_DATA = {"AF":{"n":"Afghanistan","p":"119","a":"112","f":"119"},"AL":{"n":"Albania","e":"112","p":"129","a":"127","f":"128"},"DZ":{"n":"Algeria","p":"1548","a":"14","f":"14"},"AD":{"n":"Andorra","e":"112","p":"110","a":"116","f":"118"},"AO":{"n":"Angola","p":"113","a":"112","f":"115"},"AR":{"n":"Argentina","e":"911","p":"101","a":"107","f":"100"},"AM":{"n":"Armenia","e":"112","p":"102","a":"103","f":"101"},"AU":{"n":"Australia","e":"000","x":[["From a mobile phone, also","112"],["Police (non-emergency)","131 444"]],"v":1},"AT":{"n":"Austria","e":"112","p":"133","a":"144","f":"122"},"AZ":{"n":"Azerbaijan","e":"112","p":"102","a":"103","f":"101"},"BS":{"n":"Bahamas","e":"911"},"BH":{"n":"Bahrain","e":"999","x":[["From a mobile phone, also","112"]]},"BD":{"n":"Bangladesh","e":"999"},"BB":{"n":"Barbados","p":"211","a":"511","f":"311"},"BY":{"n":"Belarus","p":"102","a":"103","f":"101"},"BE":{"n":"Belgium","e":"112","p":"101"},"BZ":{"n":"Belize","e":"911"},"BJ":{"n":"Benin","p":"117","a":"112","f":"118"},"BT":{"n":"Bhutan","p":"113","a":"112","f":"110"},"BO":{"n":"Bolivia","e":"911","p":"110","a":"118","f":"119"},"BA":{"n":"Bosnia and Herzegovina","p":"122","a":"124","f":"123"},"BW":{"n":"Botswana","p":"999","a":"997","f":"998","x":[["From a mobile phone","112"]]},"BR":{"n":"Brazil","p":"190","a":"192","f":"193"},"BN":{"n":"Brunei","p":"993","a":"991","f":"995"},"BG":{"n":"Bulgaria","e":"112"},"BF":{"n":"Burkina Faso","p":"17","a":"112","f":"18"},"BI":{"n":"Burundi","p":"117","a":"112","f":"118"},"KH":{"n":"Cambodia","p":"117","a":"119","f":"118","x":[["Tourist Police Phnom Penh","+855 97 778 0002"],["Tourist Police Siem Reap","+855 12 402 424"],["Tourist Police Sihanoukville","+855 97 778 0008"],["Police hotline for foreigners","+855 31 201 2345"]],"v":1},"CM":{"n":"Cameroon","e":"112","p":"117","a":"119","f":"118"},"CA":{"n":"Canada","e":"911"},"CV":{"n":"Cape Verde","p":"132","a":"130","f":"131"},"CF":{"n":"Central African Republic","p":"117","a":"1220","f":"118"},"TD":{"n":"Chad","p":"17","f":"18"},"CL":{"n":"Chile","p":"133","a":"131","f":"132"},"CN":{"n":"China","p":"110","a":"120","f":"119","v":1},"CO":{"n":"Colombia","e":"123"},"KM":{"n":"Comoros","p":"17","f":"18"},"CR":{"n":"Costa Rica","e":"911"},"HR":{"n":"Croatia","e":"112","p":"192","a":"194","f":"193"},"CU":{"n":"Cuba","p":"106","a":"104","f":"105"},"CY":{"n":"Cyprus","e":"112"},"CZ":{"n":"Czech Republic","e":"112","p":"158","a":"155","f":"150"},"CD":{"n":"DR Congo","e":"112","f":"118"},"DK":{"n":"Denmark","e":"112"},"DJ":{"n":"Djibouti","p":"17","a":"19","f":"18"},"DO":{"n":"Dominican Republic","e":"911"},"EC":{"n":"Ecuador","e":"911"},"EG":{"n":"Egypt","e":"112","p":"122","a":"123","f":"180","t":"126","v":1},"SV":{"n":"El Salvador","p":"911","a":"132","f":"913"},"GQ":{"n":"Equatorial Guinea","p":"114","a":"115","f":"112"},"ER":{"n":"Eritrea","e":"112","p":"113","a":"114","f":"116"},"EE":{"n":"Estonia","e":"112"},"SZ":{"n":"Eswatini","p":"999","a":"977","f":"933"},"ET":{"n":"Ethiopia","e":"911","p":"991","a":"907","f":"939"},"FJ":{"n":"Fiji","e":"911","p":"917","f":"910"},"FI":{"n":"Finland","e":"112"},"FR":{"n":"France","e":"112","p":"17","a":"15","f":"18","v":1},"PF":{"n":"French Polynesia","e":"112","p":"17","a":"15","f":"18"},"GA":{"n":"Gabon","p":"1730","a":"1300","f":"18"},"GM":{"n":"Gambia","p":"117","a":"116","f":"118"},"GE":{"n":"Georgia","e":"112"},"DE":{"n":"Germany","p":"110","a":"112","f":"112","v":1},"GH":{"n":"Ghana","e":"112","p":"191","a":"193","f":"192"},"GR":{"n":"Greece","e":"112","p":"100","a":"166","f":"199"},"GU":{"n":"Guam","e":"911"},"GT":{"n":"Guatemala","p":"110","a":"122","f":"122"},"GN":{"n":"Guinea","p":"117"},"GW":{"n":"Guinea-Bissau","e":"112","p":"117","a":"119","f":"118"},"GY":{"n":"Guyana","p":"911","a":"913","f":"912"},"HT":{"n":"Haiti","p":"114","a":"116","f":"115"},"HN":{"n":"Honduras","e":"911","a":"195","f":"198"},"HK":{"n":"Hong Kong","e":"999","x":[["Police hotline (non-emergency)","+852 2527 7177"],["Tourism Board visitor hotline","+852 2508 1234"]],"v":1},"HU":{"n":"Hungary","e":"112","p":"107","a":"104","f":"105"},"IS":{"n":"Iceland","e":"112"},"IN":{"n":"India","e":"112","p":"100","a":"108","f":"101","x":[["Tourist helpline","1363"],["Women's helpline","181"]],"v":1},"ID":{"n":"Indonesia","e":"112","p":"110","a":"118","f":"113","v":1},"IR":{"n":"Iran","p":"110","a":"115","f":"125"},"IQ":{"n":"Iraq","e":"112","p":"104","a":"122","f":"115"},"IE":{"n":"Ireland","e":"112","x":[["Also works","999"]]},"IL":{"n":"Israel","p":"100","a":"101","f":"102"},"IT":{"n":"Italy","e":"112","v":1},"CI":{"n":"Ivory Coast","p":"111","a":"185","f":"180"},"JM":{"n":"Jamaica","p":"119","a":"110","f":"110"},"JP":{"n":"Japan","p":"110","a":"119","f":"119","x":[["Japan Visitor Hotline, English (24/7)","050 3816 2787"]],"v":1},"JO":{"n":"Jordan","e":"911"},"KZ":{"n":"Kazakhstan","e":"112","p":"102","a":"103","f":"101"},"KE":{"n":"Kenya","e":"999","x":[["Also works","112"]]},"KI":{"n":"Kiribati","p":"192","a":"194","f":"193"},"XK":{"n":"Kosovo","p":"192","a":"194","f":"193"},"KW":{"n":"Kuwait","e":"112"},"KG":{"n":"Kyrgyzstan","e":"112"},"LA":{"n":"Laos","p":"1191","a":"1195","f":"1190","t":"1192","x":[["Tourist Police Vientiane","+856 21 251 128"],["Tourist Police Luang Prabang","+856 71 254 568"],["Vientiane Rescue","1623"]],"v":1},"LV":{"n":"Latvia","e":"112","p":"110","a":"113"},"LB":{"n":"Lebanon","e":"112","p":"160","a":"140","f":"175"},"LS":{"n":"Lesotho","p":"123","a":"121","f":"122"},"LR":{"n":"Liberia","e":"911"},"LY":{"n":"Libya","e":"1515","a":"193"},"LI":{"n":"Liechtenstein","e":"112","p":"117","a":"144","f":"118"},"LT":{"n":"Lithuania","e":"112"},"LU":{"n":"Luxembourg","e":"112","p":"113"},"MO":{"n":"Macau","e":"999","x":[["Also works","112"],["Tourism hotline","+853 2831 5566"]],"v":1},"MG":{"n":"Madagascar","p":"117","a":"124","f":"118"},"MW":{"n":"Malawi","p":"997","a":"998","f":"999"},"MY":{"n":"Malaysia","e":"999","x":[["From a mobile phone, also","112"],["Fire (direct)","994"]],"v":1},"MV":{"n":"Maldives","p":"119","a":"102","f":"118","x":[["Police hotline","332 2111"]],"v":1},"ML":{"n":"Mali","p":"17","a":"15","f":"18"},"MT":{"n":"Malta","e":"112"},"MH":{"n":"Marshall Islands","e":"911"},"MR":{"n":"Mauritania","p":"117","a":"101","f":"118"},"MU":{"n":"Mauritius","e":"112","p":"999","a":"114","f":"995"},"MX":{"n":"Mexico","e":"911"},"FM":{"n":"Micronesia","e":"911"},"MD":{"n":"Moldova","e":"112"},"MC":{"n":"Monaco","e":"112","p":"17","a":"18","f":"18"},"MN":{"n":"Mongolia","p":"102","a":"103","f":"101"},"ME":{"n":"Montenegro","e":"112","p":"122","a":"124","f":"123"},"MA":{"n":"Morocco","p":"19","a":"15","f":"15","x":[["From a mobile phone","112"],["Royal Gendarmerie (rural areas)","177"]]},"MZ":{"n":"Mozambique","p":"119","a":"117","f":"198"},"MM":{"n":"Myanmar","p":"199","a":"192","f":"191","x":[["Tourist Police Yangon","+959 448 539 519"],["Tourist Police Mandalay","+959 791 107 831"],["Tourist Police Bagan","+959 448 539 508"]],"v":1},"NA":{"n":"Namibia","p":"10111"},"NR":{"n":"Nauru","p":"110","a":"111","f":"112"},"NP":{"n":"Nepal","p":"100","a":"102","f":"101","v":1},"NL":{"n":"Netherlands","e":"112"},"NC":{"n":"New Caledonia","e":"112","p":"17","a":"15","f":"18"},"NZ":{"n":"New Zealand","e":"111","v":1},"NI":{"n":"Nicaragua","p":"118","a":"128","f":"115"},"NE":{"n":"Niger","p":"17","a":"15","f":"18"},"NG":{"n":"Nigeria","e":"112"},"MK":{"n":"North Macedonia","e":"112","p":"192","a":"194","f":"193"},"NO":{"n":"Norway","p":"112","a":"113","f":"110"},"OM":{"n":"Oman","e":"9999"},"PK":{"n":"Pakistan","p":"15","a":"1122","f":"16"},"PW":{"n":"Palau","e":"911"},"PS":{"n":"Palestine","p":"100","a":"101","f":"102"},"PA":{"n":"Panama","e":"911","p":"104","f":"103"},"PG":{"n":"Papua New Guinea","p":"112","a":"111","f":"110"},"PY":{"n":"Paraguay","e":"911"},"PE":{"n":"Peru","e":"911","p":"105","a":"106","f":"116"},"PH":{"n":"Philippines","e":"911","v":1},"PL":{"n":"Poland","e":"112","p":"997","a":"999","f":"998"},"PT":{"n":"Portugal","e":"112"},"PR":{"n":"Puerto Rico","e":"911"},"QA":{"n":"Qatar","e":"999","v":1},"CG":{"n":"Republic of the Congo","p":"117","f":"118"},"RO":{"n":"Romania","e":"112"},"RU":{"n":"Russia","e":"112","p":"102","a":"103","f":"101"},"RW":{"n":"Rwanda","e":"112","a":"912"},"WS":{"n":"Samoa","e":"999","p":"995","a":"996","f":"994"},"SM":{"n":"San Marino","e":"112","a":"118","f":"115"},"ST":{"n":"Sao Tome and Principe","e":"112"},"SA":{"n":"Saudi Arabia","e":"911","p":"999","a":"997","f":"998","x":[["From a mobile phone, also","112"]],"v":1},"SN":{"n":"Senegal","p":"17","a":"1515","f":"18"},"RS":{"n":"Serbia","e":"112","p":"192","a":"194","f":"193"},"SC":{"n":"Seychelles","e":"999","p":"133","a":"151"},"SL":{"n":"Sierra Leone","p":"019","a":"999"},"SG":{"n":"Singapore","p":"999","a":"995","f":"995","x":[["ScamShield Helpline: is this a scam? (24/7)","1799"],["Police Hotline: report a scam","1800 255 0000"],["SMS the police if you can't speak safely","71999","sms"]],"v":1},"SK":{"n":"Slovakia","e":"112","p":"158","a":"155","f":"150"},"SI":{"n":"Slovenia","e":"112","p":"113"},"SB":{"n":"Solomon Islands","p":"999","a":"111","f":"988"},"SO":{"n":"Somalia","p":"888","a":"999","f":"555"},"ZA":{"n":"South Africa","p":"10111","a":"10177","x":[["From a mobile phone","112"]]},"KR":{"n":"South Korea","p":"112","a":"119","f":"119","x":[["Korea Travel Hotline, English (24/7)","1330"]],"v":1},"SS":{"n":"South Sudan","e":"999"},"ES":{"n":"Spain","e":"112","p":"091","v":1},"LK":{"n":"Sri Lanka","p":"119","a":"1990","f":"110","x":[["Tourist Police","+94 11 242 1052"]],"v":1},"SD":{"n":"Sudan","e":"999"},"SR":{"n":"Suriname","p":"115","a":"113","f":"110"},"SE":{"n":"Sweden","e":"112"},"CH":{"n":"Switzerland","e":"112","p":"117","a":"144","f":"118","v":1},"SY":{"n":"Syria","p":"112","a":"110","f":"113"},"TW":{"n":"Taiwan","p":"110","a":"119","f":"119","x":[["Tourist hotline, English (24/7)","0800 011 765"],["Anti-fraud hotline","165"]],"v":1},"TJ":{"n":"Tajikistan","e":"112","p":"102","a":"103","f":"101"},"TZ":{"n":"Tanzania","e":"112","p":"999","a":"114","f":"115"},"TH":{"n":"Thailand","p":"191","a":"1669","f":"199","t":"1155","x":[["Tourist Police (from abroad)","+66 2 678 6800"],["Complaint hotline for foreigners","1111"]],"v":1},"TL":{"n":"Timor-Leste","e":"112"},"TG":{"n":"Togo","p":"117","a":"8200","f":"118"},"TO":{"n":"Tonga","p":"922","a":"933","f":"999"},"TT":{"n":"Trinidad and Tobago","p":"999","a":"811","f":"990"},"TN":{"n":"Tunisia","p":"197","a":"190","f":"198"},"TM":{"n":"Turkmenistan","p":"02","a":"03","f":"01"},"TR":{"n":"Türkiye","e":"112","v":1},"UG":{"n":"Uganda","e":"112","p":"999"},"UA":{"n":"Ukraine","e":"112","p":"102","a":"103","f":"101"},"AE":{"n":"United Arab Emirates","p":"999","a":"998","f":"997","v":1},"GB":{"n":"United Kingdom","e":"999","x":[["Also works","112"],["Police (non-emergency)","101"],["NHS medical advice","111"]],"v":1},"US":{"n":"United States","e":"911","v":1},"UY":{"n":"Uruguay","e":"911"},"UZ":{"n":"Uzbekistan","p":"102","a":"103","f":"101"},"VU":{"n":"Vanuatu","p":"111","a":"112","f":"113"},"VA":{"n":"Vatican City","e":"112"},"VE":{"n":"Venezuela","e":"911"},"VN":{"n":"Vietnam","p":"113","a":"115","f":"114","v":1},"YE":{"n":"Yemen","p":"194","a":"191"},"ZM":{"n":"Zambia","e":"999","x":[["From a mobile phone","112"]]},"ZW":{"n":"Zimbabwe","e":"999","p":"995","a":"994","f":"993"}};
+// Singapore missions checked against MFA pages (Sep 2026): [name, phone, after-hours, email]
+const SAFETY_SGV = {
+  LA: [["Embassy in Vientiane", "+856 21 353 939", "+856 20 5559 9059", "singemb_vte@mfa.sg"]],
+  TH: [["Embassy in Bangkok", "+66 2 348 6700", "+66 2 348 6700 (ext 348)", "singemb_bkk@mfa.sg"]],
+  MY: [["High Commission in Kuala Lumpur", "+60 3 2161 6277", "+60 16 661 0400", "singhc_kul@mfa.sg"]],
+  ID: [["Embassy in Jakarta", "+62 21 5091 5400", "+62 21 5091 5400", "singemb_jkt@mfa.sg"], ["Consulate-General in Medan", "+62 21 8050 1500", "+62 811 6170 339", ""]],
+  VN: [["Embassy in Hanoi", "+84 24 3848 9168", "+84 904 696 589", "singemb_han@mfa.sg"], ["Consulate-General in Ho Chi Minh City", "+84 28 3822 5174", "+84 903 113 500", "singcg_hcm@mfa.sg"]],
+  PH: [["Embassy in Manila (Taguig)", "+63 2 8856 9922", "+63 917 860 4740", "singemb_mnl@mfa.sg"]],
+  KH: [["Embassy in Phnom Penh", "+855 23 221 875", "+855 97 701 7371", "singemb_pnh@mfa.sg"]],
+  MM: [["Embassy in Yangon", "+95 1 9 559 001", "+95 9 250 863 840", "singemb_ygn@mfa.sg"]],
+  KR: [["Embassy in Seoul", "+82 2 774 2464", "+82 10 7204 6240", "singemb_seo@mfa.sg"]],
+  CN: [["Embassy in Beijing", "+86 10 6532 9380", "+86 139 1075 5251", "singemb_bej@mfa.sg"]],
+  HK: [["Consulate-General in Hong Kong", "+852 2527 2212", "+852 9466 1251", "singcg_hkg@mfa.sg"]],
+};
+// 24/7 consular emergency lines, checked against each government's own site (Sep 2026)
+const SAFETY_HOTLINE = {
+  SG: ["Singapore MFA Duty Office (24/7)", "+65 6379 8800", "mfa_duty_officer@mfa.gov.sg"],
+  AU: ["Australian Consular Emergency Centre (24/7)", "+61 2 6261 3305", ""],
+  GB: ["UK Foreign Office, FCDO (24/7)", "+44 20 7008 5000", ""],
+  US: ["US Overseas Citizens Services (24/7)", "+1 202 501 4444", ""],
+  CA: ["Canada Emergency Watch and Response Centre (24/7)", "+1 613 996 8885", "sos@international.gc.ca"],
+  NZ: ["New Zealand Consular Emergency line (24/7)", "+64 99 20 20 20", ""],
+};
+// Country names as used in the Database of Embassies, where they differ
+const SAFETY_DBNAME = { BS: "The Bahamas", CN: "People's Republic of China", CD: "Democratic Republic of the Congo", GM: "The Gambia", FM: "Federated States of Micronesia", ST: "São Tomé and Príncipe", TL: "East Timor", TR: "Turkey", US: "United States of America", VA: "Vatican", HK: "People's Republic of China", MO: "People's Republic of China" };
+const SAFETY_TZ = {"Asia/Singapore":"SG","Asia/Kuala_Lumpur":"MY","Asia/Kuching":"MY","Asia/Bangkok":"TH","Asia/Jakarta":"ID","Asia/Pontianak":"ID","Asia/Makassar":"ID","Asia/Jayapura":"ID","Asia/Ho_Chi_Minh":"VN","Asia/Saigon":"VN","Asia/Manila":"PH","Asia/Phnom_Penh":"KH","Asia/Vientiane":"LA","Asia/Yangon":"MM","Asia/Rangoon":"MM","Asia/Brunei":"BN","Asia/Dili":"TL","Asia/Tokyo":"JP","Asia/Seoul":"KR","Asia/Taipei":"TW","Asia/Hong_Kong":"HK","Asia/Macau":"MO","Asia/Shanghai":"CN","Asia/Chongqing":"CN","Asia/Urumqi":"CN","Asia/Kolkata":"IN","Asia/Calcutta":"IN","Asia/Colombo":"LK","Indian/Maldives":"MV","Asia/Kathmandu":"NP","Asia/Dhaka":"BD","Asia/Thimphu":"BT","Asia/Ulaanbaatar":"MN","Asia/Dubai":"AE","Asia/Qatar":"QA","Asia/Riyadh":"SA","Asia/Muscat":"OM","Asia/Bahrain":"BH","Asia/Kuwait":"KW","Asia/Amman":"JO","Asia/Jerusalem":"IL","Asia/Tbilisi":"GE","Africa/Cairo":"EG","Europe/Istanbul":"TR","Europe/London":"GB","Europe/Dublin":"IE","Europe/Paris":"FR","Europe/Berlin":"DE","Europe/Rome":"IT","Europe/Madrid":"ES","Europe/Zurich":"CH","Europe/Amsterdam":"NL","Europe/Vienna":"AT","Europe/Athens":"GR","Europe/Lisbon":"PT","Europe/Brussels":"BE","Europe/Prague":"CZ","Europe/Stockholm":"SE","Europe/Oslo":"NO","Europe/Copenhagen":"DK","Europe/Helsinki":"FI","Europe/Budapest":"HU","Europe/Warsaw":"PL","Atlantic/Reykjavik":"IS","Europe/Moscow":"RU","Australia/Sydney":"AU","Australia/Melbourne":"AU","Australia/Brisbane":"AU","Australia/Perth":"AU","Australia/Adelaide":"AU","Australia/Darwin":"AU","Australia/Hobart":"AU","Pacific/Auckland":"NZ","Pacific/Fiji":"FJ","America/New_York":"US","America/Chicago":"US","America/Denver":"US","America/Phoenix":"US","America/Los_Angeles":"US","America/Anchorage":"US","Pacific/Honolulu":"US","America/Toronto":"CA","America/Vancouver":"CA","America/Edmonton":"CA","America/Winnipeg":"CA","America/Halifax":"CA","America/Mexico_City":"MX","America/Sao_Paulo":"BR","America/Argentina/Buenos_Aires":"AR","Africa/Johannesburg":"ZA","Africa/Nairobi":"KE"};
+
+function safetyTelHref(num, scheme) { return `${scheme || 'tel'}:${num.replace(/[^\d+]/g, '')}`; }
+
+function safetyEntries(d) {
+  const l = [];
+  if (d.e) l.push([(d.p || d.a || d.f) ? 'Emergency (all services)' : 'Emergency (police, ambulance, fire)', d.e, 1]);
+  if (d.p) l.push(['Police', d.p, 1]);
+  if (d.a && d.a === d.f) l.push(['Ambulance & fire', d.a, 1]);
+  else { if (d.a) l.push(['Ambulance', d.a, 1]); if (d.f) l.push(['Fire', d.f, 0]); }
+  if (d.t) l.push(['Tourist Police', d.t, 0]);
+  (d.x || []).forEach((x) => l.push([x[0], x[1], 0, x[2]]));
+  return l;
+}
+
+function safetyLookup(code, fallbackName) {
+  const d = SAFETY_DATA[code];
+  if (d) return { code, n: d.n, l: safetyEntries(d), v: !!d.v, pol: d.p || d.e };
+  return { code, n: fallbackName || code, unknown: true, pol: '112', l: [['General emergency number on most mobile phones', '112', 1]] };
+}
+
+function safetyTzCountry() {
+  try {
+    const z = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (SAFETY_TZ[z]) return SAFETY_TZ[z];
+  } catch (err) { /* ignore */ }
+  return 'SG';
+}
+
+function safetyDbName(code) { return SAFETY_DBNAME[code] || (SAFETY_DATA[code] ? SAFETY_DATA[code].n : code); }
+
+async function detectSafetyCountry() {
+  if (safetyCountry || safetyCountryDetectInFlight) return safetyCountryDetectInFlight;
+  const override = localStorage.getItem(SAFETY_CTY_OVERRIDE_KEY);
+  if (override) {
+    safetyCountry = { ...safetyLookup(override), src: 'Chosen by you' };
+    refreshSafetyRenderIfNeeded();
+    return;
+  }
+  safetyCountryDetectInFlight = (async () => {
+    if (!navigator.geolocation) {
+      safetyCountry = { ...safetyLookup(safetyTzCountry()), src: "Based on your phone's time zone" };
+      refreshSafetyRenderIfNeeded();
+      return;
+    }
+    await new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const r = await fetch(`/api/reverse-country?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+            const j = await r.json();
+            if (j && j.code) {
+              safetyCountry = { ...safetyLookup(j.code, j.name), src: 'Detected from your GPS location' };
+            } else {
+              safetyCountry = { ...safetyLookup(safetyTzCountry()), src: "Based on your phone's time zone" };
+            }
+          } catch (err) {
+            safetyCountry = { ...safetyLookup(safetyTzCountry()), src: "Based on your phone's time zone" };
+          }
+          resolve();
+        },
+        () => { safetyCountry = { ...safetyLookup(safetyTzCountry()), src: "Based on your phone's time zone" }; resolve(); },
+        GEO_OPTIONS
+      );
+    });
+    refreshSafetyRenderIfNeeded();
+  })();
+  return safetyCountryDetectInFlight;
+}
+
+function refreshSafetyRenderIfNeeded() {
+  if (els.sosModal.classList.contains('hidden')) return;
+  if (safetyActiveTab === 'sos' || safetyActiveTab === 'hotlines' || safetyActiveTab === 'check') renderSafetyTab(safetyActiveTab);
+}
+
+async function safetyLoadMissions(nat) {
+  if (safetyEmbassyCache[nat]) return safetyEmbassyCache[nat];
+  const r = await fetch(`/api/embassies?from=${encodeURIComponent(safetyDbName(nat))}`);
+  if (!r.ok) throw new Error('unavailable');
+  const d = await r.json();
+  safetyEmbassyCache[nat] = d;
+  return d;
+}
+
+const SAFETY_MISSION_TYPE = { embassy: 'Embassy', 'high commission': 'High Commission', 'consulate general': 'Consulate-General', consulate: 'Consulate', 'de facto embassy': 'Representative office', 'de facto consulate': 'Representative office' };
+
+function safetyMissionsFor(list, code) {
+  const name = safetyDbName(code);
+  const inCity = (m) => code === 'HK' ? /hong kong/i.test(m.city) : code === 'MO' ? /maca[uo]/i.test(m.city) : code === 'CN' ? !/hong kong|maca[uo]/i.test(m.city) : true;
+  const order = { embassy: 0, 'high commission': 0, 'de facto embassy': 1, 'consulate general': 2, consulate: 3, 'de facto consulate': 4 };
+  const seen = new Set();
+  const here = list.filter((m) => m.c === name && inCity(m)).filter((m) => { const k = m.t + m.city; if (seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => (order[a.t] ?? 9) - (order[b.t] ?? 9));
+  if (here.length) return { here };
+  const cover = list.filter((m) => (m.j || '').split('|').includes(name) && (m.t === 'embassy' || m.t === 'high commission'));
+  return { cover };
+}
+
+function safetyEmbRowHtml(label, value, href) {
+  return `<div class="safety-emb-row"><span>${escapeHtml(label)}</span>${href ? `<a href="${href}">${escapeHtml(value)}</a>` : escapeHtml(value)}</div>`;
+}
+
+async function renderSafetyEmbassyCard(c, nat) {
+  const card = document.getElementById('safetyEmbCard');
+  if (!card) return;
+  if (!nat || nat === c.code || (c.unknown && !c.code)) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  const natName = SAFETY_DATA[nat] ? SAFETY_DATA[nat].n : nat;
+  const body = document.getElementById('safetyEmbBody');
+  const title = document.getElementById('safetyEmbTitle');
+  const note = document.getElementById('safetyEmbNote');
+  title.textContent = `${natName} help in ${c.n}`;
+  const hot = SAFETY_HOTLINE[nat];
+  const hotHtml = hot ? `<div class="safety-emb"><b>${escapeHtml(hot[0])}</b>${safetyEmbRowHtml('Call from anywhere', hot[1], safetyTelHref(hot[1]))}${hot[2] ? safetyEmbRowHtml('Email', hot[2], 'mailto:' + hot[2]) : ''}</div>` : '';
+  if (nat === 'SG' && SAFETY_SGV[c.code]) {
+    body.innerHTML = SAFETY_SGV[c.code].map((m) => `<div class="safety-emb"><b>Singapore ${escapeHtml(m[0])}</b>${safetyEmbRowHtml('Office hours', m[1], safetyTelHref(m[1]))}${safetyEmbRowHtml('After hours / emergency', m[2], safetyTelHref(m[2].replace(/\(.*\)/, '')))}${m[3] ? safetyEmbRowHtml('Email', m[3], 'mailto:' + m[3]) : ''}</div>`).join('') + hotHtml;
+    note.textContent = 'Checked against Singapore MFA pages in September 2026.';
+    return;
+  }
+  body.innerHTML = `<div class="safety-sub">Loading ${escapeHtml(natName)} embassy details…</div>` + hotHtml;
+  try {
+    const list = await safetyLoadMissions(nat);
+    if (safetyCountry.code !== c.code) return;
+    const { here, cover } = safetyMissionsFor(list, c.code);
+    let html = '';
+    if (here && here.length) {
+      html = here.slice(0, 4).map((m) => `<div class="safety-emb"><b>${escapeHtml(SAFETY_MISSION_TYPE[m.t] || m.t)} of ${escapeHtml(natName)} · ${escapeHtml(m.city || c.n)}</b>${m.a ? `<div class="safety-emb-addr">${escapeHtml(m.a)}</div>` : ''}${m.ph ? safetyEmbRowHtml('Phone', m.ph, safetyTelHref(m.ph)) : ''}${m.em ? safetyEmbRowHtml('Email', m.em, 'mailto:' + m.em) : ''}${m.w ? safetyEmbRowHtml('Website', 'Open website', m.w) : ''}${!m.ph && !m.em && !m.w ? `<div class="safety-emb-addr">No phone or email in the database. Use the 24/7 line below.</div>` : ''}</div>`).join('');
+    } else if (cover && cover.length) {
+      const m = cover[0];
+      html = `<div class="safety-emb"><b>No ${escapeHtml(natName)} embassy in ${escapeHtml(c.n)}</b><div class="safety-emb-addr">Covered by the ${escapeHtml(SAFETY_MISSION_TYPE[m.t] || m.t)} in ${escapeHtml(m.city)}, ${escapeHtml(m.c)}.</div>${m.ph ? safetyEmbRowHtml('Phone', m.ph, safetyTelHref(m.ph)) : ''}${m.em ? safetyEmbRowHtml('Email', m.em, 'mailto:' + m.em) : ''}${m.w ? safetyEmbRowHtml('Website', 'Open website', m.w) : ''}</div>`;
+    } else {
+      html = `<div class="safety-emb"><b>No ${escapeHtml(natName)} embassy listed in ${escapeHtml(c.n)}</b><div class="safety-emb-addr">Contact your country's foreign ministry for help.</div></div>`;
+    }
+    body.innerHTML = html + hotHtml;
+    note.textContent = 'From the open Database of Embassies (Wikidata). Phone and email appear only where the database has them; otherwise use the embassy website.';
+  } catch (err) {
+    body.innerHTML = `<div class="safety-emb"><b>Couldn't load embassy details</b><div class="safety-emb-addr">Check your internet connection and open this tab again.</div></div>` + hotHtml;
+    note.textContent = '';
+  }
+}
+
+function renderSafetyHotlinesTab() {
+  if (!safetyCountry) {
+    els.sosModalBody.innerHTML = `<h3>Get help now</h3><p class="safety-sub">Finding your location…</p>`;
+    detectSafetyCountry();
+    return;
+  }
+  const c = safetyCountry;
+  const nat = localStorage.getItem(SAFETY_NAT_KEY) || 'SG';
+  const countryOptions = ['<option value="">Detect automatically</option>']
+    .concat(Object.keys(SAFETY_DATA).sort((a, b) => SAFETY_DATA[a].n.localeCompare(SAFETY_DATA[b].n)).map((k) => `<option value="${k}">${escapeHtml(SAFETY_DATA[k].n)}</option>`))
+    .join('');
+  const natOptions = Object.keys(SAFETY_DATA).sort((a, b) => SAFETY_DATA[a].n.localeCompare(SAFETY_DATA[b].n)).map((k) => `<option value="${k}">${escapeHtml(SAFETY_DATA[k].n)}</option>`).join('');
+  const override = localStorage.getItem(SAFETY_CTY_OVERRIDE_KEY) || '';
+
+  els.sosModalBody.innerHTML = `
+    <h3>Get help now</h3>
+    <div class="safety-where">
+      <div><div class="safety-sub" style="margin:0 0 2px">You are in</div><div class="safety-where-who">${escapeHtml(c.n)}</div><div class="safety-sub" style="margin:2px 0 0">${escapeHtml(c.unknown ? `${c.src}. We don't have this country's numbers yet, so check locally.` : c.src)}</div></div>
+      <select id="safetyCtySel" aria-label="Choose country">${countryOptions}</select>
+      <div class="safety-nat"><label class="safety-sub" style="margin:0" for="safetyNatSel">Your nationality</label><select id="safetyNatSel" aria-label="Your nationality">${natOptions}</select></div>
+    </div>
+    <div class="safety-list">${c.l.map((x) => `<div class="safety-hot${x[2] ? ' urgent' : ''}"><div class="safety-hot-num"${x[1].length > 9 ? ' style="font-size:17px"' : ''}>${escapeHtml(x[1])}</div><div class="safety-hot-what">${escapeHtml(x[0])}</div><a class="pill-btn ${x[2] ? 'primary' : ''}" href="${safetyTelHref(x[1], x[3])}">${x[3] === 'sms' ? 'SMS' : 'Call'}</a></div>`).join('')}</div>
+    <p class="safety-sub">${escapeHtml(c.unknown ? '' : c.v ? 'These numbers were checked against Singapore MFA travel pages and official sources in September 2026.' : 'These numbers come from a public list of emergency numbers and haven\'t been individually checked. Confirm them when you arrive.')}</p>
+    <div class="safety-emb hidden" id="safetyEmbCard">
+      <b id="safetyEmbTitle">Your embassy</b>
+      <div id="safetyEmbBody" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+      <p class="safety-sub" id="safetyEmbNote" style="margin-top:6px"></p>
+    </div>
+    <div class="sos-form" style="margin-top:12px">
+      <div class="safety-sub" style="margin:0 0 6px;font-weight:700;color:var(--ink)">If you've been scammed</div>
+      <ol class="safety-tips">
+        <li>Call your bank's 24-hour hotline right away to freeze your account and cards.</li>
+        <li>Stop all contact with the scammer. Don't send any more money or codes.</li>
+        <li>${c.code === 'SG' ? "Report it to the police at 1800 255 0000 or online at police.gov.sg/i-witness, and ask for a report number for your bank." : `Report it to the police in ${escapeHtml(c.n)}${c.unknown ? '' : ` (${escapeHtml(c.pol)})`} and ask for a report number for your bank.`}</li>
+        <li>Keep screenshots of chats, phone numbers and transaction records.</li>
+        <li>Uninstall any app the caller asked you to install (e.g. AnyDesk, TeamViewer).</li>
+      </ol>
+    </div>
+    <p class="safety-sub">Numbers can change. Confirm local emergency numbers with your hotel or your country's embassy when you arrive.</p>
+  `;
+  document.getElementById('safetyCtySel').value = override;
+  document.getElementById('safetyCtySel').addEventListener('change', (e) => {
+    if (e.target.value) localStorage.setItem(SAFETY_CTY_OVERRIDE_KEY, e.target.value);
+    else localStorage.removeItem(SAFETY_CTY_OVERRIDE_KEY);
+    safetyCountry = null;
+    detectSafetyCountry().then(() => renderSafetyHotlinesTab());
+  });
+  document.getElementById('safetyNatSel').value = nat;
+  document.getElementById('safetyNatSel').addEventListener('change', (e) => {
+    localStorage.setItem(SAFETY_NAT_KEY, e.target.value);
+    renderSafetyEmbassyCard(safetyCountry, e.target.value);
+  });
+  renderSafetyEmbassyCard(c, nat);
+}
 
 // ---------- Share ----------
 

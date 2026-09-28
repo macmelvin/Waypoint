@@ -505,6 +505,143 @@ a:active {
   text-decoration: underline;
 }
 
+/* ---- Safety Center — the SOS icon opens a 4-tab sheet (SOS / Contacts /
+   Check / Hotlines) instead of just the old single-contact send flow.
+   Reuses the .weather-panel-card shell (like Lens does) but taller and
+   scrollable, since Hotlines/Check have a lot more content than a single
+   confirm screen. ---- */
+.safety-card { text-align: left; max-height: 88vh; display: flex; flex-direction: column; padding-top: 26px; }
+.safety-tabs {
+  display: flex; gap: 3px; background: var(--surface-fill); padding: 4px;
+  border-radius: var(--radius-sm); margin: 0 0 14px; flex-shrink: 0;
+}
+.safety-tab {
+  flex: 1; border: none; background: none; padding: 8px 2px; border-radius: var(--radius-xs);
+  font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap;
+}
+.safety-tab.active { background: var(--surface-elevated); color: var(--ink); box-shadow: var(--shadow-1); }
+.safety-body { overflow-y: auto; flex: 1 1 auto; min-height: 0; padding-bottom: 4px; }
+.safety-body h3 { margin: 0 0 6px; font-size: 17px; font-weight: 700; letter-spacing: var(--tracking-tight); }
+.safety-sub { margin: 0 0 14px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+.safety-sos-wrap { display: flex; justify-content: center; padding: 6px 0 14px; }
+.safety-sos-btn {
+  width: 132px; height: 132px; border-radius: 50%; border: none; cursor: pointer;
+  background: radial-gradient(circle at 50% 35%, var(--danger), #b91c1c); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  box-shadow: 0 0 0 10px var(--danger-tint), var(--shadow-2);
+}
+.safety-sos-btn b { font-size: 26px; font-weight: 800; letter-spacing: 0.02em; }
+.safety-sos-btn small { font-size: 11.5px; opacity: 0.92; }
+.safety-sos-btn:disabled { opacity: 0.7; cursor: default; }
+
+.safety-seg {
+  display: flex; background: var(--surface-fill); border-radius: var(--radius-sm); padding: 3px; gap: 3px; margin: 0 0 12px;
+}
+.safety-seg button {
+  flex: 1; border: none; background: none; padding: 7px 6px; border-radius: var(--radius-xs);
+  font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.safety-seg button[aria-pressed="true"] { background: var(--surface-elevated); color: var(--ink); box-shadow: var(--shadow-1); }
+
+.safety-local-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  background: var(--danger-tint); border: 1px solid var(--danger); border-radius: var(--radius-md);
+  padding: 10px 12px; margin: 0 0 12px;
+}
+.safety-local-bar .safety-local-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--danger); }
+.safety-local-bar .safety-local-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.safety-local-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.safety-local-acts a {
+  background: var(--danger); color: #fff; border-radius: var(--radius-pill); padding: 7px 11px;
+  font-size: 12.5px; font-weight: 700; text-decoration: none;
+}
+
+.safety-list { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.safety-contact, .safety-hot, .safety-emb {
+  border: 1px solid var(--border); background: var(--surface-elevated); border-radius: var(--radius-md);
+  padding: 11px 12px; box-shadow: var(--shadow-1);
+}
+.safety-contact { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.safety-contact-name { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.safety-contact-phone { font-size: 12.5px; color: var(--muted); }
+.safety-badge {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 3px 6px; border-radius: var(--radius-xs); background: var(--surface-fill); color: var(--muted);
+}
+.safety-badge.primary { background: var(--danger); color: #fff; }
+.safety-contact-acts { display: flex; gap: 6px; flex-shrink: 0; }
+.safety-icon-btn {
+  width: 34px; height: 34px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface-bg); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--label-primary);
+}
+.safety-icon-btn svg { width: 16px; height: 16px; }
+.safety-empty { text-align: center; color: var(--muted); padding: 20px; border: 1.5px dashed var(--border); border-radius: var(--radius-md); font-size: 13px; margin-bottom: 14px; }
+
+.safety-hot { display: grid; grid-template-columns: 1fr auto; gap: 1px 12px; align-items: center; }
+.safety-hot-num { font-size: 22px; font-weight: 800; letter-spacing: 0.02em; }
+.safety-hot-what { font-size: 12.5px; color: var(--muted); grid-column: 1; }
+.safety-hot a { grid-row: 1 / 3; grid-column: 2; }
+.safety-hot.urgent .safety-hot-num { color: var(--danger); }
+
+.safety-where {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  background: var(--surface-secondary); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 11px 12px; margin: 0 0 12px;
+}
+.safety-where select { border: 1px solid var(--border); background: var(--surface-elevated); border-radius: var(--radius-sm); padding: 8px 9px; max-width: 100%; color: var(--label-primary); }
+.safety-where .safety-where-who { font-weight: 700; font-size: 15.5px; }
+.safety-nat { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; border-top: 1px solid var(--border); padding-top: 9px; }
+
+.safety-emb b { font-size: 14px; display: block; margin-bottom: 2px; }
+.safety-emb .safety-emb-addr { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.safety-emb-row { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; font-size: 13px; }
+.safety-emb-row span { color: var(--muted); }
+.safety-emb a { color: var(--accent); font-weight: 600; text-decoration: none; word-break: break-all; }
+
+.safety-tips { margin: 0 0 14px; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink); }
+
+.safety-verdict { border-radius: var(--radius-md); padding: 13px; display: flex; gap: 13px; align-items: center; margin-bottom: 14px; }
+.safety-verdict.high { background: color-mix(in srgb, var(--danger) 12%, var(--surface-elevated)); border: 1px solid var(--danger); }
+.safety-verdict.mid { background: color-mix(in srgb, var(--warning) 14%, var(--surface-elevated)); border: 1px solid var(--warning); }
+.safety-verdict.low { background: color-mix(in srgb, var(--success) 12%, var(--surface-elevated)); border: 1px solid var(--success); }
+.safety-score { font-size: 34px; font-weight: 800; flex: 0 0 auto; min-width: 68px; text-align: center; }
+.safety-verdict.high .safety-score { color: var(--danger); }
+.safety-verdict.mid .safety-score { color: var(--warning); }
+.safety-verdict.low .safety-score { color: var(--success); }
+.safety-verdict h4 { margin: 0; font-size: 15.5px; font-weight: 700; }
+.safety-verdict p { margin: 3px 0 0; font-size: 12.5px; color: var(--ink); }
+.safety-flags { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.safety-flags li {
+  background: var(--surface-elevated); border: 1px solid var(--border); border-left: 3px solid var(--warning);
+  border-radius: var(--radius-sm); padding: 9px 11px; font-size: 12.5px;
+}
+.safety-flags li.hi { border-left-color: var(--danger); }
+.safety-flags b { display: block; font-size: 13px; margin-bottom: 2px; }
+.safety-flags span { color: var(--muted); }
+.safety-preview {
+  background: var(--surface-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px; white-space: pre-wrap; word-break: break-word; font-size: 13px; margin-bottom: 8px;
+}
+.safety-preview mark { background: color-mix(in srgb, var(--danger) 28%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
+.safety-check-textarea {
+  width: 100%; min-height: 130px; resize: vertical; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px 12px; font-size: 13.5px; line-height: 1.45; background: var(--surface-elevated); color: var(--label-primary); margin-bottom: 10px;
+}
+.safety-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.safety-row .pill-btn { flex: 1 1 120px; text-align: center; }
+
+/* Send-list sheet: shown when SOS mode is "Everyone"/"Group SMS" and there's
+   more than one recipient — each app-to-app link needs its own explicit tap
+   (browsers block auto-opened links fired back-to-back without a gesture). */
+.safety-send-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.safety-send-item.done { opacity: 0.5; }
+.safety-send-item .pill-btn { flex-shrink: 0; }
+
 /* Icon-only now (text label removed) — falls back to the same plain round
    .icon-btn shape as the notify/SOS buttons next to it instead of the wide
    text-pill shape this used when it showed "Where am I" as well. */
