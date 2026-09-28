@@ -535,15 +535,6 @@ a:active {
 .safety-sos-btn small { font-size: 11.5px; opacity: 0.92; }
 .safety-sos-btn:disabled { opacity: 0.7; cursor: default; }
 
-.safety-seg {
-  display: flex; background: var(--surface-fill); border-radius: var(--radius-sm); padding: 3px; gap: 3px; margin: 0 0 12px;
-}
-.safety-seg button {
-  flex: 1; border: none; background: none; padding: 7px 6px; border-radius: var(--radius-xs);
-  font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
-}
-.safety-seg button[aria-pressed="true"] { background: var(--surface-elevated); color: var(--ink); box-shadow: var(--shadow-1); }
-
 .safety-local-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
   background: var(--danger-tint); border: 1px solid var(--danger); border-radius: var(--radius-md);
@@ -565,11 +556,6 @@ a:active {
 .safety-contact { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .safety-contact-name { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .safety-contact-phone { font-size: 12.5px; color: var(--muted); }
-.safety-badge {
-  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
-  padding: 3px 6px; border-radius: var(--radius-xs); background: var(--surface-fill); color: var(--muted);
-}
-.safety-badge.primary { background: var(--danger); color: #fff; }
 .safety-contact-acts { display: flex; gap: 6px; flex-shrink: 0; }
 .safety-icon-btn {
   width: 34px; height: 34px; border-radius: var(--radius-sm); border: 1px solid var(--border);
@@ -630,17 +616,6 @@ a:active {
 }
 .safety-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
 .safety-row .pill-btn { flex: 1 1 120px; text-align: center; }
-
-/* Send-list sheet: shown when SOS mode is "Everyone"/"Group SMS" and there's
-   more than one recipient — each app-to-app link needs its own explicit tap
-   (browsers block auto-opened links fired back-to-back without a gesture). */
-.safety-send-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);
-  padding: 10px 12px; margin-bottom: 8px;
-}
-.safety-send-item.done { opacity: 0.5; }
-.safety-send-item .pill-btn { flex-shrink: 0; }
 
 /* Icon-only now (text label removed) — falls back to the same plain round
    .icon-btn shape as the notify/SOS buttons next to it instead of the wide

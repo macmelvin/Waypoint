@@ -4807,10 +4807,10 @@ els.locateBtn.addEventListener('click', () => {
 
 // ---------- Safety Center (SOS + Contacts + Scam Checker + Hotlines) ----------
 // The SOS icon opens a 4-tab sheet instead of a single send screen:
-//   SOS       — the original one-tap "send HELP with live location" flow,
-//               now able to fan out to several contacts instead of just one.
-//   Contacts  — the emergency-contact list (multiple, each WhatsApp or SMS,
-//               one marked Primary) plus the sender's name and alert text.
+//   SOS       — one tap sends a single group SMS with a HELP message and a
+//               live-location link to every emergency contact at once.
+//   Contacts  — the emergency-contact list (name + phone number) plus the
+//               sender's name and alert text.
 //   Check     — "Is this a scam?": paste a message and get an on-device,
 //               offline-capable red-flag scan. Nothing is uploaded.
 //   Hotlines  — emergency numbers for ~150 countries (auto-detected from GPS,
@@ -4822,8 +4822,7 @@ els.locateBtn.addEventListener('click', () => {
 // contacts, messages and the scam-check text never leave the device.
 
 const SOS_CONTACT_KEY = 'waypoint_sos_contact'; // legacy single-contact shape, migrated into SOS_CONTACTS_KEY below
-const SOS_CONTACTS_KEY = 'waypoint_sos_contacts'; // [{ name, phone, app: 'whatsapp'|'sms', primary }]
-const SOS_MODE_KEY = 'waypoint_sos_mode'; // 'all' | 'primary' | 'groupsms'
+const SOS_CONTACTS_KEY = 'waypoint_sos_contacts'; // [{ name, phone }] — SOS always sends one group SMS to everyone on this list
 const SOS_MYNAME_KEY = 'waypoint_sos_myname';
 const SOS_ACTIVE_SESSION_KEY = 'waypoint_sos_active_session'; // { sessionId, contactName, expiresAt } — resumes sharing across a reload
 const SOS_SHARE_DURATION_MS = 60 * 60 * 1000; // 1 hour — must match SOS_SESSION_TTL_MS in server.js
@@ -4839,7 +4838,6 @@ let safetyCountry = null; // { code, name, src, unknown? } — cached once detec
 let safetyCountryDetectInFlight = null;
 let safetyEmbassyCache = {}; // nationality code -> mission[] (this session only; server also caches)
 let safetyEditingContactIndex = null; // index into contacts array while the add/edit form is open, or null for "add new"
-let safetySendSheetContacts = null; // contacts still to notify in the multi-recipient send list, or null when not open
 
 // ---- Contacts (multi-recipient, migrated from the old single-contact shape) ----
 
@@ -4862,7 +4860,7 @@ function loadSosContacts() {
     legacy = null;
   }
   const migrated = legacy && legacy.name && legacy.phone
-    ? [{ name: legacy.name, phone: legacy.phone, app: 'whatsapp', primary: true }]
+    ? [{ name: legacy.name, phone: legacy.phone }]
     : [];
   saveSosContacts(migrated);
   return migrated;
@@ -4870,19 +4868,6 @@ function loadSosContacts() {
 
 function saveSosContacts(list) {
   localStorage.setItem(SOS_CONTACTS_KEY, JSON.stringify(list));
-}
-
-function primarySosContact(list) {
-  return list.find((c) => c.primary) || list[0] || null;
-}
-
-function loadSosMode() {
-  const m = localStorage.getItem(SOS_MODE_KEY);
-  return m === 'primary' || m === 'groupsms' ? m : 'all';
-}
-
-function saveSosMode(mode) {
-  try { localStorage.setItem(SOS_MODE_KEY, mode); } catch (err) { /* ignore */ }
 }
 
 function loadSosMyName() {
@@ -4909,9 +4894,9 @@ const GEO_OPTIONS_FAST = { enableHighAccuracy: false, timeout: 6000, maximumAge:
 // Warmed as soon as the Safety sheet opens (see openSosModal), so that if a
 // fix happens to land before someone taps SOS, the outgoing message can
 // include real coordinates inline. Purely a nice-to-have now: the SOS send
-// itself (triggerSos/handleSafetySosSend) never waits on this — it sends
-// immediately either way, since the live-tracking link updates on its own
-// the moment a fix comes in via startSosLiveTracking's watchPosition.
+// itself (handleSafetySosSend) never waits on this — it sends immediately
+// either way, since the live-tracking link updates on its own the moment a
+// fix comes in via startSosLiveTracking's watchPosition.
 const SOS_FIX_FRESH_MS = 45000;
 let safetySosFix = null; // { lat, lon, t }
 let safetySosFixWarming = false;
@@ -4978,7 +4963,6 @@ function openSosModal() {
 
 function closeSosModal() {
   els.sosModal.classList.add('hidden');
-  safetySendSheetContacts = null;
   stopSafetySosRefreshTimer();
 }
 
@@ -5031,14 +5015,13 @@ function safetyLocalBarHtml() {
 
 function renderSafetySosTab() {
   const contacts = loadSosContacts();
-  const mode = loadSosMode();
 
   if (!contacts.length) {
     els.sosModalBody.innerHTML = `
       <div style="text-align:center">
         <div class="weather-panel-icon">🆘</div>
         <h3 class="weather-panel-headline">Add a contact to enable SOS</h3>
-        <p class="weather-panel-now">Pressing SOS opens WhatsApp or SMS with a HELP message and your live location, pre-filled to your contacts — stored only on this device, never sent to Waypoint. Add at least one contact to turn it on.</p>
+        <p class="weather-panel-now">Pressing SOS sends one group SMS with a HELP message and your live location to your contacts — stored only on this device, never sent to Waypoint. Add at least one contact to turn it on.</p>
       </div>
       <button id="safetyGoToContactsBtn" class="sos-primary-btn" type="button">Add a contact</button>
     `;
@@ -5046,17 +5029,8 @@ function renderSafetySosTab() {
     return;
   }
 
-  const primary = primarySosContact(contacts);
-  const who = mode === 'primary'
-    ? (primary ? primary.name : 'No contact yet')
-    : mode === 'groupsms'
-      ? `Group SMS to ${contacts.length} contact${contacts.length > 1 ? 's' : ''}`
-      : `Everyone (${contacts.length})`;
-  const how = mode === 'primary'
-    ? (primary ? (primary.app === 'sms' ? 'via SMS' : 'via WhatsApp') : 'Add a contact first')
-    : mode === 'groupsms'
-      ? 'One SMS to every number'
-      : 'Send to each contact in turn';
+  const who = `Group SMS to ${contacts.length} contact${contacts.length > 1 ? 's' : ''}`;
+  const how = 'One SMS to every number';
 
   const session = getSosActiveSession();
   const sharing = !!session;
@@ -5080,25 +5054,17 @@ function renderSafetySosTab() {
     ${liveLocationHtml}
     <div class="sos-form" style="margin-bottom:10px">
       <div class="safety-sub" style="margin-bottom:6px"><strong style="color:var(--ink)">Sends to:</strong> ${escapeHtml(who)} <span style="color:var(--muted)">· ${escapeHtml(how)}</span></div>
-      <div class="safety-seg" role="group" aria-label="Who SOS alerts">
-        <button type="button" data-mode="all" aria-pressed="${mode === 'all'}">Everyone</button>
-        <button type="button" data-mode="primary" aria-pressed="${mode === 'primary'}">Primary</button>
-        <button type="button" data-mode="groupsms" aria-pressed="${mode === 'groupsms'}">Group SMS</button>
-      </div>
       <label class="sos-form-label" for="sosMessageInput">Message</label>
       <input id="sosMessageInput" class="sos-form-input" type="text" value="${escapeHtml(loadSosMessage())}" />
     </div>
     ${sharing ? `<button id="safetyImSafeBtn" class="sos-primary-btn" type="button" style="background:var(--success)">✅ I'm safe — stop sharing</button>` : ''}
   `;
 
-  els.sosModalBody.querySelectorAll('.safety-seg button').forEach((btn) => {
-    btn.addEventListener('click', () => { saveSosMode(btn.dataset.mode); renderSafetySosTab(); });
-  });
   document.getElementById('safetySosBtn').addEventListener('click', () => {
     const messageInput = document.getElementById('sosMessageInput');
     const message = (messageInput?.value || '').trim() || SOS_DEFAULT_MESSAGE;
     saveSosMessage(message);
-    handleSafetySosSend(mode, message);
+    handleSafetySosSend(message);
   });
   const safeBtn = document.getElementById('safetyImSafeBtn');
   if (safeBtn) safeBtn.addEventListener('click', () => {
@@ -5141,7 +5107,7 @@ function postSosPosition(sessionId, lat, lon) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ lat, lon }),
-    keepalive: true, // survive the page being backgrounded/navigated away as WhatsApp opens
+    keepalive: true, // survive the page being backgrounded/navigated away as the Messages app opens
   }).catch((err) => console.error('SOS position update failed:', err));
 }
 
@@ -5155,15 +5121,6 @@ function formatLatLon(lat, lon) {
   return `${Math.abs(lat).toFixed(4)}°${latDir}, ${Math.abs(lon).toFixed(4)}°${lonDir}`;
 }
 
-function safetyLinkFor(contact, text) {
-  const t = encodeURIComponent(text);
-  if (contact.app === 'sms') {
-    const sep = /iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?';
-    return `sms:${contact.phone.replace(/[^\d+]/g, '')}${sep}body=${t}`;
-  }
-  return `https://wa.me/${contact.phone}?text=${t}`;
-}
-
 function safetyGroupSmsLink(contacts, text) {
   const nums = contacts.map((c) => c.phone.replace(/[^\d+]/g, '')).filter((n) => n.replace('+', '').length >= 8);
   const t = encodeURIComponent(text);
@@ -5171,21 +5128,22 @@ function safetyGroupSmsLink(contacts, text) {
   return isIOS ? `sms:/open?addresses=${nums.join(',')}&body=${t}` : `sms:${nums.join(',')}?body=${t}`;
 }
 
-// Single-recipient send: NEVER waits on geolocation. Live tracking (below)
-// kicks off its own watchPosition and posts a fix the moment one resolves,
-// so the recipient's map fills in within moments regardless — the send
-// itself doesn't need to sit around for GPS first. And it navigates the
-// current tab directly (window.location.href), exactly like the standalone
-// ScamGuard app: that's what lets Android/iOS hand off straight to the
-// installed WhatsApp app. A window.open()-created tab often doesn't get
-// that same direct handoff and falls back to wa.me's web page, which is
-// why it used to need an extra "Continue" tap.
-function triggerSos(contact, message) {
+// SOS always sends one group SMS to every contact, in a single tap — no
+// per-contact app choice and no "tap each one" sheet to work through.
+// NEVER waits on geolocation: live tracking (below) kicks off its own
+// watchPosition and posts a fix the moment one resolves, so the recipients'
+// map fills in within moments regardless — the send itself doesn't need to
+// sit around for GPS first. And it navigates the current tab directly
+// (window.location.href), exactly like the standalone ScamGuard app: that's
+// what lets the phone hand off straight to the Messages app instantly.
+function handleSafetySosSend(message) {
+  const contacts = loadSosContacts();
+  if (!contacts.length) return;
+
   const sessionId = genSosSessionId();
   const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
   const trackLink = `${window.location.origin}/track/${sessionId}`;
-
-  startSosLiveTracking(sessionId, contact.name);
+  startSosLiveTracking(sessionId, `${contacts.length} contacts`);
 
   // Use whatever fix (if any) was already warmed while the sheet was open —
   // never wait for a fresh one now. No fix yet is fine: the track link
@@ -5195,82 +5153,8 @@ function triggerSos(contact, message) {
   const coordsLine = cached ? `\nLocation: ${formatLatLon(cached.lat, cached.lon)}` : '';
 
   const fullMessage = `${messageText}${coordsLine}\nTrack my live location (updates for up to 1hr): ${trackLink}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
-  window.location.href = safetyLinkFor(contact, fullMessage);
+  window.location.href = safetyGroupSmsLink(contacts, fullMessage);
   closeSosModal();
-}
-
-// Multi-recipient send: one shared live-tracking session, then a "tap each
-// one" sheet — mobile browsers only let ONE app-to-app link open per user
-// gesture, so several WhatsApp/SMS sends can't be fired automatically back
-// to back. Every contact still gets the SAME live map link, so whoever taps
-// it can watch the same real-time position, not just a one-off pin.
-function handleSafetySosSend(mode, message) {
-  const contacts = loadSosContacts();
-  if (!contacts.length) return;
-
-  if (mode === 'primary') {
-    const primary = primarySosContact(contacts);
-    if (!primary) { showToast('Add a contact first.'); return; }
-    triggerSos(primary, message);
-    return;
-  }
-
-  if (mode === 'groupsms') {
-    const sessionId = genSosSessionId();
-    const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
-    const trackLink = `${window.location.origin}/track/${sessionId}`;
-    startSosLiveTracking(sessionId, `${contacts.length} contacts`);
-    const cached = getFreshSosFix();
-    if (cached) postSosPosition(sessionId, cached.lat, cached.lon);
-    const coordsLine = cached ? `\nLocation: ${formatLatLon(cached.lat, cached.lon)}` : '';
-    const fullMessage = `${messageText}${coordsLine}\nTrack my live location (updates for up to 1hr): ${trackLink}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
-    window.location.href = safetyGroupSmsLink(contacts, fullMessage);
-    closeSosModal();
-    return;
-  }
-
-  // mode === 'all': exactly one contact behaves like the tested single-send
-  // path; more than one opens the send-list sheet. Neither waits on
-  // geolocation — same reasoning as triggerSos above.
-  if (contacts.length === 1) { triggerSos(contacts[0], message); return; }
-
-  const sessionId = genSosSessionId();
-  const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
-  const trackLink = `${window.location.origin}/track/${sessionId}`;
-  startSosLiveTracking(sessionId, `${contacts.length} contacts`);
-  const cached = getFreshSosFix();
-  if (cached) postSosPosition(sessionId, cached.lat, cached.lon);
-  const trackingLine = cached
-    ? `\nLocation: ${formatLatLon(cached.lat, cached.lon)}\nTrack my live location (updates for up to 1hr): ${trackLink}`
-    : `\nTrack my live location (updates for up to 1hr): ${trackLink}`;
-  openSafetySendSheet(contacts, sessionId, messageText, trackingLine);
-}
-
-function openSafetySendSheet(contacts, sessionId, messageText, trackingLine) {
-  const fullMessage = `${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
-  safetySendSheetContacts = new Set();
-  els.sosModalBody.innerHTML = `
-    <h3>Send to each contact</h3>
-    <p class="safety-sub">Tap each one — it opens ${contacts.some((c) => c.app === 'sms') ? 'WhatsApp or SMS' : 'WhatsApp'} with your alert and live location ready to send. Come back here for the next person.</p>
-    <div id="safetySendList"></div>
-    <button id="safetySendDoneBtn" class="sos-secondary-btn" type="button">Done</button>
-  `;
-  const list = document.getElementById('safetySendList');
-  contacts.forEach((c, i) => {
-    const row = document.createElement('div');
-    row.className = 'safety-send-item';
-    row.innerHTML = `<span>${escapeHtml(c.name)} <span class="safety-contact-phone">${c.app === 'sms' ? 'SMS' : 'WhatsApp'}</span></span>`;
-    const link = document.createElement('a');
-    link.href = safetyLinkFor(c, fullMessage);
-    link.className = 'pill-btn primary';
-    link.textContent = 'Send';
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.addEventListener('click', () => { row.classList.add('done'); link.textContent = 'Sent'; });
-    row.appendChild(link);
-    list.appendChild(row);
-  });
-  document.getElementById('safetySendDoneBtn').addEventListener('click', () => { closeSosModal(); });
 }
 
 function startSosLiveTracking(sessionId, contactName) {
@@ -5354,7 +5238,7 @@ function renderSafetyContactsTab() {
   const contacts = loadSosContacts();
   els.sosModalBody.innerHTML = `
     <h3>Emergency contacts</h3>
-    <p class="safety-sub">SOS alerts everyone on this list (or only Primary, if you choose that on the SOS tab). Use the full number with country code, e.g. +65 9123 4567.</p>
+    <p class="safety-sub">SOS sends one group SMS to everyone on this list. Use the full number with country code, e.g. +65 9123 4567.</p>
     <div id="safetyContactList" class="safety-list"></div>
     <div class="sos-form" id="safetyContactFormWrap">
       <div class="safety-sub" id="safetyContactFormTitle" style="margin:0;font-weight:700;color:var(--ink)">Add contact</div>
@@ -5362,11 +5246,6 @@ function renderSafetyContactsTab() {
       <input id="sosContactName" class="sos-form-input" type="text" placeholder="e.g. Mum" maxlength="40" />
       <label class="sos-form-label" for="sosContactPhone">Phone number</label>
       <input id="sosContactPhone" class="sos-form-input" type="tel" placeholder="e.g. 9123 4567, or +1 415 555 0100 outside Singapore" />
-      <label class="sos-form-label" for="safetyContactApp">Preferred app</label>
-      <select id="safetyContactApp" class="sos-form-input">
-        <option value="whatsapp">WhatsApp</option>
-        <option value="sms">SMS</option>
-      </select>
     </div>
     <button id="sosSaveBtn" class="sos-primary-btn" type="button">Save contact</button>
     <button id="safetyCancelEditBtn" class="sos-secondary-btn hidden" type="button">Cancel</button>
@@ -5384,20 +5263,17 @@ function renderSafetyContactsTab() {
   document.getElementById('sosSaveBtn').addEventListener('click', () => {
     const nameInput = document.getElementById('sosContactName');
     const phoneInput = document.getElementById('sosContactPhone');
-    const appSelect = document.getElementById('safetyContactApp');
     const name = nameInput.value.trim();
     const phone = normalizePhoneNumber(phoneInput.value.trim());
-    const app = appSelect.value === 'sms' ? 'sms' : 'whatsapp';
     if (!name) { showToast('Enter a name for this contact.'); return; }
     if (phone.length < 8 || phone.length > 15) { showToast('Enter a valid phone number, with a country code (+ and the number) if outside Singapore.'); return; }
 
     const list = loadSosContacts();
     if (safetyEditingContactIndex != null && list[safetyEditingContactIndex]) {
-      const wasPrimary = list[safetyEditingContactIndex].primary;
-      list[safetyEditingContactIndex] = { name, phone, app, primary: wasPrimary };
+      list[safetyEditingContactIndex] = { name, phone };
       showToast(`${name} updated`);
     } else {
-      list.push({ name, phone, app, primary: list.length === 0 });
+      list.push({ name, phone });
       showToast(`${name} added`);
     }
     saveSosContacts(list);
@@ -5410,7 +5286,6 @@ function resetSafetyContactForm() {
   safetyEditingContactIndex = null;
   document.getElementById('sosContactName').value = '';
   document.getElementById('sosContactPhone').value = '';
-  document.getElementById('safetyContactApp').value = 'whatsapp';
   document.getElementById('safetyContactFormTitle').textContent = 'Add contact';
   document.getElementById('sosSaveBtn').textContent = 'Save contact';
   document.getElementById('safetyCancelEditBtn').classList.add('hidden');
@@ -5418,7 +5293,6 @@ function resetSafetyContactForm() {
 
 const SAFETY_EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 const SAFETY_DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
-const SAFETY_STAR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>';
 
 function renderSafetyContactList(contacts) {
   const wrap = document.getElementById('safetyContactList');
@@ -5432,11 +5306,10 @@ function renderSafetyContactList(contacts) {
     row.className = 'safety-contact';
     row.innerHTML = `
       <div>
-        <div class="safety-contact-name">${escapeHtml(c.name)} ${c.primary ? '<span class="safety-badge primary">Primary</span>' : ''} <span class="safety-badge">${c.app === 'sms' ? 'SMS' : 'WhatsApp'}</span></div>
+        <div class="safety-contact-name">${escapeHtml(c.name)}</div>
         <div class="safety-contact-phone">+${escapeHtml(c.phone)}</div>
       </div>
       <div class="safety-contact-acts">
-        ${!c.primary ? `<button class="safety-icon-btn" type="button" data-act="primary" title="Make primary">${SAFETY_STAR_ICON}</button>` : ''}
         <button class="safety-icon-btn" type="button" data-act="edit" title="Edit">${SAFETY_EDIT_ICON}</button>
         <button class="safety-icon-btn" type="button" data-act="delete" title="Delete">${SAFETY_DELETE_ICON}</button>
       </div>
@@ -5445,24 +5318,14 @@ function renderSafetyContactList(contacts) {
       safetyEditingContactIndex = i;
       document.getElementById('sosContactName').value = c.name;
       document.getElementById('sosContactPhone').value = c.phone;
-      document.getElementById('safetyContactApp').value = c.app;
       document.getElementById('safetyContactFormTitle').textContent = `Edit ${c.name}`;
       document.getElementById('sosSaveBtn').textContent = 'Save changes';
       document.getElementById('safetyCancelEditBtn').classList.remove('hidden');
       document.getElementById('safetyContactFormWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
-    const primaryBtn = row.querySelector('[data-act="primary"]');
-    if (primaryBtn) primaryBtn.addEventListener('click', () => {
-      const list = loadSosContacts();
-      list.forEach((x, j) => { x.primary = j === i; });
-      saveSosContacts(list);
-      renderSafetyContactList(list);
-    });
     row.querySelector('[data-act="delete"]').addEventListener('click', () => {
       const list = loadSosContacts();
-      const wasPrimary = list[i].primary;
       list.splice(i, 1);
-      if (wasPrimary && list.length) list[0].primary = true;
       saveSosContacts(list);
       resetSafetyContactForm();
       renderSafetyContactList(list);
