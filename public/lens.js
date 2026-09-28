@@ -27,6 +27,7 @@
 
   const L_I18N = {
     en: {
+      lens_cta_title: "Scan it to learn its story", lens_cta_sub: "Point your camera at a landmark, sign or dish — get its history in your language",
       lens_btn_title: 'Scan & explain with your camera', lens_looking: 'Looking closely…', lens_translating: 'Explaining in {lang}…',
       lens_explain_in: 'Explain in', lens_listen: '🔊 Listen', lens_stop: '⏹ Stop', lens_show_map: '📍 Show on map',
       lens_scan_again: '📷 Scan another', lens_gallery: '🖼️ From gallery',
@@ -38,6 +39,7 @@
       lens_new_hint: 'New: tap 📷 in the search bar and point it at anything to learn its story.',
     },
     zh: {
+      lens_cta_title: "扫一扫,了解它的故事", lens_cta_sub: "把相机对准地标、招牌或美食,用您的语言了解它的历史",
       lens_btn_title: '用相机扫描并讲解', lens_looking: '正在仔细查看…', lens_translating: '正在用{lang}讲解…',
       lens_explain_in: '讲解语言', lens_listen: '🔊 朗读', lens_stop: '⏹ 停止', lens_show_map: '📍 在地图上显示',
       lens_scan_again: '📷 再扫一个', lens_gallery: '🖼️ 从相册选择',
@@ -49,6 +51,7 @@
       lens_new_hint: '新功能:点击搜索栏里的📷,对准任何东西,了解它的故事。',
     },
     ms: {
+      lens_cta_title: "Imbas untuk mengetahui kisahnya", lens_cta_sub: "Halakan kamera pada mercu tanda, papan tanda atau hidangan — ketahui sejarahnya dalam bahasa anda",
       lens_btn_title: 'Imbas & terangkan dengan kamera', lens_looking: 'Sedang meneliti…', lens_translating: 'Menerangkan dalam {lang}…',
       lens_explain_in: 'Terangkan dalam', lens_listen: '🔊 Dengar', lens_stop: '⏹ Henti', lens_show_map: '📍 Tunjuk di peta',
       lens_scan_again: '📷 Imbas lagi', lens_gallery: '🖼️ Dari galeri',
@@ -60,6 +63,7 @@
       lens_new_hint: 'Baharu: ketik 📷 di bar carian dan halakan pada apa sahaja untuk mengetahui kisahnya.',
     },
     ta: {
+      lens_cta_title: "ஸ்கேன் செய்து அதன் கதையை அறியுங்கள்", lens_cta_sub: "அடையாளச் சின்னம், பலகை அல்லது உணவை நோக்கி கேமராவைக் காட்டுங்கள் — உங்கள் மொழியில் அதன் வரலாறு",
       lens_btn_title: 'கேமராவால் ஸ்கேன் செய்து விளக்கு', lens_looking: 'கவனமாகப் பார்க்கிறது…', lens_translating: '{lang}-இல் விளக்குகிறது…',
       lens_explain_in: 'விளக்க மொழி', lens_listen: '🔊 கேள்', lens_stop: '⏹ நிறுத்து', lens_show_map: '📍 வரைபடத்தில் காட்டு',
       lens_scan_again: '📷 இன்னொன்றை ஸ்கேன் செய்', lens_gallery: '🖼️ கேலரியிலிருந்து',
@@ -71,6 +75,7 @@
       lens_new_hint: 'புதியது: தேடல் பட்டியில் 📷 ஐத் தட்டி, எதையும் நோக்கி அதன் கதையை அறியுங்கள்.',
     },
     ja: {
+      lens_cta_title: "撮ってストーリーを知ろう", lens_cta_sub: "名所・看板・料理にカメラを向けると、その歴史をあなたの言語で解説します",
       lens_btn_title: 'カメラで撮って解説', lens_looking: 'よく見ています…', lens_translating: '{lang}で解説中…',
       lens_explain_in: '解説の言語', lens_listen: '🔊 読み上げ', lens_stop: '⏹ 停止', lens_show_map: '📍 地図で表示',
       lens_scan_again: '📷 もう一枚', lens_gallery: '🖼️ 写真から選ぶ',
@@ -82,6 +87,7 @@
       lens_new_hint: '新機能:検索バーの📷をタップして、気になるものに向けるとストーリーがわかります。',
     },
     ko: {
+      lens_cta_title: "찍어서 이야기를 알아보세요", lens_cta_sub: "명소·간판·음식에 카메라를 비추면 그 역사를 내 언어로 알려드려요",
       lens_btn_title: '카메라로 찍고 설명 듣기', lens_looking: '자세히 보는 중…', lens_translating: '{lang}(으)로 설명하는 중…',
       lens_explain_in: '설명 언어', lens_listen: '🔊 듣기', lens_stop: '⏹ 멈춤', lens_show_map: '📍 지도에서 보기',
       lens_scan_again: '📷 하나 더 찍기', lens_gallery: '🖼️ 앨범에서 선택',
@@ -99,7 +105,7 @@
   const tf = (key, vars) => Object.keys(vars || {}).reduce((s, k) => s.split(`{${k}}`).join(vars[k]), t(key));
   const $ = (id) => document.getElementById(id);
   const el = {
-    btn: $('lensBtn'), camera: $('lensCamera'), gallery: $('lensGallery'), modal: $('lensModal'), close: $('lensClose'),
+    btn: $('lensBtn'), cta: $('lensCta'), camera: $('lensCamera'), gallery: $('lensGallery'), modal: $('lensModal'), close: $('lensClose'),
     photo: $('lensPhoto'), title: $('lensTitle'), local: $('lensLocal'), body: $('lensBody'), lang: $('lensLang'),
     speak: $('lensSpeak'), map: $('lensMap'), again: $('lensAgain'), fromGallery: $('lensFromGallery'),
     searchBox: document.querySelector('#panel-search .search-box'), searchInput: $('searchInput'),
@@ -127,12 +133,12 @@
   fetch('/api/lens/status').then((r) => (r.ok ? r.json() : null)).then((s) => {
     if (!s || !s.enabled) return;
     el.btn.classList.remove('hidden');
+    if (el.cta) el.cta.classList.remove('hidden');
     el.searchBox.classList.add('has-lens');
     let seen = false;
     try { seen = !!localStorage.getItem(SEEN_KEY); } catch (e) { /* ignore */ }
     if (!seen) {
       el.btn.classList.add('is-new');
-      setTimeout(() => showToast(t('lens_new_hint'), 5000), 2500);
     }
   }).catch(() => { /* offline — keep hidden */ });
 
@@ -142,6 +148,7 @@
   }
 
   el.btn.addEventListener('click', () => { markSeen(); el.camera.click(); });
+  if (el.cta) el.cta.addEventListener('click', () => { markSeen(); el.camera.click(); });
   el.again.addEventListener('click', () => el.camera.click());
   el.fromGallery.addEventListener('click', () => el.gallery.click());
   [el.camera, el.gallery].forEach((input) => input.addEventListener('change', () => {
