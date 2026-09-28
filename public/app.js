@@ -9,7 +9,6 @@
 let fromCoords = null; // { lat, lon, label }
 let toCoords = null;
 let selectedMode = 'driving';
-let hasRoute = false; // whether a route/itinerary is currently displayed (for mode-switch auto-refresh)
 
 // Which OSRM backend + profile name to use per travel mode. See the comment
 // in getDirections() for why driving/cycling/walking don't all hit the same host.
@@ -2195,7 +2194,15 @@ els.modeButtons.forEach(btn => {
       els.cyclingExtra.classList.add('hidden');
       els.cyclingExtra.innerHTML = '';
     }
-    if (fromCoords && toCoords && hasRoute) {
+    // Switching mode (e.g. tapping "Bus & MRT" as the very first action after
+    // setting From/To, before ever pressing "Get Directions") should fetch
+    // that mode's route right away -- getDirections() already no-ops safely
+    // if From/To aren't set, so there's no need to also require a route to
+    // already exist. Previously this checked `&& hasRoute`, which meant the
+    // very first mode click after entering From/To did nothing at all (the
+    // button just highlighted) until "Get Directions" was pressed once --
+    // read by users as needing to "click twice" for a route to appear.
+    if (fromCoords && toCoords) {
       getDirections();
     }
   });
@@ -2501,7 +2508,6 @@ async function getDirections() {
     }
 
     const route = data.routes[0];
-    hasRoute = true;
     renderRouteSummary(route);
     renderRouteSteps(route);
     if (selectedMode === 'walking') checkRainAlert(fromCoords, toCoords);
@@ -3632,7 +3638,6 @@ function selectItinerary(index) {
     card.classList.toggle('active', i === index);
   });
 
-  hasRoute = true;
   renderTransitSummary(itinerary);
   renderTransitSteps(itinerary);
   renderRoutePreviewMap(transitPreviewSegments(itinerary));
