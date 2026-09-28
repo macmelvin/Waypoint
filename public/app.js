@@ -4893,12 +4893,15 @@ function saveSosMyName(name) {
   try { localStorage.setItem(SOS_MYNAME_KEY, name); } catch (err) { /* ignore */ }
 }
 
-const SOS_MESSAGE_KEY = 'waypoint_sos_message'; // last-used SOS text, editable each time, defaults to "I NEED HELP"
-const SOS_DEFAULT_MESSAGE = 'I NEED HELP';
+const SOS_MESSAGE_KEY = 'waypoint_sos_message'; // last-used SOS text, editable each time
+const SOS_DEFAULT_MESSAGE = "🚨 SOS - I need help. I think I'm being targeted by a scam or I'm in an unsafe situation. Please call me now. If I don't answer, call the local police.";
+const SOS_OLD_DEFAULT_MESSAGES = ['I NEED HELP']; // superseded defaults — upgrade anyone still on one of these instead of leaving them behind
 
 function loadSosMessage() {
   try {
-    return localStorage.getItem(SOS_MESSAGE_KEY) || SOS_DEFAULT_MESSAGE;
+    const saved = localStorage.getItem(SOS_MESSAGE_KEY);
+    if (!saved || SOS_OLD_DEFAULT_MESSAGES.includes(saved)) return SOS_DEFAULT_MESSAGE;
+    return saved;
   } catch (err) {
     return SOS_DEFAULT_MESSAGE;
   }
@@ -5145,7 +5148,7 @@ function triggerSos(contact, message) {
   const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
 
   const openTarget = (trackingLine) => {
-    const fullMessage = `🆘 ${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+    const fullMessage = `${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
     const url = safetyLinkFor(contact, fullMessage);
     if (contact.app === 'sms') {
       if (sosTab) sosTab.close();
@@ -5202,7 +5205,7 @@ function handleSafetySosSend(mode, message) {
     const sessionId = genSosSessionId();
     const messageText = (message || '').trim() || SOS_DEFAULT_MESSAGE;
     const send = (trackingLine) => {
-      const fullMessage = `🆘 ${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+      const fullMessage = `${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
       window.location.href = safetyGroupSmsLink(contacts, fullMessage);
       closeSosModal();
     };
@@ -5246,7 +5249,7 @@ function handleSafetySosSend(mode, message) {
 }
 
 function openSafetySendSheet(contacts, sessionId, messageText, trackingLine) {
-  const fullMessage = `🆘 ${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
+  const fullMessage = `${messageText}${trackingLine}\n\nSent via Waypoint at ${new Date().toLocaleString('en-SG')}`;
   safetySendSheetContacts = new Set();
   els.sosModalBody.innerHTML = `
     <h3>Send to each contact</h3>
