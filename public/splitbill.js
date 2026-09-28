@@ -26,7 +26,6 @@
       sb_expenses: 'Expenses', sb_add_expense: '➕ Add an expense',
       sb_desc_ph: 'What was it? e.g. Dinner at Lau Pa Sat', sb_paid_by: 'Paid by',
       sb_svc: '+10% service', sb_gst: '+9% GST',
-      sb_split_equal: 'Split equally', sb_split_exact: 'By what each had',
       sb_save: 'Save expense', sb_settle: 'Settle up', sb_share: '📤 Send to the group', sb_new_bill: 'Start a new bill',
       sb_no_people: 'Add at least 2 people to get started.',
       sb_no_expenses: 'No expenses yet.',
@@ -45,6 +44,24 @@
       sb_copied: 'Summary copied — paste it in your group chat',
       sb_default_desc: 'Expense', sb_share_title: 'Bill split', sb_via: 'Split with Waypoint',
       sb_left: '{amt} left to settle',
+      sb_split_equal: "Equally",
+      sb_split_exact: "By person",
+      sb_split_items: "By item",
+      sb_scan: "📷 Scan receipt",
+      sb_scan_receipt: "📷 Scan a receipt",
+      sb_add_item: "+ Add item",
+      sb_item_ph: "Item",
+      sb_scan_loading: "Loading scanner (first time only)…",
+      sb_scan_reading: "Reading receipt… {pct}%",
+      sb_scan_none: "Couldn't find any items. Try a flatter, brighter photo, or add items by hand.",
+      sb_scan_fail: "Couldn't read that photo. Check your connection (the scanner downloads once) and try again.",
+      sb_scan_found: "Found {n} items. Tap faces to change who shared each one.",
+      sb_n_items: "{n} items",
+      sb_items_hint: "Tap the faces under each item to choose who shared it.",
+      sb_receipt_says: "receipt says {amt}",
+      sb_each: "{amt} each",
+      sb_need_items: "Add at least one item with a price.",
+      sb_nobody: "nobody",
     },
     zh: {
       tab_splitbill: '💸 分账',
@@ -53,7 +70,6 @@
       sb_expenses: '费用', sb_add_expense: '➕ 添加一笔费用',
       sb_desc_ph: '什么费用?例如 老巴刹晚餐', sb_paid_by: '付款人',
       sb_svc: '+10% 服务费', sb_gst: '+9% 消费税',
-      sb_split_equal: '平均分摊', sb_split_exact: '按各自点的',
       sb_save: '保存', sb_settle: '结算', sb_share: '📤 发送到群组', sb_new_bill: '开始新账单',
       sb_no_people: '至少添加2个人才能开始。',
       sb_no_expenses: '还没有费用。',
@@ -72,6 +88,24 @@
       sb_copied: '已复制摘要——粘贴到群聊即可',
       sb_default_desc: '费用', sb_share_title: '分账', sb_via: '由 Waypoint 分账',
       sb_left: '还剩 {amt} 待结清',
+      sb_split_equal: "平均",
+      sb_split_exact: "按人",
+      sb_split_items: "按项目",
+      sb_scan: "📷 扫描收据",
+      sb_scan_receipt: "📷 扫描收据",
+      sb_add_item: "+ 添加项目",
+      sb_item_ph: "项目",
+      sb_scan_loading: "正在加载扫描器(仅首次)…",
+      sb_scan_reading: "正在识别收据… {pct}%",
+      sb_scan_none: "没有找到任何项目。请拍一张更平整、更亮的照片,或手动添加。",
+      sb_scan_fail: "无法读取这张照片。请检查网络(扫描器仅需下载一次)后重试。",
+      sb_scan_found: "找到 {n} 个项目。点击头像更改每项由谁分摊。",
+      sb_n_items: "{n} 个项目",
+      sb_items_hint: "点击每个项目下的头像,选择谁一起分摊。",
+      sb_receipt_says: "收据显示 {amt}",
+      sb_each: "每人 {amt}",
+      sb_need_items: "请至少添加一个有价格的项目。",
+      sb_nobody: "无人",
     },
     ms: {
       tab_splitbill: '💸 Bahagi Bil',
@@ -80,7 +114,6 @@
       sb_expenses: 'Perbelanjaan', sb_add_expense: '➕ Tambah perbelanjaan',
       sb_desc_ph: 'Untuk apa? cth. Makan malam di Lau Pa Sat', sb_paid_by: 'Dibayar oleh',
       sb_svc: '+10% caj servis', sb_gst: '+9% GST',
-      sb_split_equal: 'Bahagi sama rata', sb_split_exact: 'Ikut apa dimakan',
       sb_save: 'Simpan', sb_settle: 'Selesaikan', sb_share: '📤 Hantar ke kumpulan', sb_new_bill: 'Mula bil baharu',
       sb_no_people: 'Tambah sekurang-kurangnya 2 orang untuk bermula.',
       sb_no_expenses: 'Belum ada perbelanjaan.',
@@ -99,6 +132,24 @@
       sb_copied: 'Ringkasan disalin — tampal dalam sembang kumpulan',
       sb_default_desc: 'Perbelanjaan', sb_share_title: 'Bahagi bil', sb_via: 'Dibahagi dengan Waypoint',
       sb_left: '{amt} lagi belum selesai',
+      sb_split_equal: "Sama rata",
+      sb_split_exact: "Ikut orang",
+      sb_split_items: "Ikut item",
+      sb_scan: "📷 Imbas resit",
+      sb_scan_receipt: "📷 Imbas resit",
+      sb_add_item: "+ Tambah item",
+      sb_item_ph: "Item",
+      sb_scan_loading: "Memuatkan pengimbas (kali pertama sahaja)…",
+      sb_scan_reading: "Membaca resit… {pct}%",
+      sb_scan_none: "Tiada item ditemui. Cuba foto yang lebih rata dan terang, atau tambah item sendiri.",
+      sb_scan_fail: "Tidak dapat membaca foto itu. Semak sambungan anda (pengimbas dimuat turun sekali) dan cuba lagi.",
+      sb_scan_found: "{n} item ditemui. Ketik wajah untuk menukar siapa yang berkongsi setiap item.",
+      sb_n_items: "{n} item",
+      sb_items_hint: "Ketik wajah di bawah setiap item untuk memilih siapa yang berkongsi.",
+      sb_receipt_says: "resit menunjukkan {amt}",
+      sb_each: "{amt} seorang",
+      sb_need_items: "Tambah sekurang-kurangnya satu item berharga.",
+      sb_nobody: "tiada sesiapa",
     },
     ta: {
       tab_splitbill: '💸 பில் பகிர்வு',
@@ -107,7 +158,6 @@
       sb_expenses: 'செலவுகள்', sb_add_expense: '➕ செலவைச் சேர்',
       sb_desc_ph: 'என்ன செலவு? எ.கா. லாவ் பா சாட் இரவு உணவு', sb_paid_by: 'செலுத்தியவர்',
       sb_svc: '+10% சேவைக் கட்டணம்', sb_gst: '+9% GST',
-      sb_split_equal: 'சமமாகப் பிரி', sb_split_exact: 'ஒவ்வொருவர் சாப்பிட்டதன்படி',
       sb_save: 'சேமி', sb_settle: 'கணக்கைத் தீர்', sb_share: '📤 குழுவுக்கு அனுப்பு', sb_new_bill: 'புதிய பில் தொடங்கு',
       sb_no_people: 'தொடங்க குறைந்தது 2 பேரைச் சேர்க்கவும்.',
       sb_no_expenses: 'இன்னும் செலவுகள் இல்லை.',
@@ -126,6 +176,24 @@
       sb_copied: 'சுருக்கம் நகலெடுக்கப்பட்டது — குழு அரட்டையில் ஒட்டவும்',
       sb_default_desc: 'செலவு', sb_share_title: 'பில் பகிர்வு', sb_via: 'Waypoint மூலம் பகிரப்பட்டது',
       sb_left: 'இன்னும் {amt} தீர்க்க வேண்டும்',
+      sb_split_equal: "சமமாக",
+      sb_split_exact: "நபர்படி",
+      sb_split_items: "பொருள்படி",
+      sb_scan: "📷 ரசீதை ஸ்கேன் செய்",
+      sb_scan_receipt: "📷 ரசீதை ஸ்கேன் செய்",
+      sb_add_item: "+ பொருளைச் சேர்",
+      sb_item_ph: "பொருள்",
+      sb_scan_loading: "ஸ்கேனர் ஏற்றப்படுகிறது (முதல் முறை மட்டும்)…",
+      sb_scan_reading: "ரசீது படிக்கப்படுகிறது… {pct}%",
+      sb_scan_none: "பொருட்கள் எதுவும் கிடைக்கவில்லை. தட்டையான, பிரகாசமான புகைப்படத்தை முயற்சிக்கவும், அல்லது கையால் சேர்க்கவும்.",
+      sb_scan_fail: "அந்தப் புகைப்படத்தைப் படிக்க முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+      sb_scan_found: "{n} பொருட்கள் கிடைத்தன. யார் பகிர்ந்தார்கள் என்பதை மாற்ற முகங்களைத் தட்டவும்.",
+      sb_n_items: "{n} பொருட்கள்",
+      sb_items_hint: "ஒவ்வொரு பொருளின் கீழுள்ள முகங்களைத் தட்டி யார் பகிர்ந்தார்கள் என்பதைத் தேர்ந்தெடுக்கவும்.",
+      sb_receipt_says: "ரசீதில் {amt}",
+      sb_each: "ஒவ்வொருவருக்கும் {amt}",
+      sb_need_items: "விலையுடன் குறைந்தது ஒரு பொருளைச் சேர்க்கவும்.",
+      sb_nobody: "யாருமில்லை",
     },
     ja: {
       tab_splitbill: '💸 割り勘',
@@ -134,7 +202,6 @@
       sb_expenses: '支出', sb_add_expense: '➕ 支出を追加',
       sb_desc_ph: '内容は?(例:ラオパサでの夕食)', sb_paid_by: '支払った人',
       sb_svc: '+10% サービス料', sb_gst: '+9% GST',
-      sb_split_equal: '均等に割る', sb_split_exact: '各自の注文分で',
       sb_save: '保存', sb_settle: '精算', sb_share: '📤 グループに送る', sb_new_bill: '新しい割り勘を始める',
       sb_no_people: '始めるには2人以上追加してください。',
       sb_no_expenses: 'まだ支出はありません。',
@@ -153,6 +220,24 @@
       sb_copied: '概要をコピーしました。グループチャットに貼り付けてください',
       sb_default_desc: '支出', sb_share_title: '割り勘', sb_via: 'Waypointで割り勘',
       sb_left: '残り {amt} 未精算',
+      sb_split_equal: "均等",
+      sb_split_exact: "人ごと",
+      sb_split_items: "品目ごと",
+      sb_scan: "📷 レシートを読み取る",
+      sb_scan_receipt: "📷 レシートを読み取る",
+      sb_add_item: "+ 品目を追加",
+      sb_item_ph: "品目",
+      sb_scan_loading: "スキャナーを読み込み中(初回のみ)…",
+      sb_scan_reading: "レシートを読み取り中… {pct}%",
+      sb_scan_none: "品目が見つかりませんでした。平らで明るい写真で再度お試しいただくか、手動で追加してください。",
+      sb_scan_fail: "写真を読み取れませんでした。接続を確認して(スキャナーは初回のみダウンロード)もう一度お試しください。",
+      sb_scan_found: "{n} 品目が見つかりました。顔をタップして誰が分けたかを変更できます。",
+      sb_n_items: "{n} 品目",
+      sb_items_hint: "各品目の下の顔をタップして、誰が分けたかを選んでください。",
+      sb_receipt_says: "レシート記載 {amt}",
+      sb_each: "1人 {amt}",
+      sb_need_items: "金額のある品目を1つ以上追加してください。",
+      sb_nobody: "なし",
     },
     ko: {
       tab_splitbill: '💸 더치페이',
@@ -161,7 +246,6 @@
       sb_expenses: '지출', sb_add_expense: '➕ 지출 추가',
       sb_desc_ph: '무엇인가요? 예: 라우파삿 저녁', sb_paid_by: '결제한 사람',
       sb_svc: '+10% 봉사료', sb_gst: '+9% GST',
-      sb_split_equal: '똑같이 나누기', sb_split_exact: '각자 먹은 만큼',
       sb_save: '저장', sb_settle: '정산', sb_share: '📤 그룹에 보내기', sb_new_bill: '새 계산 시작',
       sb_no_people: '시작하려면 2명 이상 추가하세요.',
       sb_no_expenses: '아직 지출이 없습니다.',
@@ -180,6 +264,24 @@
       sb_copied: '요약이 복사되었습니다. 그룹 채팅에 붙여넣으세요',
       sb_default_desc: '지출', sb_share_title: '더치페이', sb_via: 'Waypoint로 나눔',
       sb_left: '{amt} 정산 남음',
+      sb_split_equal: "균등",
+      sb_split_exact: "사람별",
+      sb_split_items: "항목별",
+      sb_scan: "📷 영수증 스캔",
+      sb_scan_receipt: "📷 영수증 스캔",
+      sb_add_item: "+ 항목 추가",
+      sb_item_ph: "항목",
+      sb_scan_loading: "스캐너 불러오는 중 (처음 한 번만)…",
+      sb_scan_reading: "영수증 읽는 중… {pct}%",
+      sb_scan_none: "항목을 찾지 못했습니다. 더 평평하고 밝은 사진으로 다시 시도하거나 직접 추가하세요.",
+      sb_scan_fail: "사진을 읽을 수 없습니다. 연결을 확인하고 (스캐너는 한 번만 다운로드) 다시 시도하세요.",
+      sb_scan_found: "{n}개 항목을 찾았습니다. 얼굴을 탭해 각 항목을 누가 나눴는지 바꾸세요.",
+      sb_n_items: "{n}개 항목",
+      sb_items_hint: "각 항목 아래 얼굴을 탭해 누가 함께 먹었는지 선택하세요.",
+      sb_receipt_says: "영수증 {amt}",
+      sb_each: "1인당 {amt}",
+      sb_need_items: "가격이 있는 항목을 1개 이상 추가하세요.",
+      sb_nobody: "없음",
     },
   };
   Object.keys(SB_I18N).forEach((lang) => {
@@ -232,12 +334,39 @@
     return Math.round(total);
   }
 
+  // Allocate that also works for negative amounts (discount lines).
+  function allocateSigned(cents, weights) {
+    return cents < 0 ? allocate(-cents, weights).map((c) => -c) : allocate(cents, weights);
+  }
+
+  function itemsSum(items) { return (items || []).reduce((a, it) => a + (it.cents || 0), 0); }
+
+  // Per-person subtotal (before service/GST) for an item-by-item expense:
+  // each item is divided equally among the people ticked on it.
+  function itemSubtotals(exp) {
+    const per = {};
+    (exp.items || []).forEach((it) => {
+      const ids = (it.among || []).filter((id) => state.people.some((p) => p.id === id));
+      if (!ids.length || !it.cents) return;
+      allocateSigned(it.cents, ids.map(() => 1)).forEach((c, i) => { per[ids[i]] = (per[ids[i]] || 0) + c; });
+    });
+    return per;
+  }
+
   // Returns { personId: cents } — what each person's share of this expense is.
   function expenseShares(exp) {
-    const ids = exp.split === 'exact'
-      ? Object.keys(exp.exact || {}).filter((id) => exp.exact[id] > 0)
-      : exp.among.slice();
-    const weights = exp.split === 'exact' ? ids.map((id) => exp.exact[id]) : ids.map(() => 1);
+    let ids, weights;
+    if (exp.split === 'items') {
+      const per = itemSubtotals(exp);
+      ids = state.people.map((p) => p.id).filter((id) => per[id] > 0);
+      weights = ids.map((id) => per[id]);
+    } else if (exp.split === 'exact') {
+      ids = Object.keys(exp.exact || {}).filter((id) => exp.exact[id] > 0);
+      weights = ids.map((id) => exp.exact[id]);
+    } else {
+      ids = exp.among.slice();
+      weights = ids.map(() => 1);
+    }
     const parts = allocate(expenseTotal(exp), weights);
     const out = {};
     ids.forEach((id, i) => { out[id] = parts[i]; });
@@ -306,6 +435,9 @@
     desc: $('sbDesc'), amount: $('sbAmount'), paidBy: $('sbPaidBy'), svc: $('sbSvc'), gst: $('sbGst'),
     segBtns: document.querySelectorAll('#sbExpenseForm .sb-seg-btn'), splitPeople: $('sbSplitPeople'),
     splitHint: $('sbSplitHint'), cancel: $('sbCancelExpense'),
+    addRow: $('sbAddRow'), scanReceiptBtn: $('sbScanReceiptBtn'),
+    itemsBox: $('sbItemsBox'), items: $('sbItems'), addItem: $('sbAddItem'),
+    receiptInput: $('sbReceiptInput'), scanStatus: $('sbScanStatus'), scanBar: $('sbScanBar'), scanText: $('sbScanText'),
     result: $('sbResult'), summary: $('sbSummary'), transfers: $('sbTransfers'),
     shareBtn: $('sbShareBtn'), resetBtn: $('sbResetBtn'),
   };
@@ -338,13 +470,15 @@
 
   function renderExpenses() {
     el.addExpenseBtn.disabled = state.people.length < 2;
+    el.scanReceiptBtn.disabled = state.people.length < 2;
     if (!state.expenses.length) {
       el.expenses.innerHTML = state.people.length >= 2 ? `<p class="hint sb-empty">${escapeHtml(t('sb_no_expenses'))}</p>` : '';
       return;
     }
     el.expenses.innerHTML = state.expenses.map((exp) => {
       const n = Object.keys(expenseShares(exp)).length;
-      const how = exp.split === 'exact' ? t('sb_split_custom') : tf('sb_split_n', { n });
+      const how = exp.split === 'items' ? tf('sb_n_items', { n: (exp.items || []).length })
+        : exp.split === 'exact' ? t('sb_split_custom') : tf('sb_split_n', { n });
       const extras = [exp.svc ? 'SVC' : '', exp.gst ? 'GST' : ''].filter(Boolean).join(' + ');
       return `
         <div class="sb-expense" data-edit-expense="${exp.id}" role="button" tabindex="0">
@@ -420,10 +554,12 @@
   }
 
   // ---------- Expense form ----------
-  function openForm(exp) {
+  function openForm(exp, split) {
     draft = exp
       ? JSON.parse(JSON.stringify(exp))
-      : { id: null, desc: '', base: 0, paidBy: state.people[0].id, svc: false, gst: false, split: 'equal', among: state.people.map((p) => p.id), exact: {} };
+      : { id: null, desc: '', base: 0, paidBy: state.people[0].id, svc: false, gst: false, split: split || 'equal', among: state.people.map((p) => p.id), exact: {}, items: [] };
+    if (!draft.items) draft.items = [];
+    if (!draft.exact) draft.exact = {};
     el.desc.value = draft.desc;
     el.amount.value = centsToInput(draft.base);
     el.svc.checked = draft.svc;
@@ -431,23 +567,30 @@
     el.paidBy.innerHTML = state.people.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
     el.paidBy.value = draft.paidBy;
     el.form.classList.remove('hidden');
-    el.addExpenseBtn.classList.add('hidden');
+    el.addRow.classList.add('hidden');
     renderDraft();
-    if (!exp) el.desc.focus();
+    if (!exp && !split) el.desc.focus();
   }
 
   function closeForm() {
     draft = null;
     el.form.classList.add('hidden');
-    el.addExpenseBtn.classList.remove('hidden');
+    el.addRow.classList.remove('hidden');
+    setScanStatus(null);
   }
 
   function renderDraft() {
     el.segBtns.forEach((b) => b.classList.toggle('active', b.dataset.split === draft.split));
-    el.amount.readOnly = draft.split === 'exact';
-    el.amount.classList.toggle('sb-readonly', draft.split === 'exact');
+    const derived = draft.split !== 'equal'; // total comes from the per-person / per-item amounts
+    el.amount.readOnly = derived;
+    el.amount.classList.toggle('sb-readonly', derived);
+    el.itemsBox.classList.toggle('hidden', draft.split !== 'items');
+    el.splitPeople.classList.toggle('hidden', draft.split === 'items');
 
-    if (draft.split === 'equal') {
+    if (draft.split === 'items') {
+      el.splitPeople.innerHTML = '';
+      renderItems();
+    } else if (draft.split === 'equal') {
       el.splitPeople.innerHTML = state.people.map((p) => `
         <label class="sb-split-row">
           <input type="checkbox" data-among="${p.id}" ${draft.among.includes(p.id) ? 'checked' : ''} />
@@ -470,7 +613,17 @@
   function updateHint() {
     if (!draft) return;
     const total = expenseTotal(draft);
-    if (draft.split === 'exact') {
+    if (draft.split === 'items') {
+      const n = draft.items.filter((it) => it.cents).length;
+      let msg = n ? `${tf('sb_n_items', { n })} · ${t('sb_total')} ${money(total)}` : t('sb_items_hint');
+      if (n && draft.receiptTotal) {
+        const diff = Math.abs(total - draft.receiptTotal);
+        msg += diff <= 10 ? ` · ${tf('sb_receipt_says', { amt: money(draft.receiptTotal) })} ✓`
+          : ` · ⚠️ ${tf('sb_receipt_says', { amt: money(draft.receiptTotal) })}`;
+      }
+      if (n) msg += '\n' + t('sb_items_hint');
+      el.splitHint.textContent = msg;
+    } else if (draft.split === 'exact') {
       el.splitHint.textContent = t('sb_exact_hint') + (total ? ` ${t('sb_total')}: ${money(total)}` : '');
     } else if (draft.among.length && total) {
       const parts = allocate(total, draft.among.map(() => 1));
@@ -486,11 +639,7 @@
   el.segBtns.forEach((b) => b.addEventListener('click', () => {
     if (!draft) return;
     draft.split = b.dataset.split;
-    if (draft.split === 'exact') {
-      // Start the per-person fields empty; the total becomes their sum.
-      draft.base = Object.values(draft.exact).reduce((a, c) => a + c, 0);
-      el.amount.value = centsToInput(draft.base);
-    }
+    syncBase();
     renderDraft();
   }));
 
@@ -521,6 +670,12 @@
     e.preventDefault();
     if (!draft) return;
     if (draft.split === 'equal') draft.base = parseCents(el.amount.value);
+    if (draft.split === 'items') {
+      draft.items = draft.items.filter((it) => it.cents).map((it) => ({ name: (it.name || '').trim() || t('sb_item_ph'), cents: it.cents, among: it.among }));
+      syncBase();
+      if (!draft.items.length || draft.base <= 0) { showToast(t('sb_need_items')); return; }
+      if (!Object.keys(itemSubtotals(draft)).length) { showToast(t('sb_pick_someone')); return; }
+    }
     if (!draft.base) { showToast(t('sb_enter_amount')); return; }
     if (draft.split === 'equal' && !draft.among.length) { showToast(t('sb_pick_someone')); return; }
     draft.desc = el.desc.value.trim();
@@ -528,6 +683,10 @@
     if (draft.split === 'exact') {
       Object.keys(draft.exact).forEach((k) => { if (!draft.exact[k]) delete draft.exact[k]; });
     }
+    // Keep only the fields the chosen split mode uses.
+    if (draft.split !== 'items') draft.items = [];
+    if (draft.split !== 'exact') draft.exact = {};
+    delete draft.receiptTotal;
     if (draft.id) {
       const i = state.expenses.findIndex((x) => x.id === draft.id);
       if (i >= 0) state.expenses[i] = draft;
@@ -540,6 +699,145 @@
     renderAll();
   });
 
+  // ---------- Item-by-item editor + receipt scan ----------
+  function syncBase() {
+    if (!draft) return;
+    if (draft.split === 'items') draft.base = itemsSum(draft.items);
+    else if (draft.split === 'exact') draft.base = Object.values(draft.exact).reduce((a, c) => a + c, 0);
+    else return;
+    el.amount.value = centsToInput(Math.max(0, draft.base));
+  }
+
+  function renderItems() {
+    el.items.innerHTML = draft.items.map((it, i) => {
+      const n = it.among.length;
+      const each = n && it.cents ? tf('sb_each', { amt: money(Math.round(it.cents / n)) }) : t('sb_nobody');
+      return `
+        <div class="sb-item">
+          <div class="sb-item-top">
+            <input class="sb-input sb-item-name" type="text" maxlength="40" placeholder="${escapeHtml(t('sb_item_ph'))}" data-item-name="${i}" value="${escapeHtml(it.name)}" />
+            <span class="sb-amount-wrap sb-amount-small"><span class="sb-currency">S$</span>
+              <input class="sb-input sb-amount" type="text" inputmode="decimal" placeholder="0.00" data-item-price="${i}" value="${it.cents ? (it.cents / 100).toFixed(2) : ''}" />
+            </span>
+            <button type="button" class="sb-chip-x" data-item-remove="${i}" aria-label="Remove item">✕</button>
+          </div>
+          <div class="sb-item-people">
+            ${state.people.map((p) => `
+              <button type="button" class="sb-face${it.among.includes(p.id) ? ' on' : ''}" data-item-person="${i}:${p.id}"
+                title="${escapeHtml(p.name)}" aria-pressed="${it.among.includes(p.id)}" aria-label="${escapeHtml(p.name)}">
+                <span class="sb-avatar" style="--sb-hue:${hue(p.id)}">${escapeHtml(initial(p.name))}</span>
+              </button>`).join('')}
+            <span class="sb-item-each" data-item-each="${i}">${escapeHtml(each)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function refreshItemEach(i) {
+    const it = draft.items[i];
+    const span = el.items.querySelector(`[data-item-each="${i}"]`);
+    if (!it || !span) return;
+    const n = it.among.length;
+    span.textContent = n && it.cents ? tf('sb_each', { amt: money(Math.round(it.cents / n)) }) : t('sb_nobody');
+  }
+
+  el.items.addEventListener('input', (e) => {
+    if (!draft) return;
+    const ni = e.target.dataset.itemName, pi = e.target.dataset.itemPrice;
+    if (ni !== undefined) draft.items[ni].name = e.target.value;
+    if (pi !== undefined) {
+      // allow "-2.00" for discount lines
+      const neg = /^\s*-/.test(e.target.value);
+      draft.items[pi].cents = parseCents(e.target.value) * (neg ? -1 : 1);
+      refreshItemEach(pi);
+      syncBase();
+      updateHint();
+    }
+  });
+
+  el.items.addEventListener('click', (e) => {
+    if (!draft) return;
+    const rm = e.target.closest('[data-item-remove]');
+    if (rm) {
+      draft.items.splice(+rm.dataset.itemRemove, 1);
+      syncBase(); renderItems(); updateHint();
+      return;
+    }
+    const face = e.target.closest('[data-item-person]');
+    if (face) {
+      const [i, pid] = face.dataset.itemPerson.split(':');
+      const it = draft.items[+i];
+      it.among = it.among.includes(pid) ? it.among.filter((x) => x !== pid) : state.people.map((p) => p.id).filter((x) => x === pid || it.among.includes(x));
+      face.classList.toggle('on', it.among.includes(pid));
+      face.setAttribute('aria-pressed', String(it.among.includes(pid)));
+      refreshItemEach(+i);
+      updateHint();
+    }
+  });
+
+  el.addItem.addEventListener('click', () => {
+    if (!draft) return;
+    draft.items.push({ name: '', cents: 0, among: state.people.map((p) => p.id) });
+    renderItems();
+    const inputs = el.items.querySelectorAll('[data-item-name]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  function setScanStatus(frac, text) {
+    if (frac === null) { el.scanStatus.classList.add('hidden'); return; }
+    el.scanStatus.classList.remove('hidden');
+    el.scanBar.style.width = `${Math.round(frac * 100)}%`;
+    el.scanText.textContent = text;
+  }
+
+  let scanning = false;
+  async function handleReceipt(file) {
+    if (!file || !draft || scanning || !window.WaypointReceipt) return;
+    scanning = true;
+    el.itemsBox.classList.add('scanning');
+    setScanStatus(0.02, t('sb_scan_loading'));
+    try {
+      const r = await window.WaypointReceipt.scanReceipt(file, (frac, stage) => {
+        setScanStatus(frac, stage === 'read' ? tf('sb_scan_reading', { pct: Math.round(frac * 100) }) : t('sb_scan_loading'));
+      });
+      if (!draft) return; // form closed mid-scan
+      if (!r.items.length) { setScanStatus(null); showToast(t('sb_scan_none'), 4000); return; }
+      const everyone = state.people.map((p) => p.id);
+      // Replace blank rows; keep anything the user already typed.
+      draft.items = draft.items.filter((it) => it.cents || (it.name || '').trim())
+        .concat(r.items.map((it) => ({ name: it.name, cents: it.cents, among: everyone.slice() })));
+      draft.split = 'items';
+      if (!el.desc.value.trim() && r.title) { el.desc.value = titleCase(r.title); draft.desc = el.desc.value; }
+      draft.svc = r.svc; el.svc.checked = r.svc;
+      draft.gst = r.gst && !r.gstInclusive; el.gst.checked = draft.gst;
+      draft.receiptTotal = r.total || null;
+      syncBase();
+      renderDraft();
+      setScanStatus(null);
+      showToast(tf('sb_scan_found', { n: r.items.length }), 3500);
+    } catch (err) {
+      console.error('Receipt scan failed', err);
+      setScanStatus(null);
+      showToast(t('sb_scan_fail'), 4000);
+    } finally {
+      scanning = false;
+      el.itemsBox.classList.remove('scanning');
+      el.receiptInput.value = '';
+    }
+  }
+
+  function titleCase(s) {
+    return s.toLowerCase().replace(/(^|[\s(&/-])([a-z])/g, (m, a, b) => a + b.toUpperCase()).slice(0, 40);
+  }
+
+  el.receiptInput.addEventListener('change', () => handleReceipt(el.receiptInput.files && el.receiptInput.files[0]));
+
+  el.scanReceiptBtn.addEventListener('click', () => {
+    if (state.people.length < 2) return;
+    openForm(null, 'items');
+    el.receiptInput.click(); // same tap, so mobile browsers allow the picker
+  });
+
   // ---------- People ----------
   el.addPersonForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -548,7 +846,10 @@
     if (state.people.some((p) => p.name.toLowerCase() === name.toLowerCase())) { showToast(t('sb_dup_name')); return; }
     const person = { id: uid(), name };
     state.people.push(person);
-    if (draft && draft.split === 'equal') draft.among.push(person.id);
+    if (draft) {
+      draft.among.push(person.id);
+      draft.items.forEach((it) => it.among.push(person.id));
+    }
     el.personInput.value = '';
     save();
     renderAll();
@@ -559,7 +860,9 @@
   el.people.addEventListener('click', (e) => {
     const id = e.target.closest('[data-remove-person]')?.dataset.removePerson;
     if (!id) return;
-    const used = state.expenses.some((x) => x.paidBy === id || (x.split === 'equal' ? x.among.includes(id) : x.exact[id] > 0));
+    const used = state.expenses.some((x) => x.paidBy === id
+      || (x.split === 'items' ? (x.items || []).some((it) => it.among.includes(id))
+        : x.split === 'exact' ? (x.exact || {})[id] > 0 : x.among.includes(id)));
     if (used) { showToast(tf('sb_person_in_use', { name: personName(id) }), 3500); return; }
     state.people = state.people.filter((p) => p.id !== id);
     if (state.people.length < 2) closeForm();
@@ -604,6 +907,12 @@
     const lines = [`💸 ${t('sb_share_title')} — ${t('sb_total')} ${money(grand)}`, ''];
     state.expenses.forEach((x) => {
       lines.push(`• ${x.desc || t('sb_default_desc')}: ${money(expenseTotal(x))} (${personName(x.paidBy)} ${t('sb_paid')})`);
+      if (x.split === 'items') {
+        (x.items || []).forEach((it) => {
+          const who = it.among.length === state.people.length ? '' : ` — ${it.among.map(personName).join(', ')}`;
+          lines.push(`   · ${it.name} ${money(it.cents)}${who}`);
+        });
+      }
     });
     lines.push('');
     if (!transfers.length) {
@@ -663,5 +972,5 @@
   renderAll();
 
   // Exposed for quick checks in the console / tests.
-  window.WaypointSplitBill = { allocate, expenseTotal, computeTransfers };
+  window.WaypointSplitBill = { allocate, expenseTotal, expenseShares, computeTransfers };
 })();

@@ -457,7 +457,10 @@
         <div class="sb-section">
           <div class="sb-section-title" data-i18n="sb_expenses">Expenses</div>
           <div id="sbExpenses" class="sb-expenses"></div>
-          <button id="sbAddExpenseBtn" class="pill-btn nearby-btn" type="button" data-i18n="sb_add_expense">➕ Add an expense</button>
+          <div id="sbAddRow" class="sb-add-row">
+            <button id="sbScanReceiptBtn" class="pill-btn primary" type="button" data-i18n="sb_scan_receipt">📷 Scan a receipt</button>
+            <button id="sbAddExpenseBtn" class="pill-btn" type="button" data-i18n="sb_add_expense">➕ Add an expense</button>
+          </div>
 
           <form id="sbExpenseForm" class="sb-expense-form hidden" autocomplete="off">
             <input id="sbDesc" class="sb-input" type="text" maxlength="40" data-i18n-placeholder="sb_desc_ph" placeholder="What was it? e.g. Dinner at Lau Pa Sat" />
@@ -474,10 +477,23 @@
               <label class="sb-check"><input id="sbGst" type="checkbox" /> <span data-i18n="sb_gst">+9% GST</span></label>
             </div>
             <div class="sb-seg" role="tablist">
-              <button type="button" class="sb-seg-btn active" data-split="equal" data-i18n="sb_split_equal">Split equally</button>
-              <button type="button" class="sb-seg-btn" data-split="exact" data-i18n="sb_split_exact">By what each had</button>
+              <button type="button" class="sb-seg-btn active" data-split="equal" data-i18n="sb_split_equal">Equally</button>
+              <button type="button" class="sb-seg-btn" data-split="items" data-i18n="sb_split_items">By item</button>
+              <button type="button" class="sb-seg-btn" data-split="exact" data-i18n="sb_split_exact">By person</button>
             </div>
             <div id="sbSplitPeople" class="sb-split-people"></div>
+            <div id="sbItemsBox" class="sb-items-box hidden">
+              <label class="pill-btn sb-scan-btn">
+                <input id="sbReceiptInput" type="file" accept="image/*" hidden />
+                <span data-i18n="sb_scan">📷 Scan receipt</span>
+              </label>
+              <div id="sbScanStatus" class="sb-scan-status hidden">
+                <div class="sb-progress"><span id="sbScanBar"></span></div>
+                <span id="sbScanText"></span>
+              </div>
+              <div id="sbItems" class="sb-items"></div>
+              <button id="sbAddItem" class="pill-btn ghost sb-add-item" type="button" data-i18n="sb_add_item">+ Add item</button>
+            </div>
             <div id="sbSplitHint" class="hint"></div>
             <div class="sb-row sb-form-actions">
               <button id="sbCancelExpense" class="pill-btn ghost" type="button" data-i18n="planroute_cancel">Cancel</button>
@@ -597,6 +613,7 @@
 </a>
 
 <script src="/app.js"></script>
+<script src="/receipt-scan.js"></script>
 <script src="/splitbill.js"></script>
 </body>
 </html>
