@@ -2738,3 +2738,59 @@ select.sb-input { appearance: auto; }
 .sb-scan-row { display: flex; gap: 8px; }
 .sb-scan-row .sb-scan-btn { flex: 1; min-width: 0; }
 .sb-scan-btn.sb-scan-gallery { border-style: solid; border-color: var(--border); background: var(--surface-elevated); color: var(--ink); }
+
+/* ---------- Waypoint Lens (camera → what is this + history) ---------- */
+.lens-btn {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; border: none; border-radius: 50%;
+  background: none; color: var(--accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.lens-btn.hidden { display: none; }
+.lens-btn svg { width: 22px; height: 22px; }
+.lens-btn:hover { background: var(--accent-light); }
+.lens-btn.is-new::after {
+  content: ''; position: absolute; top: 5px; right: 5px; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 2px var(--surface-secondary);
+}
+.search-box.has-lens input { padding-right: 76px; }
+.search-box.has-lens .clear-btn { right: 44px; }
+
+.lens-card { background: var(--surface-elevated); text-align: left; max-height: 88vh; display: flex; flex-direction: column; padding-top: 26px; }
+.lens-head { display: flex; gap: 12px; align-items: center; padding-right: 36px; margin-bottom: 10px; }
+.lens-photo { width: 72px; height: 72px; flex: 0 0 72px; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-fill); }
+.lens-head-text { min-width: 0; }
+.lens-kicker { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+.lens-title { margin: 2px 0 0; font-size: 19px; line-height: 1.25; font-weight: 700; color: var(--ink); letter-spacing: var(--tracking-tight); }
+.lens-local { font-size: 14px; color: var(--label-secondary); margin-top: 2px; }
+.lens-panel.loading .lens-title { color: var(--label-secondary); font-weight: 600; font-size: 16px; }
+
+.lens-body { overflow-y: auto; flex: 1 1 auto; min-height: 0; font-size: 14.5px; line-height: 1.5; color: var(--ink); padding-bottom: 6px; }
+.lens-body p { margin: 0 0 10px; }
+.lens-body h3 { margin: 14px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--label-secondary); }
+.lens-summary { font-size: 15.5px; }
+.lens-badge { display: inline-block; margin-bottom: 8px; padding: 3px 9px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; color: var(--warning); background: rgba(217, 119, 6, 0.12); }
+.lens-texts { display: flex; flex-direction: column; gap: 6px; }
+.lens-text-row { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-secondary); border: 1px solid var(--border); }
+.lens-orig { font-size: 13px; color: var(--label-secondary); }
+.lens-trans { font-weight: 600; }
+.lens-tip { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--accent-light); }
+.lens-note { margin-top: 12px !important; font-size: 11.5px; color: var(--label-tertiary); }
+.lens-error { color: var(--label-secondary); }
+
+.lens-skeleton { display: flex; flex-direction: column; gap: 10px; padding: 6px 0 14px; }
+.lens-skeleton span { display: block; height: 12px; border-radius: 6px; background: var(--surface-fill); animation: lens-pulse 1.2s ease-in-out infinite; }
+.lens-skeleton span:nth-child(1) { width: 92%; }
+.lens-skeleton span:nth-child(2) { width: 78%; animation-delay: 0.15s; }
+.lens-skeleton span:nth-child(3) { width: 85%; animation-delay: 0.3s; }
+.lens-skeleton span:nth-child(4) { width: 55%; animation-delay: 0.45s; }
+@keyframes lens-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+
+.lens-controls { border-top: 1px solid var(--separator); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.lens-lang { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--label-secondary); }
+.lens-lang select { flex: 1; min-height: 38px; padding: 6px 10px; }
+.lens-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.lens-actions .pill-btn { flex: 1 1 auto; }
+.lens-actions .pill-btn.hidden { display: none; }
+.lens-actions .pill-btn:disabled { opacity: 0.5; }
+body.lens-open { overflow: hidden; }

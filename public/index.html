@@ -136,6 +136,9 @@
         </div>
         <div class="search-box">
           <input id="searchInput" type="text" placeholder="Enter postal code, address, or place…" data-i18n-placeholder="search_placeholder" autocomplete="off" />
+          <button id="lensBtn" class="lens-btn hidden" type="button" title="Scan & explain with your camera" aria-label="Scan and explain with your camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.2"/></svg></button>
+          <input id="lensCamera" type="file" accept="image/*" capture="environment" hidden />
+          <input id="lensGallery" type="file" accept="image/*" hidden />
           <button id="searchClear" class="clear-btn" title="Clear" aria-label="Clear search" data-i18n-title="clear" data-i18n-aria="clear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
         <div id="categoryRow">
@@ -606,6 +609,32 @@
   </div>
 </div>
 
+<div id="lensModal" class="weather-panel lens-panel hidden" role="dialog" aria-modal="true" aria-labelledby="lensTitle">
+  <div class="weather-panel-card lens-card">
+    <button id="lensClose" class="weather-panel-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="lens-head">
+      <img id="lensPhoto" class="lens-photo" alt="" />
+      <div class="lens-head-text">
+        <div class="lens-kicker">📷 Waypoint Lens</div>
+        <h2 id="lensTitle" class="lens-title">…</h2>
+        <div id="lensLocal" class="lens-local"></div>
+      </div>
+    </div>
+    <div id="lensBody" class="lens-body"></div>
+    <div class="lens-controls">
+      <label class="lens-lang"><span data-i18n="lens_explain_in">Explain in</span>
+        <select id="lensLang" class="sb-input"></select>
+      </label>
+      <div class="lens-actions">
+        <button id="lensSpeak" class="pill-btn" type="button" data-i18n="lens_listen">🔊 Listen</button>
+        <button id="lensMap" class="pill-btn hidden" type="button" data-i18n="lens_show_map">📍 Show on map</button>
+        <button id="lensAgain" class="pill-btn primary" type="button" data-i18n="lens_scan_again">📷 Scan another</button>
+        <button id="lensFromGallery" class="pill-btn ghost" type="button" data-i18n="lens_gallery">🖼️ From gallery</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="sosModal" class="weather-panel hidden">
   <div class="weather-panel-card">
     <button id="sosModalClose" class="weather-panel-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -622,5 +651,6 @@
 <script src="/app.js"></script>
 <script src="/receipt-scan.js"></script>
 <script src="/splitbill.js"></script>
+<script src="/lens.js"></script>
 </body>
 </html>

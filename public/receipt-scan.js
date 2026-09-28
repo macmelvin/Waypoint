@@ -1,8 +1,9 @@
 // Waypoint — receipt scanning for Split Bill.
 //
-// Reads a photo of a receipt ON THE PHONE (Tesseract OCR compiled to
-// WebAssembly — the photo is never uploaded anywhere) and turns the text into
-// line items. The OCR library (~3 MB incl. English data) is only downloaded
+// Reads a photo of a receipt and turns it into line items. If the server has
+// an AI key it reads the photo there (see /receipt-ai.js); otherwise — or if
+// that fails — it reads it ON THE PHONE with Tesseract OCR compiled to
+// WebAssembly, and the photo never leaves the device. The OCR library (~3 MB incl. English data) is only downloaded
 // the first time someone taps "Scan receipt", from jsDelivr, and the browser
 // caches it after that.
 //
@@ -171,9 +172,65 @@
     });
   }
 
+  // ---------- AI reading (server) ----------
+  // When the server has an AI key (see /receipt-ai.js), the photo goes there
+  // instead — much better on crumpled or faded receipts. Any failure falls
+  // back to on-phone OCR below, so scanning always works.
+  let aiStatus = null;
+  function aiEnabled() {
+    if (!aiStatus) {
+      aiStatus = fetch('/api/receipt/status').then((r) => (r.ok ? r.json() : { enabled: false }))
+        .then((s) => !!s.enabled).catch(() => { aiStatus = null; return false; });
+    }
+    return aiStatus;
+  }
+  if (typeof fetch === 'function' && typeof document !== 'undefined') aiEnabled(); // warm up
+
+  function photoForAI(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 2048; // long receipts need the height to stay legible
+        const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * scale);
+        c.height = Math.round(img.naturalHeight * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not open that image')); };
+      img.src = url;
+    });
+  }
+
+  async function readWithAI(file, progress) {
+    const image = await photoForAI(file);
+    // The server gives no progress, so ease the bar towards 90% while we wait.
+    let frac = 0.1;
+    progress(frac, 'read');
+    const tick = setInterval(() => { frac += (0.9 - frac) * 0.12; progress(frac, 'read'); }, 400);
+    try {
+      const res = await fetch('/api/receipt/read', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image }),
+      });
+      if (!res.ok) throw new Error('ai ' + res.status);
+      const r = await res.json();
+      progress(1, 'read');
+      return r;
+    } finally {
+      clearInterval(tick);
+    }
+  }
+
   // onProgress(fraction 0..1, stage) — stage is 'load' | 'read'
   async function scanReceipt(file, onProgress) {
     const progress = onProgress || function () {};
+    if (await aiEnabled()) {
+      try { return await readWithAI(file, progress); }
+      catch (err) { console.warn('AI receipt reading failed, using on-phone OCR', err); }
+    }
     progress(0.02, 'load');
     const [T, canvas] = await Promise.all([loadLib(), prepareImage(file)]);
     const worker = await T.createWorker('eng', 1, {

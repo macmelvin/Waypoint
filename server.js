@@ -177,7 +177,10 @@ async function sendAdminPush(payload) {
 // Internal Railway private-network address of the transit-router (OpenTripPlanner) service.
 const TRANSIT_API_URL = process.env.TRANSIT_API_URL || 'http://transit-router.railway.internal:8080';
 
-app.use(express.json());
+// Default 100kb JSON limit for everything except the photo uploads.
+const defaultJson = express.json();
+const BIG_JSON_PATHS = new Set(['/api/lens/explain', '/api/receipt/read']); // photo uploads; they bring their own parser
+app.use((req, res, next) => (BIG_JSON_PATHS.has(req.path) ? next() : defaultJson(req, res, next)));
 
 // ---- Invite-only access gate -------------------------------------------------
 // Two independent switches, both off by default so nothing changes until you
@@ -4167,6 +4170,8 @@ if (PUSH_ENABLED) {
 
 // ---- Pet cafes (indoor/outdoor dining, auto-hides closed cafes) --------------
 require('./petcafes').register(app, { requireAdmin });
+require('./lens').register(app);
+require('./receipt-ai').register(app);
 
 // SPA-style fallback for any unmatched route
 app.get('*', (req, res) => {
