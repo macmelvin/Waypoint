@@ -105,7 +105,7 @@
   const tf = (key, vars) => Object.keys(vars || {}).reduce((s, k) => s.split(`{${k}}`).join(vars[k]), t(key));
   const $ = (id) => document.getElementById(id);
   const el = {
-    btn: $('lensBtn'), cta: $('lensCta'), camera: $('lensCamera'), gallery: $('lensGallery'), modal: $('lensModal'), close: $('lensClose'),
+    btn: $('lensBtn'), cta: $('lensCta'), ctaMain: $('lensCtaMain'), ctaGallery: $('lensCtaGallery'), camera: $('lensCamera'), gallery: $('lensGallery'), modal: $('lensModal'), close: $('lensClose'),
     photo: $('lensPhoto'), title: $('lensTitle'), local: $('lensLocal'), body: $('lensBody'), lang: $('lensLang'),
     speak: $('lensSpeak'), map: $('lensMap'), again: $('lensAgain'), fromGallery: $('lensFromGallery'),
     searchBox: document.querySelector('#panel-search .search-box'), searchInput: $('searchInput'),
@@ -148,7 +148,8 @@
   }
 
   el.btn.addEventListener('click', () => { markSeen(); el.camera.click(); });
-  if (el.cta) el.cta.addEventListener('click', () => { markSeen(); el.camera.click(); });
+  if (el.ctaMain) el.ctaMain.addEventListener('click', () => { markSeen(); el.camera.click(); });
+  if (el.ctaGallery) el.ctaGallery.addEventListener('click', (e) => { e.stopPropagation(); markSeen(); el.gallery.click(); });
   el.again.addEventListener('click', () => el.camera.click());
   el.fromGallery.addEventListener('click', () => el.gallery.click());
   [el.camera, el.gallery].forEach((input) => input.addEventListener('change', () => {
