@@ -2198,17 +2198,18 @@ if (LTA_ACCOUNT_KEY && PUSH_ENABLED) {
 }
 
 // ---- Bus stop directory (LTA DataMall static BusStops dataset, cached) -----
-// Powers "search for a stop by code or name" for the Favourites feature.
-// LTA paginates this 50 records at a time (~5,000 stops total), so we fetch
-// the whole thing once and cache it in memory rather than hitting LTA on
-// every keystroke. Refreshed once a day — bus stops essentially never move.
+// Powers "search for a stop by code or name" for the Favourites feature, and
+// the nearest-stops list behind /api/bus-arrivals-nearby. LTA paginates this
+// (~5,000 stops total), so we fetch the whole thing once and cache it in
+// memory rather than hitting LTA on every keystroke. Refreshed once a day —
+// bus stops essentially never move.
 
 let busStopsCache = [];
 let busStopsCacheAt = 0;
 const BUS_STOPS_TTL_MS = 24 * 60 * 60 * 1000;
 
 async function fetchAllBusStops() {
-  const all = [];
+  const byCode = new Map(); // dedupe by BusStopCode as a defensive backstop
   let skip = 0;
   for (;;) {
     const res = await fetch(`https://datamall2.mytransport.sg/ltaodataservice/BusStops?$skip=${skip}`, {
@@ -2217,11 +2218,21 @@ async function fetchAllBusStops() {
     if (!res.ok) throw new Error(`LTA BusStops responded ${res.status}`);
     const data = await res.json();
     const batch = data.value || [];
-    all.push(...batch);
-    if (batch.length < 50) break;
-    skip += 50;
+    if (!batch.length) break;
+    for (const stop of batch) byCode.set(stop.BusStopCode, stop);
+    // Advance by however many records THIS page actually contained, not an
+    // assumed page size — LTA's real page size here is 500, not 50. Advancing
+    // by a fixed 50 instead left each request re-covering ~450 records the
+    // previous one already returned, so the cached directory ended up with
+    // every stop duplicated roughly 10x. That's harmless for the Favourites
+    // search (a duplicate match just doesn't show twice), but it broke the
+    // "nearby stops" feature: sorting by distance and taking the top N found
+    // the SAME nearest stop's ~10 duplicate rows filling every slot before a
+    // second, genuinely different stop was ever reached — the exact "same
+    // stop repeated N times" bug reported against NEARBY_ARRIVALS_STOP_LIMIT.
+    skip += batch.length;
   }
-  return all;
+  return [...byCode.values()];
 }
 
 async function getBusStops() {
