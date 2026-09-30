@@ -91,8 +91,12 @@ const ADMIN_PUSH_SUBSCRIPTIONS_FILE = process.env.ADMIN_PUSH_SUBSCRIPTIONS_FILE 
 function loadGuidePushSubscriptions() {
   try {
     const raw = JSON.parse(fs.readFileSync(GUIDE_PUSH_SUBSCRIPTIONS_FILE, 'utf8'));
-    return new Map(Object.entries(raw).map(([guideId, subs]) => [guideId, subs]));
+    const map = new Map(Object.entries(raw).map(([guideId, subs]) => [guideId, subs]));
+    const total = [...map.values()].reduce((n, subs) => n + subs.length, 0);
+    console.log(`Loaded ${total} guide push subscription(s) across ${map.size} guide(s) from ${GUIDE_PUSH_SUBSCRIPTIONS_FILE}`);
+    return map;
   } catch (err) {
+    console.log(`No guide push subscriptions file yet at ${GUIDE_PUSH_SUBSCRIPTIONS_FILE} (${err.code || err.message})`);
     return new Map();
   }
 }
@@ -112,8 +116,11 @@ const guidePushSubscriptions = loadGuidePushSubscriptions();
 function loadAdminPushSubscriptions() {
   try {
     const arr = JSON.parse(fs.readFileSync(ADMIN_PUSH_SUBSCRIPTIONS_FILE, 'utf8'));
-    return new Map(arr.map((sub) => [sub.endpoint, sub]));
+    const map = new Map(arr.map((sub) => [sub.endpoint, sub]));
+    console.log(`Loaded ${map.size} admin push subscription(s) from ${ADMIN_PUSH_SUBSCRIPTIONS_FILE}`);
+    return map;
   } catch (err) {
+    console.log(`No admin push subscriptions file yet at ${ADMIN_PUSH_SUBSCRIPTIONS_FILE} (${err.code || err.message})`);
     return new Map();
   }
 }
@@ -130,16 +137,24 @@ function saveAdminPushSubscriptions() {
 const adminPushSubscriptions = loadAdminPushSubscriptions();
 
 async function sendGuidePush(guideId, payload) {
-  if (!PUSH_ENABLED) return;
+  if (!PUSH_ENABLED) {
+    console.log(`guide push for ${guideId} skipped: push not enabled server-wide (VAPID keys unset)`);
+    return;
+  }
   const subs = guidePushSubscriptions.get(guideId);
-  if (!subs || !subs.length) return;
+  if (!subs || !subs.length) {
+    console.log(`guide push for ${guideId} skipped: no active subscription for this guide`);
+    return;
+  }
   const body = JSON.stringify(payload);
   let changed = false;
+  let sent = 0;
   const survivors = [];
   for (const sub of subs) {
     try {
       await webpush.sendNotification(sub, body);
       survivors.push(sub);
+      sent += 1;
     } catch (err) {
       if (err.statusCode === 404 || err.statusCode === 410) {
         changed = true; // expired/revoked -- drop it
@@ -149,6 +164,7 @@ async function sendGuidePush(guideId, payload) {
       }
     }
   }
+  console.log(`guide push for ${guideId}: sent to ${sent}/${subs.length} subscription(s)`);
   if (changed) {
     guidePushSubscriptions.set(guideId, survivors);
     saveGuidePushSubscriptions();
@@ -156,12 +172,22 @@ async function sendGuidePush(guideId, payload) {
 }
 
 async function sendAdminPush(payload) {
-  if (!PUSH_ENABLED || !adminPushSubscriptions.size) return;
+  if (!PUSH_ENABLED) {
+    console.log('admin push skipped: push not enabled server-wide (VAPID keys unset)');
+    return;
+  }
+  if (!adminPushSubscriptions.size) {
+    console.log('admin push skipped: no admin has an active subscription');
+    return;
+  }
   const body = JSON.stringify(payload);
   let changed = false;
+  let sent = 0;
+  const total = adminPushSubscriptions.size;
   for (const [endpoint, sub] of adminPushSubscriptions) {
     try {
       await webpush.sendNotification(sub, body);
+      sent += 1;
     } catch (err) {
       if (err.statusCode === 404 || err.statusCode === 410) {
         adminPushSubscriptions.delete(endpoint);
@@ -172,6 +198,56 @@ async function sendAdminPush(payload) {
     }
   }
   if (changed) saveAdminPushSubscriptions();
+}
+
+// ---- Booking alerts: email backstop -----------------------------------------
+// Admin push alerts (above) depend on someone having clicked "Enable" in
+// admin.html AND that browser subscription still being alive -- both can
+// silently drift out of sync with no visible error (see sendAdminPush's
+// skip-logging above). Email doesn't have either failure mode, so it's a
+// backstop that fires on every new booking regardless of push state, using
+// the same Resend HTTPS API the guide-invoice-reminder and visit-digest
+// services already use (Railway blocks outbound SMTP on non-Pro plans).
+//
+// Required env vars (set RESEND_API_KEY / ADMIN_NOTIFY_EMAIL as Railway
+// "reference variables" pointing at guide-invoice-reminder's, e.g.
+// ${{guide-invoice-reminder.RESEND_API_KEY}} / ${{guide-invoice-reminder.ADMIN_NOTIFY_EMAIL}},
+// so there's one already-verified Resend address and key, not a second set
+// to manage):
+//   RESEND_API_KEY      API key from resend.com
+//   ADMIN_NOTIFY_EMAIL  must be the Resend account's own verified address --
+//                       the shared onboarding@resend.dev sender 403s on any
+//                       other recipient (see guide-invoice-reminder's notes)
+// Optional:
+//   RESEND_FROM_EMAIL   default 'Waypoint <onboarding@resend.dev>'
+const RESEND_API_KEY = (process.env.RESEND_API_KEY || '').trim();
+const ADMIN_NOTIFY_EMAIL = (process.env.ADMIN_NOTIFY_EMAIL || '').trim();
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Waypoint <onboarding@resend.dev>';
+const BOOKING_EMAIL_ENABLED = Boolean(RESEND_API_KEY && ADMIN_NOTIFY_EMAIL);
+
+function escapeEmailHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function sendAdminBookingEmail({ subject, text, html }) {
+  if (!BOOKING_EMAIL_ENABLED) {
+    console.log('admin booking email skipped: RESEND_API_KEY or ADMIN_NOTIFY_EMAIL not set');
+    return;
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: RESEND_FROM_EMAIL, to: ADMIN_NOTIFY_EMAIL, subject, text, html }),
+    });
+    if (!res.ok) {
+      console.error('admin booking email failed:', res.status, await res.text());
+      return;
+    }
+    console.log(`admin booking email sent to ${ADMIN_NOTIFY_EMAIL}`);
+  } catch (err) {
+    console.error('admin booking email failed:', err.message);
+  }
 }
 
 // Internal Railway private-network address of the transit-router (OpenTripPlanner) service.
@@ -1430,6 +1506,11 @@ app.post('/api/guides/:id/book', (req, res) => {
     title: `New booking: ${guide.name}`,
     body: pushBody,
     url: '/admin.html',
+  });
+  sendAdminBookingEmail({
+    subject: `New booking request: ${guide.name}`,
+    text: `${pushBody}\n\nOpen the admin panel to review: /admin.html`,
+    html: `<div style="font-family:sans-serif"><p><strong>New booking request for ${escapeEmailHtml(guide.name)}</strong></p><p>${escapeEmailHtml(pushBody)}</p><p><a href="https://waypoint-production-0307.up.railway.app/admin.html">Open admin panel</a></p></div>`,
   });
 });
 

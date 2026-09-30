@@ -229,7 +229,7 @@ async function loadInvites() {
     loadGuides();
     loadGuideBookings();
     loadGuideInvoices();
-    updateAdminPushButton();
+    syncAdminPushState();
   } catch (err) {
     statusEl.textContent = err.message;
   }
@@ -782,15 +782,62 @@ function adminUrlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-function updateAdminPushButton() {
+function updateAdminPushButton(staleNotice) {
   const btn = document.getElementById('adminPushBtn');
   const sub = document.getElementById('adminPushSub');
   if (!btn) return;
   const enabled = localStorage.getItem(ADMIN_PUSH_KEY) === '1';
   btn.textContent = enabled ? 'Disable' : 'Enable';
-  if (sub) sub.textContent = enabled
-    ? "You'll get an alert on this device for every new booking request, across all guides."
-    : 'Get an alert on this device the moment any guide gets a new request.';
+  if (sub) sub.textContent = staleNotice
+    ? staleNotice
+    : enabled
+      ? "You'll get an alert on this device for every new booking request, across all guides."
+      : 'Get an alert on this device the moment any guide gets a new request.';
+}
+
+// Reconciles the "Enable"/"Disable" button against what's actually true,
+// instead of just trusting the ADMIN_PUSH_KEY localStorage flag. That flag
+// can drift from reality with zero visible error -- cleared site data, a
+// reinstalled PWA, a browser that silently revoked the permission, or a
+// server restart that lost the subscription file -- and the button would
+// keep showing "Disable" (implying alerts are on) the whole time. Called on
+// every admin panel load so a stale "on" state gets caught and surfaced
+// rather than silently swallowing bookings.
+async function syncAdminPushState() {
+  const flagSaysEnabled = localStorage.getItem(ADMIN_PUSH_KEY) === '1';
+  if (!adminPushSupported()) {
+    if (flagSaysEnabled) localStorage.removeItem(ADMIN_PUSH_KEY);
+    updateAdminPushButton();
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+    const realSub = reg ? await reg.pushManager.getSubscription() : null;
+    if (realSub) {
+      // A live browser subscription exists -- re-POST it so the server's
+      // record can't have quietly gone stale (e.g. the subscriptions file
+      // was reset by a deploy) even if this device already thought it was
+      // subscribed.
+      await api('/api/admin/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: realSub }),
+      });
+      localStorage.setItem(ADMIN_PUSH_KEY, '1');
+      updateAdminPushButton();
+    } else if (flagSaysEnabled) {
+      // This device thought notifications were on, but there's no real
+      // subscription behind that anymore -- surface it instead of leaving
+      // the button on a false "Disable" (= "already on").
+      localStorage.removeItem(ADMIN_PUSH_KEY);
+      updateAdminPushButton("Notifications turned off on this device (the subscription expired or was cleared) -- click Enable to turn them back on.");
+    } else {
+      updateAdminPushButton();
+    }
+  } catch (err) {
+    console.error('admin push sync check failed:', err);
+    updateAdminPushButton();
+  }
 }
 
 async function toggleAdminPush() {
