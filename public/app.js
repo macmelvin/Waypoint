@@ -1437,13 +1437,17 @@ document.querySelectorAll('.guided-walk-card').forEach((card) => {
 if (guidedWalkBackdrop) guidedWalkBackdrop.addEventListener('click', closeAllGuidedWalkPreviews);
 
 // ---------- Tix & Tours (attraction cards with photo preview) ----------
-// Replaces the old plain-chip grid under the "Tix & Tours" tab. These 8
-// are all real LANDMARKS entries, so (same as the old chip click, and same
-// as Guided Walk above) tapping jumps straight to that landmark's place
-// card via selectSearchResult -- NOT a direct KKday link. The actual
-// "Book Tickets" external link already appears inside that place card on
-// its own (loadAttractionInfo renders it from TICKET_LINKS[key] whenever
-// one exists for that landmark), so nothing new is needed for that here.
+// Replaces the old plain-chip grid under the "Tix & Tours" tab. Each card's
+// "Book Tickets" button opens that attraction's real KKday link straight
+// away (TICKET_LINKS[key], the same object loadAttractionInfo() already
+// uses to render a ticket link inside a place card elsewhere) -- it does
+// NOT navigate to the place card first. An earlier version routed through
+// selectSearchResult(LANDMARKS[category]) instead (matching the old plain
+// chip's fallback behavior), but that meant a button labelled "Book
+// Tickets" actually just opened the map/place view, with the real ticket
+// link only appearing a second or two later once that place card's async
+// info panel finished loading -- easy to mistake for the link being broken.
+// Opening TICKET_LINKS[key] directly here removes that indirection entirely.
 // A card can have no .ticket-preview image yet (an attraction whose photo
 // hasn't been sent) -- it just shows as a plain icon+name+button row with
 // no hover/tap photo until one is added. Photo preview mechanism mirrors
@@ -1451,7 +1455,15 @@ if (guidedWalkBackdrop) guidedWalkBackdrop.addEventListener('click', closeAllGui
 document.querySelectorAll('.ticket-find-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const category = btn.closest('.ticket-card').dataset.category;
-    if (LANDMARKS[category]) selectSearchResult(LANDMARKS[category]);
+    const url = tagAffiliateUrl(TICKET_LINKS[category]);
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else if (LANDMARKS[category]) {
+      // Fail-safe only: every current Tix & Tours key has a TICKET_LINKS
+      // entry, but if a future attraction is added without one yet, fall
+      // back to the place card instead of the button doing nothing.
+      selectSearchResult(LANDMARKS[category]);
+    }
   });
 });
 

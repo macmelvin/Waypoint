@@ -372,17 +372,20 @@ const GUIDES_FILE = process.env.GUIDES_FILE || '/data/guides.json';
 // still come from app.js's own LANDMARKS -- this is just the guide-eligible
 // subset, kept in server.js so the admin panel can render a picker without
 // duplicating the whole LANDMARKS object.
+//
+// macritchie/clarkequay/sentosa/esplanade were removed from this list on
+// request -- those four are plain "More Places" chip entries (not part of
+// the Guided Walk theme), and guide cards showing up on their place cards
+// read as out of place there. Any guide previously tagged to one of those
+// four keys just stops being eligible to show (its other landmark tags, if
+// any, still work) -- nothing needs to change in /data/guides.json itself.
 const GUIDE_LANDMARKS = {
   chinatown: 'Chinatown',
   littleindia: 'Little India',
   kampongglam: 'Kampong Glam',
   botanicgardens: 'Singapore Botanic Gardens',
   hawparvilla: 'Haw Par Villa',
-  macritchie: 'MacRitchie Reservoir',
-  clarkequay: 'Clarke Quay',
-  sentosa: 'Sentosa Island',
   nationalgallery: 'National Gallery Singapore',
-  esplanade: 'Esplanade',
   civicdistrict: 'Civic District',
   fortcanning: 'Fort Canning Park',
 };
