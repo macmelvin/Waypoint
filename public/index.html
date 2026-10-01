@@ -189,16 +189,6 @@
             <button class="category-chip" type="button" data-category="library"><span class="category-chip-icon">📚</span>Library</button>
             <button class="category-chip" type="button" data-category="dogpark"><span class="category-chip-icon">🐕</span>Dog Park</button>
           </div>
-          <div class="category-row hidden" data-group="guidedwalk">
-            <button class="category-chip" type="button" data-category="chinatown"><span class="category-chip-icon">🏮</span>Chinatown</button>
-            <button class="category-chip" type="button" data-category="littleindia"><span class="category-chip-icon">🪔</span>Little India</button>
-            <button class="category-chip" type="button" data-category="kampongglam"><span class="category-chip-icon">🎨</span>Kampong Glam</button>
-            <button class="category-chip" type="button" data-category="botanicgardens"><span class="category-chip-icon">🌿</span>Botanic Gardens</button>
-            <button class="category-chip" type="button" data-category="hawparvilla"><span class="category-chip-icon">👹</span>Haw Par Villa</button>
-            <button class="category-chip" type="button" data-category="civicdistrict"><span class="category-chip-icon">🏛️</span>Civic District</button>
-            <button class="category-chip" type="button" data-category="fortcanning"><span class="category-chip-icon">⛰️</span>Fort Canning Park</button>
-            <button class="category-chip" type="button" data-category="pulauubin"><span class="category-chip-icon">🏝️</span>Pulau Ubin &amp; Chek Jawa</button>
-          </div>
           <div class="category-row hidden" data-group="places">
             <button class="category-chip" type="button" data-category="sentosa"><span class="category-chip-icon">🏝️</span>Sentosa Island</button>
             <button class="category-chip" type="button" data-category="jewelchangi"><span class="category-chip-icon">💧</span>Jewel Changi</button>
@@ -295,6 +285,82 @@
           </div>
         </div>
         <div id="mustEatBackdrop" class="must-eat-backdrop"></div>
+        <div id="guidedWalk" class="must-eats-section hidden" data-group="guidedwalk">
+          <h3 class="must-eats-title" data-i18n="guided_walk_title">🚶 Self-Guided Walks</h3>
+          <div class="guided-walk-card" data-landmark="chinatown">
+            <img class="guided-walk-preview" src="images/guidedwalk/chinatown.jpg" alt="Chinatown" loading="lazy">
+            <span class="must-eat-icon">🏮</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Chinatown</div>
+              <div class="must-eat-tagline">Heritage shophouses, temples &amp; hawker food</div>
+            </div>
+            <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
+          </div>
+          <div class="guided-walk-card" data-landmark="littleindia">
+            <img class="guided-walk-preview" src="images/guidedwalk/littleindia.jpg" alt="Little India" loading="lazy">
+            <span class="must-eat-icon">🪔</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Little India</div>
+              <div class="must-eat-tagline">Colourful shopfronts, temples &amp; spice markets</div>
+            </div>
+            <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
+          </div>
+          <div class="guided-walk-card" data-landmark="kampongglam">
+            <img class="guided-walk-preview" src="images/guidedwalk/kampongglam.jpg" alt="Kampong Glam" loading="lazy">
+            <span class="must-eat-icon">🎨</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Kampong Glam</div>
+              <div class="must-eat-tagline">Sultan Mosque, Haji Lane &amp; Arab Street</div>
+            </div>
+            <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
+          </div>
+          <div class="guided-walk-card" data-landmark="botanicgardens">
+            <img class="guided-walk-preview" src="images/guidedwalk/botanicgardens.jpg" alt="Botanic Gardens" loading="lazy">
+            <span class="must-eat-icon">🌿</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Botanic Gardens</div>
+              <div class="must-eat-tagline">Singapore's only UNESCO World Heritage Site</div>
+            </div>
+            <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
+          </div>
+          <div class="guided-walk-card" data-landmark="hawparvilla">
+            <img class="guided-walk-preview" src="images/guidedwalk/hawparvilla.jpg" alt="Haw Par Villa" loading="lazy">
+            <span class="must-eat-icon">👹</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Haw Par Villa</div>
+              <div class="must-eat-tagline">1,000+ statues depicting Chinese mythology</div>
+            </div>
+            <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
+          </div>
+          <div class="guided-walk-card" data-landmark="civicdistrict">
+            <img class="guided-walk-preview" src="images/guidedwalk/civicdistrict.jpg" alt="Civic District" loading="lazy">
+            <span class="must-eat-icon">🏛️</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Civic District</div>
+              <div class="must-eat-tagline">Museums, cathedrals &amp; colonial landmarks</div>
+            </div>
+            <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
+          </div>
+          <div class="guided-walk-card" data-landmark="fortcanning">
+            <img class="guided-walk-preview" src="images/guidedwalk/fortcanning.jpg" alt="Fort Canning Park" loading="lazy">
+            <span class="must-eat-icon">⛰️</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Fort Canning Park</div>
+              <div class="must-eat-tagline">WWII bunker, hilltop park &amp; nearby museums</div>
+            </div>
+            <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
+          </div>
+          <div class="guided-walk-card" data-landmark="pulauubin">
+            <img class="guided-walk-preview" src="images/guidedwalk/pulauubin.jpg" alt="Pulau Ubin &amp; Chek Jawa" loading="lazy">
+            <span class="must-eat-icon">🏝️</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Pulau Ubin &amp; Chek Jawa</div>
+              <div class="must-eat-tagline">Rustic island getaway, cycling &amp; wetlands</div>
+            </div>
+            <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
+          </div>
+        </div>
+        <div id="guidedWalkBackdrop" class="must-eat-backdrop"></div>
         <ul id="searchResults" class="result-list"></ul>
 
         <div id="placeCard" class="place-card hidden">

@@ -1296,6 +1296,9 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
     // what keeps the default view uncluttered.
     const mustEats = document.getElementById('mustEats');
     if (mustEats) mustEats.classList.toggle('hidden', group !== 'musteats');
+    // Guided Walk is also its own tab, same reasoning as Must-Eats above.
+    const guidedWalk = document.getElementById('guidedWalk');
+    if (guidedWalk) guidedWalk.classList.toggle('hidden', group !== 'guidedwalk');
   });
 });
 
@@ -1394,6 +1397,41 @@ document.querySelectorAll('.must-eat-card').forEach((card) => {
 });
 if (mustEatBackdrop) mustEatBackdrop.addEventListener('click', closeAllMustEatPreviews);
 
+// ---------- Guided Walk (self-guided walk cards with photo preview) ----------
+// Replaces the old plain-chip grid under the "Guided Walk" tab -- same
+// behaviour as before (tapping a place jumps straight to it via
+// selectSearchResult, since these are all single, named LANDMARKS entries,
+// not a nearby-search), just as a full card with a photo instead of a
+// bare icon+label pill. The photo preview mechanism mirrors Must-Eats
+// above exactly (hover reveal on desktop, tap-to-enlarge with a dimmed
+// backdrop on touch) but is kept as its own parallel block so neither
+// feature can accidentally break the other.
+document.querySelectorAll('.guided-walk-find-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const key = btn.closest('.guided-walk-card').dataset.landmark;
+    if (LANDMARKS[key]) selectSearchResult(LANDMARKS[key]);
+  });
+});
+
+const guidedWalkBackdrop = document.getElementById('guidedWalkBackdrop');
+function closeAllGuidedWalkPreviews() {
+  document.querySelectorAll('.guided-walk-card.is-open').forEach((c) => c.classList.remove('is-open'));
+  if (guidedWalkBackdrop) guidedWalkBackdrop.classList.remove('visible');
+}
+document.querySelectorAll('.guided-walk-card').forEach((card) => {
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.guided-walk-find-btn')) return;
+    if (!window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
+    const alreadyOpen = card.classList.contains('is-open');
+    closeAllGuidedWalkPreviews();
+    if (!alreadyOpen) {
+      card.classList.add('is-open');
+      if (guidedWalkBackdrop) guidedWalkBackdrop.classList.add('visible');
+    }
+  });
+});
+if (guidedWalkBackdrop) guidedWalkBackdrop.addEventListener('click', closeAllGuidedWalkPreviews);
+
 // ---------- Language (UI chrome only) ----------
 // Covers the app's own buttons/labels/menus and all category+landmark chip
 // names — Singapore's four official languages, plus Japanese and Korean for
@@ -1420,6 +1458,7 @@ const I18N = {
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
     category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online',
     must_eats_title: '🇸🇬 4 Singapore Must-Eats', find_nearby: '📍 Find nearby',
+    guided_walk_title: '🚶 Self-Guided Walks', guided_walk_explore: '🧭 Explore',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
     hint_search: 'Try searching for a landmark, street, or postal code.',
@@ -1450,6 +1489,7 @@ const I18N = {
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
     category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订',
     must_eats_title: '🇸🇬 4大新加坡必吃美食', find_nearby: '📍 附近寻找',
+    guided_walk_title: '🚶 自助徒步游览', guided_walk_explore: '🧭 探索',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
     set_home: '🏠 设为住家', set_work: '💼 设为公司',
     hint_search: '试试搜索地标、街道或邮区编号。',
@@ -1480,6 +1520,7 @@ const I18N = {
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
     category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian',
     must_eats_title: '🇸🇬 4 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
+    guided_walk_title: '🚶 Lawatan Jalan Kaki Sendiri', guided_walk_explore: '🧭 Terokai',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
     set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
@@ -1510,6 +1551,7 @@ const I18N = {
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
     category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்',
     must_eats_title: '🇸🇬 சிங்கப்பூரின் 4 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
+    guided_walk_title: '🚶 சுய-வழிகாட்டப்பட்ட நடைப் பயணங்கள்', guided_walk_explore: '🧭 ஆராயுங்கள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
     set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
@@ -1540,6 +1582,7 @@ const I18N = {
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
     category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約',
     must_eats_title: '🇸🇬 シンガポール必食4選', find_nearby: '📍 近くを探す',
+    guided_walk_title: '🚶 セルフガイドウォーク', guided_walk_explore: '🧭 探索する',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
     set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
@@ -1570,6 +1613,7 @@ const I18N = {
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
     category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약',
     must_eats_title: '🇸🇬 싱가포르 필수 음식 4', find_nearby: '📍 근처에서 찾기',
+    guided_walk_title: '🚶 셀프 가이드 도보 투어', guided_walk_explore: '🧭 둘러보기',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
     set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
