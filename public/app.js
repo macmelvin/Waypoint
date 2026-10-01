@@ -1369,6 +1369,31 @@ document.querySelectorAll('.must-eat-find-btn').forEach((btn) => {
   });
 });
 
+// Tap-to-enlarge photo preview (touch devices only -- desktop already shows
+// the photo on hover, see .must-eat-preview rules in style.css). Tapping a
+// card pops its dish photo up full-size with a dimmed backdrop behind it;
+// tapping the open card again, the backdrop, or another card closes/switches
+// it. Clicks on the "Find nearby" button are left alone so they keep working
+// as a plain button tap rather than also toggling the photo.
+const mustEatBackdrop = document.getElementById('mustEatBackdrop');
+function closeAllMustEatPreviews() {
+  document.querySelectorAll('.must-eat-card.is-open').forEach((c) => c.classList.remove('is-open'));
+  if (mustEatBackdrop) mustEatBackdrop.classList.remove('visible');
+}
+document.querySelectorAll('.must-eat-card').forEach((card) => {
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.must-eat-find-btn')) return;
+    if (!window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
+    const alreadyOpen = card.classList.contains('is-open');
+    closeAllMustEatPreviews();
+    if (!alreadyOpen) {
+      card.classList.add('is-open');
+      if (mustEatBackdrop) mustEatBackdrop.classList.add('visible');
+    }
+  });
+});
+if (mustEatBackdrop) mustEatBackdrop.addEventListener('click', closeAllMustEatPreviews);
+
 // ---------- Language (UI chrome only) ----------
 // Covers the app's own buttons/labels/menus and all category+landmark chip
 // names — Singapore's four official languages, plus Japanese and Korean for
