@@ -1299,6 +1299,10 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
     // Guided Walk is also its own tab, same reasoning as Must-Eats above.
     const guidedWalk = document.getElementById('guidedWalk');
     if (guidedWalk) guidedWalk.classList.toggle('hidden', group !== 'guidedwalk');
+    // Tix & Tours is also its own tab/section now (was a plain chip row),
+    // same reasoning as Must-Eats and Guided Walk above.
+    const tixTours = document.getElementById('tixTours');
+    if (tixTours) tixTours.classList.toggle('hidden', group !== 'tickets');
   });
 });
 
@@ -1432,6 +1436,48 @@ document.querySelectorAll('.guided-walk-card').forEach((card) => {
 });
 if (guidedWalkBackdrop) guidedWalkBackdrop.addEventListener('click', closeAllGuidedWalkPreviews);
 
+// ---------- Tix & Tours (attraction cards with photo preview) ----------
+// Replaces the old plain-chip grid under the "Tix & Tours" tab. These 8
+// are all real LANDMARKS entries, so (same as the old chip click, and same
+// as Guided Walk above) tapping jumps straight to that landmark's place
+// card via selectSearchResult -- NOT a direct KKday link. The actual
+// "Book Tickets" external link already appears inside that place card on
+// its own (loadAttractionInfo renders it from TICKET_LINKS[key] whenever
+// one exists for that landmark), so nothing new is needed for that here.
+// A card can have no .ticket-preview image yet (an attraction whose photo
+// hasn't been sent) -- it just shows as a plain icon+name+button row with
+// no hover/tap photo until one is added. Photo preview mechanism mirrors
+// Must-Eats/Guided Walk exactly, kept as its own parallel block.
+document.querySelectorAll('.ticket-find-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const category = btn.closest('.ticket-card').dataset.category;
+    if (LANDMARKS[category]) selectSearchResult(LANDMARKS[category]);
+  });
+});
+
+const ticketBackdrop = document.getElementById('ticketBackdrop');
+function closeAllTicketPreviews() {
+  document.querySelectorAll('.ticket-card.is-open').forEach((c) => c.classList.remove('is-open'));
+  if (ticketBackdrop) ticketBackdrop.classList.remove('visible');
+}
+document.querySelectorAll('.ticket-card').forEach((card) => {
+  // Cards without a photo yet (uss/riverwonders/sgflyer for now) have no
+  // .ticket-preview element -- skip the tap-to-enlarge behavior for those so
+  // tapping them doesn't just darken the whole screen with nothing to show.
+  if (!card.querySelector('.ticket-preview')) return;
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.ticket-find-btn')) return;
+    if (!window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
+    const alreadyOpen = card.classList.contains('is-open');
+    closeAllTicketPreviews();
+    if (!alreadyOpen) {
+      card.classList.add('is-open');
+      if (ticketBackdrop) ticketBackdrop.classList.add('visible');
+    }
+  });
+});
+if (ticketBackdrop) ticketBackdrop.addEventListener('click', closeAllTicketPreviews);
+
 // ---------- Language (UI chrome only) ----------
 // Covers the app's own buttons/labels/menus and all category+landmark chip
 // names — Singapore's four official languages, plus Japanese and Korean for
@@ -1459,6 +1505,7 @@ const I18N = {
     category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online',
     must_eats_title: '🇸🇬 4 Singapore Must-Eats', find_nearby: '📍 Find nearby',
     guided_walk_title: '🚶 Self-Guided Walks', guided_walk_explore: '🧭 Explore',
+    tix_tours_title: '🎟️ Tix & Tours',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
     hint_search: 'Try searching for a landmark, street, or postal code.',
@@ -1490,6 +1537,7 @@ const I18N = {
     category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订',
     must_eats_title: '🇸🇬 4大新加坡必吃美食', find_nearby: '📍 附近寻找',
     guided_walk_title: '🚶 自助徒步游览', guided_walk_explore: '🧭 探索',
+    tix_tours_title: '🎟️ 门票与观光团',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
     set_home: '🏠 设为住家', set_work: '💼 设为公司',
     hint_search: '试试搜索地标、街道或邮区编号。',
@@ -1521,6 +1569,7 @@ const I18N = {
     category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian',
     must_eats_title: '🇸🇬 4 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
     guided_walk_title: '🚶 Lawatan Jalan Kaki Sendiri', guided_walk_explore: '🧭 Terokai',
+    tix_tours_title: '🎟️ Tiket & Lawatan',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
     set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
@@ -1552,6 +1601,7 @@ const I18N = {
     category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்',
     must_eats_title: '🇸🇬 சிங்கப்பூரின் 4 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
     guided_walk_title: '🚶 சுய-வழிகாட்டப்பட்ட நடைப் பயணங்கள்', guided_walk_explore: '🧭 ஆராயுங்கள்',
+    tix_tours_title: '🎟️ டிக்கெட் மற்றும் சுற்றுலாக்கள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
     set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
@@ -1583,6 +1633,7 @@ const I18N = {
     category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約',
     must_eats_title: '🇸🇬 シンガポール必食4選', find_nearby: '📍 近くを探す',
     guided_walk_title: '🚶 セルフガイドウォーク', guided_walk_explore: '🧭 探索する',
+    tix_tours_title: '🎟️ チケット＆ツアー',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
     set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
@@ -1614,6 +1665,7 @@ const I18N = {
     category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약',
     must_eats_title: '🇸🇬 싱가포르 필수 음식 4', find_nearby: '📍 근처에서 찾기',
     guided_walk_title: '🚶 셀프 가이드 도보 투어', guided_walk_explore: '🧭 둘러보기',
+    tix_tours_title: '🎟️ 티켓 & 투어',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
     set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
