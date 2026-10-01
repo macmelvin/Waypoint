@@ -190,23 +190,14 @@
             <button class="category-chip" type="button" data-category="dogpark"><span class="category-chip-icon">🐕</span>Dog Park</button>
           </div>
           <div class="category-row hidden" data-group="places">
-            <button class="category-chip" type="button" data-category="sentosa"><span class="category-chip-icon">🏝️</span>Sentosa Island</button>
-            <button class="category-chip" type="button" data-category="jewelchangi"><span class="category-chip-icon">💧</span>Jewel Changi</button>
-            <button class="category-chip" type="button" data-category="changiairport"><span class="category-chip-icon">✈️</span>Changi Airport</button>
-            <button class="category-chip" type="button" data-category="merlionpark"><span class="category-chip-icon">🦁</span>Merlion Park</button>
-            <button class="category-chip" type="button" data-category="clarkequay"><span class="category-chip-icon">🌉</span>Clarke Quay</button>
-            <button class="category-chip" type="button" data-category="artsciencemuseum"><span class="category-chip-icon">🪷</span>ArtScience Museum</button>
-            <button class="category-chip" type="button" data-category="esplanade"><span class="category-chip-icon">🎭</span>Esplanade</button>
-            <button class="category-chip" type="button" data-category="eastcoastpark"><span class="category-chip-icon">🏖️</span>East Coast Park</button>
+            <!-- The scenic/attraction entries that used to live here moved to the
+                 #morePlacesCards photo-card section below (same treatment as
+                 Guided Walk/Tix & Tours). These 4 are purely practical stops with
+                 no "scenic photo" value, so they stay as plain chips. -->
             <button class="category-chip" type="button" data-category="woodlandscheckpoint"><span class="category-chip-icon">🛂</span>To JB (Causeway)</button>
             <button class="category-chip" type="button" data-category="tuascheckpoint"><span class="category-chip-icon">🛂</span>To JB (2nd Link)</button>
             <button class="category-chip" type="button" data-category="icabuilding"><span class="category-chip-icon">🛃</span>ICA Building</button>
             <button class="category-chip" type="button" data-category="momservices"><span class="category-chip-icon">🪪</span>MOM Services</button>
-            <button class="category-chip" type="button" data-category="macritchie"><span class="category-chip-icon">🌳</span>MacRitchie Reservoir</button>
-            <button class="category-chip" type="button" data-category="macritchietreetop"><span class="category-chip-icon">🌲</span>TreeTop Walk</button>
-            <button class="category-chip" type="button" data-category="bukittimah"><span class="category-chip-icon">⛰️</span>Bukit Timah Hill</button>
-            <button class="category-chip" type="button" data-category="upperseletar"><span class="category-chip-icon">🦢</span>Upper Seletar Reservoir</button>
-            <button class="category-chip" type="button" data-category="bedokreservoir"><span class="category-chip-icon">🚣</span>Bedok Reservoir</button>
           </div>
           <div class="category-row hidden" data-group="gourmet">
             <button class="category-chip" type="button" data-category="laupasat"><span class="category-chip-icon">🍜</span>Lau Pa Sat</button>
@@ -426,6 +417,127 @@
           </div>
         </div>
         <div id="ticketBackdrop" class="must-eat-backdrop"></div>
+        <div id="morePlacesCards" class="must-eats-section hidden" data-group="places">
+          <h3 class="must-eats-title" data-i18n="category_attractions">More Places</h3>
+          <div class="places-card" data-category="sentosa">
+            <img class="places-preview" src="images/places/sentosa.jpg" alt="Sentosa Island" loading="lazy">
+            <span class="must-eat-icon">🏝️</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Sentosa Island</div>
+              <div class="must-eat-tagline">Beaches, resorts &amp; island attractions</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="jewelchangi">
+            <img class="places-preview" src="images/places/jewelchangi.jpg" alt="Jewel Changi" loading="lazy">
+            <span class="must-eat-icon">💧</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Jewel Changi</div>
+              <div class="must-eat-tagline">Indoor waterfall inside a glass dome</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="changiairport">
+            <img class="places-preview" src="images/places/changiairport.jpg" alt="Changi Airport" loading="lazy">
+            <span class="must-eat-icon">✈️</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Changi Airport</div>
+              <div class="must-eat-tagline">World-class airport with gardens &amp; attractions of its own</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="merlionpark">
+            <img class="places-preview" src="images/places/merlionpark.jpg" alt="Merlion Park" loading="lazy">
+            <span class="must-eat-icon">🦁</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Merlion Park</div>
+              <div class="must-eat-tagline">Singapore's iconic lion-fish statue</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="clarkequay">
+            <img class="places-preview" src="images/places/clarkequay.jpg" alt="Clarke Quay" loading="lazy">
+            <span class="must-eat-icon">🌉</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Clarke Quay</div>
+              <div class="must-eat-tagline">Riverside dining, bars &amp; nightlife</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="artsciencemuseum">
+            <img class="places-preview" src="images/places/artsciencemuseum.jpg" alt="ArtScience Museum" loading="lazy">
+            <span class="must-eat-icon">🪷</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">ArtScience Museum</div>
+              <div class="must-eat-tagline">Lotus-shaped museum by Marina Bay</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="esplanade">
+            <img class="places-preview" src="images/places/esplanade.jpg" alt="Esplanade" loading="lazy">
+            <span class="must-eat-icon">🎭</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Esplanade</div>
+              <div class="must-eat-tagline">Durian-shaped performing arts centre</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="eastcoastpark">
+            <img class="places-preview" src="images/places/eastcoastpark.jpg" alt="East Coast Park" loading="lazy">
+            <span class="must-eat-icon">🏖️</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">East Coast Park</div>
+              <div class="must-eat-tagline">Beachfront cycling, BBQ pits &amp; seafood</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="macritchie">
+            <img class="places-preview" src="images/places/macritchie.jpg" alt="MacRitchie Reservoir" loading="lazy">
+            <span class="must-eat-icon">🌳</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">MacRitchie Reservoir</div>
+              <div class="must-eat-tagline">Nature trails around a scenic reservoir</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="macritchietreetop">
+            <img class="places-preview" src="images/places/macritchietreetop.jpg" alt="TreeTop Walk" loading="lazy">
+            <span class="must-eat-icon">🌲</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">TreeTop Walk</div>
+              <div class="must-eat-tagline">Suspension bridge through the rainforest canopy</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="bukittimah">
+            <img class="places-preview" src="images/places/bukittimah.jpg" alt="Bukit Timah Hill" loading="lazy">
+            <span class="must-eat-icon">⛰️</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Bukit Timah Hill</div>
+              <div class="must-eat-tagline">Singapore's highest natural point &amp; rainforest trails</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="upperseletar">
+            <img class="places-preview" src="images/places/upperseletar.jpg" alt="Upper Seletar Reservoir" loading="lazy">
+            <span class="must-eat-icon">🦢</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Upper Seletar Reservoir</div>
+              <div class="must-eat-tagline">Quiet reservoir park &amp; waterfront walks</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+          <div class="places-card" data-category="bedokreservoir">
+            <img class="places-preview" src="images/places/bedokreservoir.jpg" alt="Bedok Reservoir" loading="lazy">
+            <span class="must-eat-icon">🚣</span>
+            <div class="must-eat-text">
+              <div class="must-eat-name">Bedok Reservoir</div>
+              <div class="must-eat-tagline">Water sports, jogging paths &amp; lake views</div>
+            </div>
+            <button class="places-find-btn" type="button" data-i18n="places_explore">🧭 Explore</button>
+          </div>
+        </div>
+        <div id="placesBackdrop" class="must-eat-backdrop"></div>
         <ul id="searchResults" class="result-list"></ul>
 
         <div id="placeCard" class="place-card hidden">
