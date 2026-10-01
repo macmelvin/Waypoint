@@ -1083,11 +1083,13 @@ const LANDMARKS = {
   tiongbahrumarket: { label: 'Tiong Bahru Market', address: '30 Seng Poh Rd, Singapore 168898', lat: 1.284700, lon: 103.832200 },
   eastcoastlagoon: { label: 'East Coast Lagoon Food Village', address: '1220 East Coast Parkway, Singapore 468960', lat: 1.300900, lon: 103.931900 },
   amoystreet: { label: 'Amoy Street Food Centre', address: '7 Maxwell Rd, Singapore 069111', lat: 1.279900, lon: 103.846800 },
-  // Added for the "5 Singapore Must-Eats" nearby-finder — dishes not already
-  // covered by the Gourmet Food hawker-centre landmarks above (chilli crab,
-  // laksa, kaya toast, bak kut teh) need their own well-known, specific spot.
+  // Added for the "Singapore Must-Eats" nearby-finder — dedicated, named
+  // spots per dish rather than the generic hawker-centre landmarks above,
+  // per request (link each dish to one specific, well-known place instead of
+  // "nearest of a couple of food centres").
   jumboseafood: { label: 'Jumbo Seafood (Riverside Point)', address: '30 Merchant Rd, #01-01/02 Riverside Point, Singapore 058282', lat: 1.287900, lon: 103.846500 },
   laksa328: { label: '328 Katong Laksa', address: '51/53 East Coast Rd, Singapore 428770', lat: 1.304900, lon: 103.903600 },
+  tiantianchickenrice: { label: 'Tian Tian Hainanese Chicken Rice (Maxwell Food Centre)', address: '1 Kadayanallur St, #01-10/11, Singapore 069184', lat: 1.280300, lon: 103.844400 },
   yakunkayatoast: { label: 'Ya Kun Kaya Toast (Far East Square)', address: '18 China St, #01-01 Far East Square, Singapore 049560', lat: 1.283500, lon: 103.847700 },
   songfabkt: { label: 'Song Fa Bak Kut Teh', address: '11 New Bridge Rd, Singapore 059383', lat: 1.287900, lon: 103.844800 },
 };
@@ -1316,17 +1318,19 @@ document.querySelectorAll('.category-chip').forEach((btn) => {
 
 // ---------- "4 Singapore Must-Eats" ----------
 // A fixed shortlist of iconically-Singaporean dishes, each pointing at one or
-// more curated landmarks known for it (reusing existing Gourmet Food spots —
-// chicken rice, satay — plus dedicated ones for laksa and chilli crab).
-// "Find nearby" deliberately doesn't monetise directly — it just answers
-// "what should I eat and where's the closest place for it", the same
-// place-card + directions flow as every other landmark, picking whichever
-// candidate spot is physically closest when a dish has more than one.
+// more curated landmarks known for it. Chicken Rice, Laksa and Chilli Crab
+// each point at one specific, named stall/restaurant (Tian Tian at Maxwell,
+// 328 Katong Laksa, Jumbo Seafood) per request, rather than the nearest of a
+// couple of general hawker centres. Satay still picks whichever of Lau Pa
+// Sat/Newton Food Centre is closer, since there's no single iconic satay
+// stall the same way. "Find nearby" deliberately doesn't monetise directly —
+// it just answers "what should I eat and where's the closest place for it",
+// the same place-card + directions flow as every other landmark.
 // Trimmed from an earlier 5-dish list (kaya toast and bak kut teh dropped,
 // satay added) per request.
 const MUST_EATS = [
   { id: 'satay', icon: '🍢', name: 'Satay', tagline: 'Grilled skewers with peanut dip', landmarks: ['laupasat', 'newtonfoodcentre'] },
-  { id: 'chickenrice', icon: '🍗', name: 'Hainanese Chicken Rice', tagline: "Singapore's iconic comfort food", landmarks: ['maxwellfood', 'chinatownfoodcentre'] },
+  { id: 'chickenrice', icon: '🍗', name: 'Hainanese Chicken Rice', tagline: "Singapore's iconic comfort food", landmarks: ['tiantianchickenrice'] },
   { id: 'laksa', icon: '🍜', name: 'Laksa', tagline: 'Rich, spicy coconut curry noodles', landmarks: ['laksa328'] },
   { id: 'chillicrab', icon: '🦀', name: 'Chilli Crab', tagline: "Singapore's most famous seafood dish", landmarks: ['jumboseafood'] },
 ];
