@@ -1169,6 +1169,7 @@ a:active {
 .must-eats-section.hidden { display: none; }
 .must-eats-title { margin: 0 0 8px; font-size: 15px; font-weight: 800; letter-spacing: var(--tracking-tight); }
 .must-eat-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1180,6 +1181,47 @@ a:active {
   box-shadow: var(--shadow-1);
 }
 .must-eat-icon { font-size: 24px; line-height: 1; flex: 0 0 auto; }
+/* Hover preview: on a mouse/trackpad, the dish photo pops up above the card
+   on hover (or keyboard focus of its "Find nearby" button) instead of
+   sitting on the page all the time. Touch devices have no hover concept, so
+   there the same <img> instead renders as a small permanent thumbnail at
+   the start of the row -- the feature still shows a photo, it just can't be
+   a "reveal on hover" since there's no hover to reveal on. */
+.must-eat-preview {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(6px) scale(0.96);
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 6;
+}
+@media (hover: hover) and (pointer: fine) {
+  .must-eat-card:hover .must-eat-preview,
+  .must-eat-card:focus-within .must-eat-preview {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .must-eat-preview {
+    position: static;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm, 8px);
+    box-shadow: none;
+    flex: 0 0 auto;
+  }
+}
 .must-eat-text { flex: 1 1 auto; min-width: 0; }
 .must-eat-name { font-size: 14px; font-weight: 700; }
 .must-eat-tagline { font-size: 12px; color: var(--muted); margin-top: 1px; }

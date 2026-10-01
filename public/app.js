@@ -1314,21 +1314,21 @@ document.querySelectorAll('.category-chip').forEach((btn) => {
   });
 });
 
-// ---------- "5 Singapore Must-Eats" ----------
+// ---------- "4 Singapore Must-Eats" ----------
 // A fixed shortlist of iconically-Singaporean dishes, each pointing at one or
-// more curated landmarks known for it (reusing existing Gourmet Food spots
-// where they fit — chicken rice — and adding a few dedicated ones for dishes
-// not otherwise covered: chilli crab, laksa, kaya toast, bak kut teh). "Find
-// nearby" deliberately doesn't monetise directly — it just answers "what
-// should I eat and where's the closest place for it", the same place-card +
-// directions flow as every other landmark, picking whichever candidate spot
-// is physically closest when a dish has more than one.
+// more curated landmarks known for it (reusing existing Gourmet Food spots —
+// chicken rice, satay — plus dedicated ones for laksa and chilli crab).
+// "Find nearby" deliberately doesn't monetise directly — it just answers
+// "what should I eat and where's the closest place for it", the same
+// place-card + directions flow as every other landmark, picking whichever
+// candidate spot is physically closest when a dish has more than one.
+// Trimmed from an earlier 5-dish list (kaya toast and bak kut teh dropped,
+// satay added) per request.
 const MUST_EATS = [
+  { id: 'satay', icon: '🍢', name: 'Satay', tagline: 'Grilled skewers with peanut dip', landmarks: ['laupasat', 'newtonfoodcentre'] },
   { id: 'chickenrice', icon: '🍗', name: 'Hainanese Chicken Rice', tagline: "Singapore's iconic comfort food", landmarks: ['maxwellfood', 'chinatownfoodcentre'] },
-  { id: 'chillicrab', icon: '🦀', name: 'Chilli Crab', tagline: "Singapore's most famous seafood dish", landmarks: ['jumboseafood'] },
   { id: 'laksa', icon: '🍜', name: 'Laksa', tagline: 'Rich, spicy coconut curry noodles', landmarks: ['laksa328'] },
-  { id: 'kayatoast', icon: '🍞', name: 'Kaya Toast & Soft-Boiled Eggs', tagline: 'The classic Singapore breakfast', landmarks: ['yakunkayatoast'] },
-  { id: 'bakkutteh', icon: '🍖', name: 'Bak Kut Teh', tagline: 'Peppery pork rib soup', landmarks: ['songfabkt'] },
+  { id: 'chillicrab', icon: '🦀', name: 'Chilli Crab', tagline: "Singapore's most famous seafood dish", landmarks: ['jumboseafood'] },
 ];
 
 function findNearestLandmark(candidateKeys, lat, lon) {
@@ -1390,7 +1390,7 @@ const I18N = {
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
     category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online',
-    must_eats_title: '🇸🇬 5 Singapore Must-Eats', find_nearby: '📍 Find nearby',
+    must_eats_title: '🇸🇬 4 Singapore Must-Eats', find_nearby: '📍 Find nearby',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
     hint_search: 'Try searching for a landmark, street, or postal code.',
@@ -1420,7 +1420,7 @@ const I18N = {
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
     category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订',
-    must_eats_title: '🇸🇬 5大新加坡必吃美食', find_nearby: '📍 附近寻找',
+    must_eats_title: '🇸🇬 4大新加坡必吃美食', find_nearby: '📍 附近寻找',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
     set_home: '🏠 设为住家', set_work: '💼 设为公司',
     hint_search: '试试搜索地标、街道或邮区编号。',
@@ -1450,7 +1450,7 @@ const I18N = {
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
     category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian',
-    must_eats_title: '🇸🇬 5 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
+    must_eats_title: '🇸🇬 4 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
     set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
@@ -1480,7 +1480,7 @@ const I18N = {
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
     category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்',
-    must_eats_title: '🇸🇬 சிங்கப்பூரின் 5 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
+    must_eats_title: '🇸🇬 சிங்கப்பூரின் 4 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
     set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
@@ -1510,7 +1510,7 @@ const I18N = {
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
     category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約',
-    must_eats_title: '🇸🇬 シンガポール必食5選', find_nearby: '📍 近くを探す',
+    must_eats_title: '🇸🇬 シンガポール必食4選', find_nearby: '📍 近くを探す',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
     set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
@@ -1540,7 +1540,7 @@ const I18N = {
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
     category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약',
-    must_eats_title: '🇸🇬 싱가포르 필수 음식 5', find_nearby: '📍 근처에서 찾기',
+    must_eats_title: '🇸🇬 싱가포르 필수 음식 4', find_nearby: '📍 근처에서 찾기',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
     set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
