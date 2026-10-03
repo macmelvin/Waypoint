@@ -348,6 +348,15 @@
             </div>
             <button class="guided-walk-find-btn" type="button" data-i18n="guided_walk_explore">🧭 Explore</button>
           </div>
+          <!-- Points a prospective guide at the public application form
+               (guide-apply.html / POST /api/guide-apply, see server.js) --
+               a plain text link rather than another card, since this isn't
+               a place to visit. Sits at the end of the guide-card list so
+               it's seen by anyone who's just scrolled through the existing
+               guides, without competing with them for attention above. -->
+          <div class="guided-walk-apply-cta">
+            🧭 Are you a certified tour guide? <a href="/guide-apply.html" target="_blank" rel="noopener">Apply to be listed &rarr;</a>
+          </div>
         </div>
         <div id="guidedWalkBackdrop" class="must-eat-backdrop"></div>
         <div id="tixTours" class="must-eats-section hidden" data-group="tickets">

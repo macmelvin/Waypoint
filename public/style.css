@@ -1335,6 +1335,20 @@ a:active {
   white-space: nowrap;
 }
 .guided-walk-find-btn:hover { background: var(--accent-dark); }
+/* Plain text CTA at the end of the guide-card list, pointing a prospective
+   guide at guide-apply.html -- deliberately not styled as another card
+   (it's not a place to visit), just a quiet link so it doesn't compete with
+   the actual guides above for attention. */
+.guided-walk-apply-cta {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 10px 12px 2px;
+  margin-top: 2px;
+  border-top: 1px dashed var(--border);
+}
+.guided-walk-apply-cta a { color: var(--accent); font-weight: 700; text-decoration: none; }
+.guided-walk-apply-cta a:hover { text-decoration: underline; }
 
 /* ---- Tix & Tours cards ----
    Same card + photo-preview mechanism as Must-Eats/Guided Walk above,
