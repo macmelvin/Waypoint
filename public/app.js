@@ -1347,7 +1347,7 @@ const MUST_EATS = [
   { id: 'chickenrice', icon: '🍗', name: 'Hainanese Chicken Rice', tagline: "Singapore's iconic comfort food", landmarks: ['tiantianchickenrice'] },
   { id: 'laksa', icon: '🍜', name: 'Laksa', tagline: 'Rich, spicy coconut curry noodles', landmarks: ['laksa328'] },
   { id: 'chillicrab', icon: '🦀', name: 'Chilli Crab', tagline: "Singapore's most famous seafood dish", landmarks: ['jumboseafood'] },
-  { id: 'nasilemak', icon: '🍚', name: 'Nasi Lemak', tagline: 'Coconut rice with fried anchovies, egg & sambal', landmarks: ['ahwoonnasilemak'] },
+  { id: 'nasilemak', icon: '🍚', name: 'Nasi Lemak & Yam Cake', tagline: 'Coconut rice with fried anchovies, egg & sambal', landmarks: ['ahwoonnasilemak'] },
 ];
 
 function findNearestLandmark(candidateKeys, lat, lon) {
