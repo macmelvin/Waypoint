@@ -1092,6 +1092,7 @@ const LANDMARKS = {
   tiantianchickenrice: { label: 'Tian Tian Hainanese Chicken Rice (Maxwell Food Centre)', address: '1 Kadayanallur St, #01-10/11, Singapore 069184', lat: 1.280300, lon: 103.844400 },
   yakunkayatoast: { label: 'Ya Kun Kaya Toast (Far East Square)', address: '18 China St, #01-01 Far East Square, Singapore 049560', lat: 1.283500, lon: 103.847700 },
   songfabkt: { label: 'Song Fa Bak Kut Teh', address: '11 New Bridge Rd, Singapore 059383', lat: 1.287900, lon: 103.844800 },
+  ahwoonnasilemak: { label: 'Ah Woon 源味 (Chinatown Complex Food Centre)', address: '335 Smith St, #02-150, Singapore 050335', lat: 1.282300, lon: 103.843700 },
 };
 
 // Tickets & Tours — affiliate booking links for landmarks that are actually
@@ -1346,6 +1347,7 @@ const MUST_EATS = [
   { id: 'chickenrice', icon: '🍗', name: 'Hainanese Chicken Rice', tagline: "Singapore's iconic comfort food", landmarks: ['tiantianchickenrice'] },
   { id: 'laksa', icon: '🍜', name: 'Laksa', tagline: 'Rich, spicy coconut curry noodles', landmarks: ['laksa328'] },
   { id: 'chillicrab', icon: '🦀', name: 'Chilli Crab', tagline: "Singapore's most famous seafood dish", landmarks: ['jumboseafood'] },
+  { id: 'nasilemak', icon: '🍚', name: 'Nasi Lemak', tagline: 'Coconut rice with fried anchovies, egg & sambal', landmarks: ['ahwoonnasilemak'] },
 ];
 
 function findNearestLandmark(candidateKeys, lat, lon) {
@@ -1388,6 +1390,33 @@ document.querySelectorAll('.must-eat-find-btn').forEach((btn) => {
 // tapping the open card again, the backdrop, or another card closes/switches
 // it. Clicks on the "Find nearby" button are left alone so they keep working
 // as a plain button tap rather than also toggling the photo.
+//
+// Rotating/multi-photo cards: a .must-eat-preview can optionally carry a
+// data-photos attribute -- a comma-separated list of image paths (the first
+// one also goes in the plain src attribute so single-photo cards, which
+// don't set data-photos at all, keep working exactly as before with zero
+// extra markup). A card with 2+ photos cycles to the next one on each
+// click/tap instead of immediately closing/doing nothing, so a dish that has
+// more than one good photo (e.g. a stall's own promo shot plus a plain food
+// photo) can show both without needing a second card. This lives on
+// .must-eat-preview/.must-eat-card specifically -- Guided Walk/Tix &
+// Tours/More Places keep their own single-photo-only parallel blocks for now.
+function mustEatPhotoList(img) {
+  if (!img) return [];
+  const raw = img.dataset.photos || img.getAttribute('src') || '';
+  const list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  return list.length ? list : [];
+}
+function advanceMustEatPhoto(card) {
+  const img = card.querySelector('.must-eat-preview');
+  const photos = mustEatPhotoList(img);
+  if (photos.length < 2) return false;
+  const current = img.dataset.photoIndex ? parseInt(img.dataset.photoIndex, 10) : 0;
+  const next = (current + 1) % photos.length;
+  img.dataset.photoIndex = String(next);
+  img.src = photos[next];
+  return true;
+}
 const mustEatBackdrop = document.getElementById('mustEatBackdrop');
 function closeAllMustEatPreviews() {
   document.querySelectorAll('.must-eat-card.is-open').forEach((c) => c.classList.remove('is-open'));
@@ -1396,13 +1425,25 @@ function closeAllMustEatPreviews() {
 document.querySelectorAll('.must-eat-card').forEach((card) => {
   card.addEventListener('click', (e) => {
     if (e.target.closest('.must-eat-find-btn')) return;
-    if (!window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
-    const alreadyOpen = card.classList.contains('is-open');
-    closeAllMustEatPreviews();
-    if (!alreadyOpen) {
-      card.classList.add('is-open');
-      if (mustEatBackdrop) mustEatBackdrop.classList.add('visible');
+    if (!window.matchMedia('(hover: none), (pointer: coarse)').matches) {
+      // Desktop/mouse: hover already reveals the preview, so a click here
+      // doesn't need to open anything -- it just steps a multi-photo card to
+      // its next image (a no-op for a single-photo card).
+      advanceMustEatPhoto(card);
+      return;
     }
+    const alreadyOpen = card.classList.contains('is-open');
+    if (alreadyOpen) {
+      // Already open on a multi-photo card -- advance to the next photo
+      // instead of closing, so repeated taps step through all of them.
+      // A single-photo card falls through to the original close-on-retap.
+      if (advanceMustEatPhoto(card)) return;
+      closeAllMustEatPreviews();
+      return;
+    }
+    closeAllMustEatPreviews();
+    card.classList.add('is-open');
+    if (mustEatBackdrop) mustEatBackdrop.classList.add('visible');
   });
 });
 if (mustEatBackdrop) mustEatBackdrop.addEventListener('click', closeAllMustEatPreviews);
@@ -1561,7 +1602,7 @@ const I18N = {
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
     category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online',
-    must_eats_title: '🇸🇬 4 Singapore Must-Eats', find_nearby: '📍 Find nearby',
+    must_eats_title: '🇸🇬 5 Singapore Must-Eats', find_nearby: '📍 Find nearby',
     guided_walk_title: '🚶 Self-Guided Walks', guided_walk_explore: '🧭 Explore',
     tix_tours_title: '🎟️ Tix & Tours', places_explore: '🧭 Explore',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
@@ -1593,7 +1634,7 @@ const I18N = {
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
     category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订',
-    must_eats_title: '🇸🇬 4大新加坡必吃美食', find_nearby: '📍 附近寻找',
+    must_eats_title: '🇸🇬 5大新加坡必吃美食', find_nearby: '📍 附近寻找',
     guided_walk_title: '🚶 自助徒步游览', guided_walk_explore: '🧭 探索',
     tix_tours_title: '🎟️ 门票与观光团', places_explore: '🧭 探索',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
@@ -1625,7 +1666,7 @@ const I18N = {
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
     category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian',
-    must_eats_title: '🇸🇬 4 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
+    must_eats_title: '🇸🇬 5 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
     guided_walk_title: '🚶 Lawatan Jalan Kaki Sendiri', guided_walk_explore: '🧭 Terokai',
     tix_tours_title: '🎟️ Tiket & Lawatan', places_explore: '🧭 Terokai',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
@@ -1657,7 +1698,7 @@ const I18N = {
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
     category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்',
-    must_eats_title: '🇸🇬 சிங்கப்பூரின் 4 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
+    must_eats_title: '🇸🇬 சிங்கப்பூரின் 5 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
     guided_walk_title: '🚶 சுய-வழிகாட்டப்பட்ட நடைப் பயணங்கள்', guided_walk_explore: '🧭 ஆராயுங்கள்',
     tix_tours_title: '🎟️ டிக்கெட் மற்றும் சுற்றுலாக்கள்', places_explore: '🧭 ஆராயுங்கள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
@@ -1689,7 +1730,7 @@ const I18N = {
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
     category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約',
-    must_eats_title: '🇸🇬 シンガポール必食4選', find_nearby: '📍 近くを探す',
+    must_eats_title: '🇸🇬 シンガポール必食5選', find_nearby: '📍 近くを探す',
     guided_walk_title: '🚶 セルフガイドウォーク', guided_walk_explore: '🧭 探索する',
     tix_tours_title: '🎟️ チケット＆ツアー', places_explore: '🧭 探索する',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
@@ -1721,7 +1762,7 @@ const I18N = {
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
     category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약',
-    must_eats_title: '🇸🇬 싱가포르 필수 음식 4', find_nearby: '📍 근처에서 찾기',
+    must_eats_title: '🇸🇬 싱가포르 필수 음식 5', find_nearby: '📍 근처에서 찾기',
     guided_walk_title: '🚶 셀프 가이드 도보 투어', guided_walk_explore: '🧭 둘러보기',
     tix_tours_title: '🎟️ 티켓 & 투어', places_explore: '🧭 둘러보기',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
