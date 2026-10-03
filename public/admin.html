@@ -328,7 +328,11 @@ function renderGuides(guides) {
     const contactState = g.whatsapp ? `WhatsApp on file` : '<span style="color:#f87171">no WhatsApp number yet</span>';
     const emailState = g.email ? `email on file` : '<span style="color:#f87171">no email -- won\'t get invoice reminders</span>';
     const noteState = g.note ? ` · "${escapeHtml(g.note)}"` : '';
-    const detailsLine = `${escapeHtml(meta)} · ${contactState} · ${emailState}${noteState}`;
+    // Only self-signups carry this -- a guide Melvin adds by hand agrees to
+    // whatever was actually discussed, not the guide-apply.html terms text,
+    // so there's nothing meaningful to timestamp there.
+    const termsState = g.termsAcceptedAt ? ` · terms accepted ${new Date(g.termsAcceptedAt).toLocaleDateString()}` : '';
+    const detailsLine = `${escapeHtml(meta)} · ${contactState} · ${emailState}${noteState}${termsState}`;
     // A guide Melvin disabled on purpose already has its details memorized
     // from when it was added, so the old shorthand "disabled" was enough. A
     // brand-new application is the opposite -- this is the first time

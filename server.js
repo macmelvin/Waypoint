@@ -1026,6 +1026,14 @@ app.post('/api/guide-apply', (req, res) => {
   // rather than a bare name + checkbox list.
   const note = (req.body?.note || '').trim();
   if (!note) return res.status(400).json({ error: 'tell us a bit about yourself' });
+  // The 10%-share/biweekly-invoice/QR-payment terms shown on the form --
+  // checked server-side too (not just the checkbox being required in the
+  // UI), since this is a real commercial condition of listing, not just a
+  // UX nicety. termsAcceptedAt is the actual record of consent: stored
+  // once at submission and never overwritten by a later edit, so there's a
+  // timestamped record of when each guide agreed, independent of whatever
+  // the terms text says today.
+  if (req.body?.agreedToTerms !== true) return res.status(400).json({ error: 'you must agree to the payment terms to apply' });
   const languages = Array.isArray(req.body?.languages)
     ? req.body.languages.map((l) => String(l).trim()).filter(Boolean)
     : String(req.body?.languages || '').split(',').map((l) => l.trim()).filter(Boolean);
@@ -1041,6 +1049,7 @@ app.post('/api/guide-apply', (req, res) => {
     active: false,
     source: 'signup',
     note,
+    termsAcceptedAt: new Date().toISOString(),
     sample: false,
     pricePerAdult: Number(req.body?.pricePerAdult) > 0 ? Number(req.body.pricePerAdult) : ADULT_PRICE_SGD,
     landmarkPrices: {},

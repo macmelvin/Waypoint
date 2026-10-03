@@ -48,6 +48,11 @@
      present in the DOM/tab order for the simplest scripted bots that fill
      in every input they find. See the companyWebsite check server-side. */
   .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .terms-box { margin-top: 14px; padding: 14px; border: 1px solid #E6DDCB; border-radius: 10px; background: #FBF8F7; }
+  .terms-qr { display: block; width: 160px; height: 160px; object-fit: contain; margin: 8px auto 10px; background: #fff; border: 1px solid #E6DDCB; border-radius: 8px; padding: 8px; }
+  .terms-text { font-size: 13px; color: #1F2A2E; line-height: 1.5; margin: 0 0 12px; }
+  .terms-check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .terms-check input { margin-top: 2px; flex: 0 0 auto; }
 </style>
 </head>
 <body>
@@ -96,6 +101,16 @@
       <div class="hp" aria-hidden="true">
         <label for="companyWebsite">Leave this field blank</label>
         <input type="text" id="companyWebsite" name="companyWebsite" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="terms-box">
+        <div class="field-label" style="margin-top:0">Payment terms</div>
+        <img class="terms-qr" src="/images/guide-payment-qr.jpg" alt="Payment QR code">
+        <p class="terms-text">By applying, you agree to a 10% revenue share on tours booked through Waypoint. A biweekly invoice will be sent to you for what's owed, payable by scanning the QR code above.</p>
+        <label class="terms-check">
+          <input type="checkbox" id="agreeTermsInput">
+          <span>I agree to these terms</span>
+        </label>
       </div>
 
       <button class="primary" id="submitBtn" onclick="submitApplication()">Apply to be listed</button>
@@ -156,6 +171,7 @@ async function submitApplication() {
   const email = document.getElementById('emailInput').value.trim();
   const pricePerAdult = document.getElementById('priceInput').value.trim();
   const note = document.getElementById('noteInput').value.trim();
+  const agreedToTerms = document.getElementById('agreeTermsInput').checked;
   const companyWebsite = document.getElementById('companyWebsite').value;
 
   if (!name) { errorEl.textContent = 'Your name is required.'; return; }
@@ -163,6 +179,7 @@ async function submitApplication() {
   if (!landmarks.length) { errorEl.textContent = 'Pick at least one neighbourhood/landmark.'; return; }
   if (!whatsapp) { errorEl.textContent = 'A WhatsApp number is required.'; return; }
   if (!note) { errorEl.textContent = 'Please tell us a bit about yourself.'; return; }
+  if (!agreedToTerms) { errorEl.textContent = 'Please agree to the payment terms before applying.'; return; }
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
@@ -170,7 +187,7 @@ async function submitApplication() {
     const res = await fetch('/api/guide-apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, specialty, landmarks, languages, whatsapp, email, pricePerAdult, note, companyWebsite }),
+      body: JSON.stringify({ name, specialty, landmarks, languages, whatsapp, email, pricePerAdult, note, agreedToTerms, companyWebsite }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
