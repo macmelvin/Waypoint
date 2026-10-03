@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waypoint — Become a Guide</title>
+<style>
+  /* Same light palette as guide-booking.html, for visual consistency across
+     the app's visitor/guide-facing standalone pages (admin.html is the only
+     dark-themed one, since that's Melvin's own internal tool). */
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, sans-serif;
+    background: #FBF8F7; color: #1F2A2E; padding: 20px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; color: #1B3A4B; }
+  .sub { color: #5C6A70; font-size: 14px; margin: 0 0 16px; line-height: 1.5; }
+  .card {
+    background: #fff; border: 1px solid #E6DDCB; border-radius: 14px;
+    padding: 18px; margin-bottom: 14px;
+  }
+  .benefit { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; line-height: 1.4; }
+  .benefit:last-child { margin-bottom: 0; }
+  .benefit-icon { flex: 0 0 auto; font-size: 18px; }
+  label.field-label { display: block; font-size: 12px; font-weight: 600; color: #5C6A70; margin: 14px 0 6px; }
+  label.field-label:first-child { margin-top: 0; }
+  input[type=text], input[type=email], textarea {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #E6DDCB;
+    background: #fff; color: #1F2A2E; font-size: 14px; font-family: inherit;
+  }
+  .hint { font-size: 12px; color: #8A97A0; margin-top: 4px; }
+  #landmarkChecks { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  #landmarkChecks label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  button.primary {
+    width: 100%; padding: 14px; border-radius: 10px; background: #1B3A4B; color: #FBF8F7;
+    font-size: 15px; font-weight: 600; border: none; cursor: pointer; margin-top: 16px;
+  }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  #error { color: #b91c1c; font-size: 13px; margin-top: 8px; }
+  .confirm-box { text-align: center; padding: 30px 20px; }
+  .confirm-icon { font-size: 36px; }
+  /* Honeypot -- hidden from real visitors (and screen readers), but still
+     present in the DOM/tab order for the simplest scripted bots that fill
+     in every input they find. See the companyWebsite check server-side. */
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="formView">
+    <h1>Become a Waypoint Guide</h1>
+    <p class="sub"><a href="/" style="color:#C0783C">Waypoint</a> is a free, no-download map &amp; travel app tourists use to get around Singapore. Get listed and visitors see your profile right on the spot when they're deciding whether to book a walk.</p>
+
+    <div class="card">
+      <div class="benefit"><span class="benefit-icon">📍</span><span>Shown directly on the neighbourhood/landmark page a tourist is already looking at -- the exact moment they're deciding whether to book.</span></div>
+      <div class="benefit"><span class="benefit-icon">💬</span><span>Enquiries go straight to your WhatsApp -- no commission, no middleman.</span></div>
+      <div class="benefit"><span class="benefit-icon">🎯</span><span>A free extra channel to reach visitors, on top of whatever else you're already doing.</span></div>
+    </div>
+
+    <div class="card">
+      <label class="field-label" for="nameInput">Your name</label>
+      <input type="text" id="nameInput" placeholder="e.g. Tan Mei Ling">
+
+      <label class="field-label" for="specialtyInput">Specialty (optional)</label>
+      <input type="text" id="specialtyInput" placeholder="e.g. Heritage & Colonial History">
+
+      <label class="field-label">Neighbourhoods / landmarks you guide</label>
+      <div id="landmarkChecks"><div class="hint">Loading…</div></div>
+
+      <label class="field-label" for="languagesInput">Languages</label>
+      <input type="text" id="languagesInput" placeholder="e.g. English, Mandarin">
+      <div class="hint">Comma separated</div>
+
+      <label class="field-label" for="whatsappInput">WhatsApp number</label>
+      <input type="text" id="whatsappInput" placeholder="e.g. 91234567">
+      <div class="hint">This is how visitors (and Melvin) reach you -- required</div>
+
+      <label class="field-label" for="emailInput">Email (optional)</label>
+      <input type="email" id="emailInput" placeholder="you@example.com">
+
+      <label class="field-label" for="priceInput">Price per adult, SGD (optional)</label>
+      <input type="text" inputmode="decimal" id="priceInput" placeholder="Leave blank to use the standard rate">
+
+      <label class="field-label" for="noteInput">Tell us a bit about yourself (optional)</label>
+      <textarea id="noteInput" placeholder="Anything visitors should know about your walks" rows="3"></textarea>
+
+      <div class="hp" aria-hidden="true">
+        <label for="companyWebsite">Leave this field blank</label>
+        <input type="text" id="companyWebsite" name="companyWebsite" tabindex="-1" autocomplete="off">
+      </div>
+
+      <button class="primary" id="submitBtn" onclick="submitApplication()">Apply to be listed</button>
+      <div id="error"></div>
+    </div>
+  </div>
+
+  <div class="card confirm-box" id="confirmCard" style="display:none">
+    <div class="confirm-icon">✓</div>
+    <div style="font-weight:600;margin-top:8px">Application sent</div>
+    <div class="sub" style="margin-top:6px">Thanks! We'll review it and reach out on WhatsApp once your profile is live.</div>
+  </div>
+</div>
+
+<script>
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function loadLandmarks() {
+  const container = document.getElementById('landmarkChecks');
+  try {
+    const res = await fetch('/api/guide-landmarks');
+    const { landmarks } = await res.json();
+    const entries = Object.entries(landmarks || {});
+    if (!entries.length) { container.innerHTML = '<div class="hint">Could not load the list -- please try again shortly.</div>'; return; }
+    container.innerHTML = entries.map(([key, label]) => `
+      <label><input type="checkbox" class="landmark-check" value="${key}"><span>${escapeHtml(label)}</span></label>`).join('');
+  } catch (err) {
+    container.innerHTML = '<div class="hint">Could not load the list -- please try again shortly.</div>';
+  }
+}
+
+async function submitApplication() {
+  const errorEl = document.getElementById('error');
+  errorEl.textContent = '';
+  const name = document.getElementById('nameInput').value.trim();
+  const specialty = document.getElementById('specialtyInput').value.trim();
+  const landmarks = Array.from(document.querySelectorAll('.landmark-check:checked')).map((cb) => cb.value);
+  const languages = document.getElementById('languagesInput').value.trim();
+  const whatsapp = document.getElementById('whatsappInput').value.trim();
+  const email = document.getElementById('emailInput').value.trim();
+  const pricePerAdult = document.getElementById('priceInput').value.trim();
+  const note = document.getElementById('noteInput').value.trim();
+  const companyWebsite = document.getElementById('companyWebsite').value;
+
+  if (!name) { errorEl.textContent = 'Your name is required.'; return; }
+  if (!landmarks.length) { errorEl.textContent = 'Pick at least one neighbourhood/landmark.'; return; }
+  if (!whatsapp) { errorEl.textContent = 'A WhatsApp number is required.'; return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/guide-apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, specialty, landmarks, languages, whatsapp, email, pricePerAdult, note, companyWebsite }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errorEl.textContent = body.error || `HTTP ${res.status}`;
+      btn.disabled = false;
+      return;
+    }
+    document.getElementById('formView').style.display = 'none';
+    document.getElementById('confirmCard').style.display = 'block';
+  } catch (err) {
+    errorEl.textContent = 'Something went wrong -- please try again.';
+    btn.disabled = false;
+  }
+}
+
+loadLandmarks();
+</script>
+</body>
+</html>

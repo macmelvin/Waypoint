@@ -321,13 +321,26 @@ function renderGuides(guides) {
     const priceLabel = g.pricePerAdult != null ? `default S$${Number(g.pricePerAdult).toFixed(2)}/adult` : '';
     const meta = [g.specialty, (g.languages || []).join('/'), landmarkLabels, priceLabel].filter(Boolean).join(' · ');
     const sampleBadge = g.sample ? '<span class="new-visitor-badge" style="background:#7c3aed">sample</span>' : '';
+    // Self-submitted via guide-apply.html (see /api/guide-apply) always land
+    // inactive -- this badge is what makes a brand-new application visible
+    // at a glance in a list that's otherwise sorted newest-first anyway.
+    const applicationBadge = g.source === 'signup' ? '<span class="new-visitor-badge" style="background:#0ea5e9">application</span>' : '';
     const contactState = g.whatsapp ? `WhatsApp on file` : '<span style="color:#f87171">no WhatsApp number yet</span>';
     const emailState = g.email ? `email on file` : '<span style="color:#f87171">no email -- won\'t get invoice reminders</span>';
+    const noteState = g.note ? ` · "${escapeHtml(g.note)}"` : '';
+    const detailsLine = `${escapeHtml(meta)} · ${contactState} · ${emailState}${noteState}`;
+    // A guide Melvin disabled on purpose already has its details memorized
+    // from when it was added, so the old shorthand "disabled" was enough. A
+    // brand-new application is the opposite -- this is the first time
+    // Melvin is seeing these details, and they're exactly what's needed to
+    // decide whether to approve it, so keep showing them while inactive
+    // instead of collapsing to "disabled".
+    const metaLine = g.active ? detailsLine : (g.source === 'signup' ? `${detailsLine} · awaiting review` : 'disabled');
     return `
       <div class="invite">
         <div style="flex:1;min-width:0">
-          <div class="invite-name">${escapeHtml(g.name)} ${sampleBadge}</div>
-          <div class="invite-meta ${g.active ? '' : 'revoked'}">${g.active ? `${escapeHtml(meta)} · ${contactState} · ${emailState}` : 'disabled'}</div>
+          <div class="invite-name">${escapeHtml(g.name)} ${sampleBadge}${applicationBadge}</div>
+          <div class="invite-meta ${g.active ? '' : 'revoked'}">${metaLine}</div>
         </div>
         <div class="invite-actions">
           <button class="secondary" onclick="editGuide('${g.id}')">Edit</button>

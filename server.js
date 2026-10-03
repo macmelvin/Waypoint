@@ -699,7 +699,11 @@ function parseCookies(req) {
   return out;
 }
 
-const GATE_EXEMPT_PREFIXES = ['/admin', '/api/admin', '/privacy.html', '/.well-known'];
+// /guide-apply.html + its two endpoints are exempt for the opposite reason
+// everything else here is exempt: this page's whole purpose is to let a
+// tour guide who has never heard of Waypoint reach it from a cold WhatsApp
+// message and apply -- gating it behind an invite link would defeat it.
+const GATE_EXEMPT_PREFIXES = ['/admin', '/api/admin', '/privacy.html', '/.well-known', '/guide-apply.html', '/api/guide-apply', '/api/guide-landmarks'];
 
 function inviteGate(req, res, next) {
   if (GATE_EXEMPT_PREFIXES.some((p) => req.path === p || req.path.startsWith(p + '/') || req.path.startsWith(p))) {
@@ -885,6 +889,15 @@ app.get('/api/admin/guide-landmarks', requireAdmin, (req, res) => {
   res.json({ landmarks: GUIDE_LANDMARKS });
 });
 
+// Unauthenticated twin of the admin endpoint above -- guide-apply.html (the
+// public "become a guide" form) needs to render the same landmark checkbox
+// list without an admin secret. Same data either way (these are just place
+// names, not sensitive), so this just skips requireAdmin rather than
+// duplicating GUIDE_LANDMARKS.
+app.get('/api/guide-landmarks', (req, res) => {
+  res.json({ landmarks: GUIDE_LANDMARKS });
+});
+
 app.get('/api/admin/guides', requireAdmin, (req, res) => {
   res.json({ guides });
 });
@@ -949,6 +962,79 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
   guides.push(guide);
   saveGuides();
   res.json({ guide });
+});
+
+// ---- Public "become a guide" application (guide-apply.html) -----------------
+// Anyone can submit this -- no admin secret -- so it's deliberately more
+// conservative than the admin-authenticated POST above:
+//   - always created with active:false and verified:false, regardless of
+//     what's in the request body, so a submission never appears live on the
+//     Guided Walk tab until Melvin reviews it in /admin and hits "Enable".
+//   - sample is always false (that flag is for Waypoint's own seeded demo
+//     profiles, not something a real applicant should be able to set).
+//   - source:'signup' marks it as self-submitted so admin.html can badge it
+//     distinctly from a guide Melvin typed in directly.
+//   - no landmarkPrices from the public form -- keep the form short; admin
+//     can set per-landmark pricing later via Edit if needed.
+//   - a hidden honeypot field (companyWebsite) catches the simplest bots:
+//     real applicants never see or fill it (it's visually hidden in the
+//     form), so anything posted there means it's spam -- reject it as if
+//     the request succeeded (200) rather than erroring, so a bot's script
+//     doesn't learn anything from the response and just move on.
+app.post('/api/guide-apply', (req, res) => {
+  if ((req.body?.companyWebsite || '').trim()) {
+    return res.json({ ok: true }); // honeypot tripped -- silently drop
+  }
+  const name = (req.body?.name || '').trim();
+  const specialty = (req.body?.specialty || '').trim();
+  const landmarks = Array.isArray(req.body?.landmarks) ? req.body.landmarks.filter((k) => GUIDE_LANDMARKS[k]) : [];
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  if (!landmarks.length) return res.status(400).json({ error: 'pick at least one neighbourhood/landmark' });
+  const whatsapp = (req.body?.whatsapp || '').replace(/[^0-9]/g, '');
+  if (!whatsapp) return res.status(400).json({ error: 'a WhatsApp number is required so we can reach you' });
+  const emailResult = sanitizeGuideEmail(req.body?.email, res);
+  if (!emailResult) return; // sanitizeGuideEmail already sent the 400
+  const languages = Array.isArray(req.body?.languages)
+    ? req.body.languages.map((l) => String(l).trim()).filter(Boolean)
+    : String(req.body?.languages || '').split(',').map((l) => l.trim()).filter(Boolean);
+  const guide = {
+    id: crypto.randomUUID(),
+    name,
+    specialty,
+    languages,
+    landmarks,
+    whatsapp,
+    email: emailResult.email,
+    verified: false,
+    active: false,
+    source: 'signup',
+    note: (req.body?.note || '').trim(),
+    sample: false,
+    pricePerAdult: Number(req.body?.pricePerAdult) > 0 ? Number(req.body.pricePerAdult) : ADULT_PRICE_SGD,
+    landmarkPrices: {},
+    accessToken: crypto.randomUUID(),
+    availability: DEFAULT_GUIDE_AVAILABILITY,
+    createdAt: new Date().toISOString(),
+  };
+  guides.push(guide);
+  saveGuides();
+  res.json({ ok: true });
+
+  // Fire-and-forget, same pattern as the booking alerts below -- both
+  // helpers already swallow their own errors, so a notification failure (or
+  // nobody having push enabled / Resend configured) never affects the
+  // application itself.
+  const summary = `${name} · ${landmarks.map((k) => GUIDE_LANDMARKS[k] || k).join(', ')}${specialty ? ` · ${specialty}` : ''}`;
+  sendAdminPush({
+    title: 'New guide application',
+    body: summary,
+    url: '/admin.html',
+  });
+  sendAdminBookingEmail({
+    subject: `New guide application: ${name}`,
+    text: `${summary}\n\nOpen the admin panel to review and enable: /admin.html`,
+    html: `<div style="font-family:sans-serif"><p><strong>New guide application</strong></p><p>${escapeEmailHtml(summary)}</p><p><a href="https://waypoint-production-0307.up.railway.app/admin.html">Open admin panel</a></p></div>`,
+  });
 });
 
 app.put('/api/admin/guides/:id', requireAdmin, (req, res) => {
