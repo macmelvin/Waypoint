@@ -390,6 +390,24 @@ const GUIDE_LANDMARKS = {
   fortcanning: 'Fort Canning Park',
 };
 
+// Fixed options for guide-apply.html's Specialty dropdown (and validated
+// server-side in /api/guide-apply below, same pattern as GUIDE_LANDMARKS) --
+// a plain array rather than a key/label map since the option text itself is
+// the stored value, there's no separate internal key for it the way
+// landmarks have one.
+const GUIDE_SPECIALTIES = [
+  'Heritage & Colonial History',
+  'Peranakan Culture',
+  'Nature & Botanic Trails',
+  'Food & Hawker Culture',
+  'War History & WWII',
+  'Arts, Museums & Architecture',
+  'Religious & Cultural Sites',
+  'Family-Friendly Tours',
+  'Photography Tours',
+  'Other',
+];
+
 // Seeds the feature with a few example profiles the first time it runs (no
 // /data/guides.json yet) so there's something to look at before any real
 // STGS guide has been added from /admin. Each is flagged sample:true and
@@ -703,7 +721,7 @@ function parseCookies(req) {
 // everything else here is exempt: this page's whole purpose is to let a
 // tour guide who has never heard of Waypoint reach it from a cold WhatsApp
 // message and apply -- gating it behind an invite link would defeat it.
-const GATE_EXEMPT_PREFIXES = ['/admin', '/api/admin', '/privacy.html', '/.well-known', '/guide-apply.html', '/api/guide-apply', '/api/guide-landmarks'];
+const GATE_EXEMPT_PREFIXES = ['/admin', '/api/admin', '/privacy.html', '/.well-known', '/guide-apply.html', '/api/guide-apply', '/api/guide-landmarks', '/api/guide-specialties'];
 
 function inviteGate(req, res, next) {
   if (GATE_EXEMPT_PREFIXES.some((p) => req.path === p || req.path.startsWith(p + '/') || req.path.startsWith(p))) {
@@ -898,6 +916,12 @@ app.get('/api/guide-landmarks', (req, res) => {
   res.json({ landmarks: GUIDE_LANDMARKS });
 });
 
+// Backs guide-apply.html's Specialty dropdown -- public/unauthenticated for
+// the same reason /api/guide-landmarks is.
+app.get('/api/guide-specialties', (req, res) => {
+  res.json({ specialties: GUIDE_SPECIALTIES });
+});
+
 app.get('/api/admin/guides', requireAdmin, (req, res) => {
   res.json({ guides });
 });
@@ -989,11 +1013,19 @@ app.post('/api/guide-apply', (req, res) => {
   const specialty = (req.body?.specialty || '').trim();
   const landmarks = Array.isArray(req.body?.landmarks) ? req.body.landmarks.filter((k) => GUIDE_LANDMARKS[k]) : [];
   if (!name) return res.status(400).json({ error: 'name is required' });
+  if (!GUIDE_SPECIALTIES.includes(specialty)) return res.status(400).json({ error: 'pick a specialty from the list' });
   if (!landmarks.length) return res.status(400).json({ error: 'pick at least one neighbourhood/landmark' });
   const whatsapp = (req.body?.whatsapp || '').replace(/[^0-9]/g, '');
   if (!whatsapp) return res.status(400).json({ error: 'a WhatsApp number is required so we can reach you' });
   const emailResult = sanitizeGuideEmail(req.body?.email, res);
   if (!emailResult) return; // sanitizeGuideEmail already sent the 400
+  // "Tell us a bit about yourself" is the applicant's own pitch -- shown to
+  // Melvin in the admin review list (see the noteState line there) and, once
+  // approved, as the guide's curated preview on the place card. Required so
+  // every application actually has something for Melvin to judge it by,
+  // rather than a bare name + checkbox list.
+  const note = (req.body?.note || '').trim();
+  if (!note) return res.status(400).json({ error: 'tell us a bit about yourself' });
   const languages = Array.isArray(req.body?.languages)
     ? req.body.languages.map((l) => String(l).trim()).filter(Boolean)
     : String(req.body?.languages || '').split(',').map((l) => l.trim()).filter(Boolean);
@@ -1008,7 +1040,7 @@ app.post('/api/guide-apply', (req, res) => {
     verified: false,
     active: false,
     source: 'signup',
-    note: (req.body?.note || '').trim(),
+    note,
     sample: false,
     pricePerAdult: Number(req.body?.pricePerAdult) > 0 ? Number(req.body.pricePerAdult) : ADULT_PRICE_SGD,
     landmarkPrices: {},

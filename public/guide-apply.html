@@ -26,11 +26,14 @@
   .benefit-icon { flex: 0 0 auto; font-size: 18px; }
   label.field-label { display: block; font-size: 12px; font-weight: 600; color: #5C6A70; margin: 14px 0 6px; }
   label.field-label:first-child { margin-top: 0; }
-  input[type=text], input[type=email], textarea {
+  input[type=text], input[type=email], textarea, select {
     width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #E6DDCB;
     background: #fff; color: #1F2A2E; font-size: 14px; font-family: inherit;
   }
-  .hint { font-size: 12px; color: #8A97A0; margin-top: 4px; }
+  select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%235C6A70'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 28px; }
+  select:invalid { color: #8A97A0; }
+  .hint { font-size: 12px; color: #8A97A0; margin-top: 4px; line-height: 1.5; }
+  .example-quote { font-size: 12px; color: #5C6A70; font-style: italic; margin-top: 4px; margin-bottom: 6px; line-height: 1.5; border-left: 2px solid #E6DDCB; padding-left: 10px; }
   #landmarkChecks { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
   #landmarkChecks label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
   button.primary {
@@ -63,8 +66,10 @@
       <label class="field-label" for="nameInput">Your name</label>
       <input type="text" id="nameInput" placeholder="e.g. Tan Mei Ling">
 
-      <label class="field-label" for="specialtyInput">Specialty (optional)</label>
-      <input type="text" id="specialtyInput" placeholder="e.g. Heritage & Colonial History">
+      <label class="field-label" for="specialtyInput">Specialty</label>
+      <select id="specialtyInput" required>
+        <option value="" selected disabled>Select a specialty…</option>
+      </select>
 
       <label class="field-label">Neighbourhoods / landmarks you guide</label>
       <div id="landmarkChecks"><div class="hint">Loading…</div></div>
@@ -83,8 +88,10 @@
       <label class="field-label" for="priceInput">Price per adult, SGD (optional)</label>
       <input type="text" inputmode="decimal" id="priceInput" placeholder="Leave blank to use the standard rate">
 
-      <label class="field-label" for="noteInput">Tell us a bit about yourself (optional)</label>
-      <textarea id="noteInput" placeholder="Anything visitors should know about your walks" rows="3"></textarea>
+      <label class="field-label" for="noteInput">Tell us a bit about yourself</label>
+      <div class="hint">Paint a picture of what a walk with you feels like -- this becomes your curated preview on the app. For example:</div>
+      <div class="example-quote">"The Singapore river is a wonderful dreamy place with fabled landscape of the Fullerton Hotel in the backdrop.<br><br>Taking a time travelling delorean into the past cannot compare to walking by foot around the civic district.<br><br>The sounds of a symphony orchestra (SSO) beckons us into the Victoria Theatre and Concert Hall (VTCH) to experience a grand reopening of the place in 1958, and then again in 2014."</div>
+      <textarea id="noteInput" placeholder="Share a story or scene from one of your own walks" rows="5" required></textarea>
 
       <div class="hp" aria-hidden="true">
         <label for="companyWebsite">Leave this field blank</label>
@@ -122,6 +129,22 @@ async function loadLandmarks() {
   }
 }
 
+async function loadSpecialties() {
+  const select = document.getElementById('specialtyInput');
+  try {
+    const res = await fetch('/api/guide-specialties');
+    const { specialties } = await res.json();
+    (specialties || []).forEach((s) => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    select.insertAdjacentHTML('afterend', '<div class="hint">Could not load the list -- please try again shortly.</div>');
+  }
+}
+
 async function submitApplication() {
   const errorEl = document.getElementById('error');
   errorEl.textContent = '';
@@ -136,8 +159,10 @@ async function submitApplication() {
   const companyWebsite = document.getElementById('companyWebsite').value;
 
   if (!name) { errorEl.textContent = 'Your name is required.'; return; }
+  if (!specialty) { errorEl.textContent = 'Please select a specialty.'; return; }
   if (!landmarks.length) { errorEl.textContent = 'Pick at least one neighbourhood/landmark.'; return; }
   if (!whatsapp) { errorEl.textContent = 'A WhatsApp number is required.'; return; }
+  if (!note) { errorEl.textContent = 'Please tell us a bit about yourself.'; return; }
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
@@ -162,6 +187,7 @@ async function submitApplication() {
 }
 
 loadLandmarks();
+loadSpecialties();
 </script>
 </body>
 </html>
