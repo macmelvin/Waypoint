@@ -84,13 +84,13 @@ async function fetchInvoiceSummary(since) {
 
 function buildAdminSummaryEmail(guidesOwed, windowLabel) {
   const total = guidesOwed.reduce((sum, g) => sum + g.shareOwed, 0);
-  const subject = `Waypoint: ${guidesOwed.length} guide${guidesOwed.length === 1 ? '' : 's'} owe S$${total.toFixed(2)} STGS share — ${windowLabel}`;
+  const subject = `Waypoint: ${guidesOwed.length} guide${guidesOwed.length === 1 ? '' : 's'} owe S$${total.toFixed(2)} revenue share — ${windowLabel}`;
 
   const rowsText = guidesOwed
     .map((g) => `  ${g.name.padEnd(20)} ${g.bookings} booking${g.bookings === 1 ? '' : 's'}  S$${g.paidTotal.toFixed(2)} collected  S$${g.shareOwed.toFixed(2)} owed`)
     .join('\n');
   const text = `Guide invoice summary for ${windowLabel}\n\n${rowsText}\n\n`
-    + `Total STGS share owed: S$${total.toFixed(2)}\n\n`
+    + `Total revenue share owed: S$${total.toFixed(2)}\n\n`
     + `Head to the "Guide invoices" section in the admin panel to notify each guide on WhatsApp with one tap.`;
 
   const rowsHtml = guidesOwed
@@ -110,7 +110,7 @@ function buildAdminSummaryEmail(guidesOwed, windowLabel) {
         <tr style="color:#666;font-size:13px;"><td style="padding:4px 12px;">Guide</td><td style="padding:4px 12px;">Bookings</td><td style="padding:4px 12px;">Collected</td><td style="padding:4px 12px;">Share owed</td></tr>
         ${rowsHtml}
       </table>
-      <p style="margin-top:16px;font-weight:600;">Total STGS share owed: S$${total.toFixed(2)}</p>
+      <p style="margin-top:16px;font-weight:600;">Total revenue share owed: S$${total.toFixed(2)}</p>
       <p style="color:#666;">Head to the "Guide invoices" section in the admin panel to notify each guide on WhatsApp with one tap.</p>
     </div>
   `;
@@ -145,7 +145,7 @@ async function main() {
   const guidesOwed = (summary.guides || []).filter((g) => g.shareOwed > 0);
 
   if (!guidesOwed.length) {
-    console.log('No guide has an outstanding STGS share this period -- nothing to send.');
+    console.log('No guide has an outstanding revenue share this period -- nothing to send.');
     return;
   }
 
