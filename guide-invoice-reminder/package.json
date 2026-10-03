@@ -1,6 +1,6 @@
 {
   "name": "guide-invoice-reminder",
-  "description": "Biweekly reminder emailed to each Waypoint tour guide who has an outstanding STGS revenue share, pulled from the main Waypoint app's admin API and sent via the Resend HTTPS API (Railway blocks outbound SMTP on non-Pro plans). Runs once per Railway Cron Schedule trigger, then exits.",
+  "description": "Biweekly reminder emailed to each Waypoint tour guide who has an outstanding revenue share, pulled from the main Waypoint app's admin API and sent via the Resend HTTPS API (Railway blocks outbound SMTP on non-Pro plans). Runs once per Railway Cron Schedule trigger, then exits.",
   "version": "1.0.0",
   "private": true,
   "main": "index.js",

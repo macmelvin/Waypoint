@@ -1122,7 +1122,7 @@ a:active {
 }
 .attraction-coverage-tip strong { font-weight: 700; color: var(--accent); }
 
-/* ---- Certified guides on the place card (STGS pilot) ---- */
+/* ---- Certified guides on the place card ---- */
 .attraction-guides { margin-top: 12px; }
 .attraction-guides h4 {
   margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--muted);

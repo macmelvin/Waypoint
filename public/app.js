@@ -467,7 +467,7 @@ async function walkingRouteTo(fromLat, fromLon, toLat, toLon) {
 // and -- where the guide has a WhatsApp number on file -- a "Message on
 // WhatsApp" button that pre-fills an enquiry (feature: direct booking, as
 // an enquiry-to-book MVP rather than a live calendar). Sample profiles
-// (seeded before any real STGS guide is added) have no WhatsApp number, so
+// (seeded before any real guide is added) have no WhatsApp number, so
 // that button just doesn't render for them.
 //
 // Extracted out of loadAttractionInfo() below so it's a plain, reusable
@@ -516,7 +516,7 @@ async function loadAttractionInfo(r) {
 
   const nearby = nearbyAttractions(key, entry.lat, entry.lon);
 
-  // Certified STGS guides tagged to this landmark (see /api/guides-for-landmark
+  // Certified guides tagged to this landmark (see /api/guides-for-landmark
   // in server.js) -- fetched alongside the MRT/LRT lookup below so both are
   // ready by the time the card renders. Fails soft to an empty list: a guide
   // fetch problem shouldn't block the rest of the place card from showing.

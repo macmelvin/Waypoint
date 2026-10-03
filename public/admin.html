@@ -671,9 +671,9 @@ async function loadGuideBookings() {
   }
 }
 
-// ---- Date-range filtering for the STGS revenue-share report ----------------
+// ---- Date-range filtering for the revenue-share report ----------------
 // Filters by the tour's own date (b.date), not when payment was recorded --
-// "how much did tours between these dates bring in", which is what STGS
+// "how much did tours between these dates bring in", which is what
 // reporting periods usually mean.
 function getBookingDateRange() {
   const fromEl = document.getElementById('bookingFromDate');
@@ -1002,7 +1002,7 @@ async function recordPayment(id) {
   }
 }
 
-// ---- Guide invoices (biweekly STGS share owed) -----------------------------
+// ---- Guide invoices (biweekly revenue share owed) --------------------------
 // Mirrors the numbers the guide-invoice-reminder cron's admin summary email
 // already shows you -- this view lets you act on them by notifying each
 // guide on WhatsApp with one tap, since that cron can't email a guide

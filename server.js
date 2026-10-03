@@ -348,9 +348,9 @@ function savePartners() {
 
 let partners = loadPartners();
 
-// ---- Tourist guide directory (STGS pilot) -----------------------------------
-// Curated list of certified Society of Tourist Guides (Singapore) guides,
-// each tagged to one or more of Waypoint's existing LANDMARKS (see
+// ---- Tourist guide directory --------------------------------------------
+// Curated list of certified tourist guides, each tagged to one or more of
+// Waypoint's existing LANDMARKS (see
 // GUIDE_LANDMARKS below -- the subset of app.js's LANDMARKS that make sense
 // for a guided walk). Same persisted-JSON-on-the-Railway-Volume pattern as
 // partners above, managed from /admin rather than requiring a redeploy to
@@ -410,7 +410,7 @@ const GUIDE_SPECIALTIES = [
 
 // Seeds the feature with a few example profiles the first time it runs (no
 // /data/guides.json yet) so there's something to look at before any real
-// STGS guide has been added from /admin. Each is flagged sample:true and
+// guide has been added from /admin. Each is flagged sample:true and
 // ships with no WhatsApp number, so the "Message on WhatsApp" button hides
 // itself client-side rather than pointing at a made-up contact. Replace or
 // remove these from /admin once real guides are added -- they're here so
@@ -522,7 +522,7 @@ function sanitizeLandmarkPrices(landmarkPrices, landmarks) {
   return out;
 }
 
-// ---- Guide booking calendar (STGS pilot) ------------------------------------
+// ---- Guide booking calendar --------------------------------------------
 // A guide's `availability` is a weekly recurring template: an array of
 // { day (0=Sun..6=Sat), start: "HH:MM", end: "HH:MM" }. A booking is always
 // for one real calendar date though -- /api/guides/:id/available-slots turns
@@ -531,7 +531,7 @@ function sanitizeLandmarkPrices(landmarkPrices, landmarks) {
 // requested slot "auto-block" for everyone else). Waypoint never touches
 // payment here -- an admin records what was actually paid, after the fact,
 // against `paymentAmount`, and `revenueShare` (10%) is computed from that at
-// record time for STGS invoicing.
+// record time for biweekly invoicing.
 const GUIDE_BOOKINGS_FILE = process.env.GUIDE_BOOKINGS_FILE || '/data/guide-bookings.json';
 const REVENUE_SHARE_RATE = 0.10;
 const BOOKING_LOOKAHEAD_DAYS = 14;
@@ -902,7 +902,7 @@ app.post('/api/admin/invites/revoke-all', requireAdmin, (req, res) => {
   res.json({ ok: true, revoked: count });
 });
 
-// ---- Tourist guide admin (STGS pilot) ---------------------------------------
+// ---- Tourist guide admin -------------------------------------------------
 app.get('/api/admin/guide-landmarks', requireAdmin, (req, res) => {
   res.json({ landmarks: GUIDE_LANDMARKS });
 });
@@ -933,7 +933,7 @@ app.get('/api/admin/guides', requireAdmin, (req, res) => {
 //
 // .normalize('NFKC') before validating: a CJK input method left in
 // "fullwidth" mode (common when typing bilingual EN/中文 text -- exactly
-// STGS's guide profiles) can produce a fullwidth "@" (U+FF20) or fullwidth
+// what some guide profiles use) can produce a fullwidth "@" (U+FF20) or fullwidth
 // "." (U+FF0E) instead of the plain ASCII character. Both render almost
 // identically to the real thing at normal UI text sizes, so a guide (or
 // Melvin, entering it on their behalf) can type what looks like a perfectly
@@ -1204,7 +1204,7 @@ app.post('/api/admin/guide-bookings/:id/status', requireAdmin, (req, res) => {
 
 // Records what was actually paid for a completed walk. This is the only
 // place a dollar amount enters the system -- Waypoint never charges a card,
-// an admin enters what the guide reports receiving, and the 10% STGS share
+// an admin enters what the guide reports receiving, and the 10% revenue share
 // is computed from that figure right here.
 app.post('/api/admin/guide-bookings/:id/payment', requireAdmin, (req, res) => {
   const b = guideBookings.find((x) => x.id === req.params.id);
@@ -1533,7 +1533,7 @@ function rotatedGuidesForLandmark(landmarkGuides, key) {
   return rotated;
 }
 
-// ---- Tourist guides for a landmark (STGS pilot) -----------------------------
+// ---- Tourist guides for a landmark ---------------------------------------
 // Public read of the curated guide list above, filtered to one GUIDE_LANDMARKS
 // key and stripped to only what the place card needs (no admin-only fields).
 app.get('/api/guides-for-landmark', (req, res) => {
@@ -1588,7 +1588,7 @@ app.post('/api/guides/:id/book', (req, res) => {
   if (!visitorName) return res.status(400).json({ error: 'name is required' });
   if (!visitorPhone) return res.status(400).json({ error: 'phone number is required' });
   // Adults (15+) are charged per head; children under 15 ride free -- this
-  // mirrors how STGS actually prices a walk, so the visitor sees a real
+  // mirrors how a real walk is actually priced, so the visitor sees a real
   // estimate before requesting, and the guide/admin see the same breakdown
   // later rather than a single opaque "party of N". ADULT_PRICE_SGD is
   // snapshotted onto the booking at request time, so a later rate change
