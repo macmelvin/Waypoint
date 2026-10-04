@@ -1089,7 +1089,8 @@ function buildGuideInvoiceNotifyLink(g, windowLabel) {
     + `Completed bookings: ${g.bookings}\n`
     + `Amount collected: S$${g.paidTotal.toFixed(2)}\n`
     + `Revenue share (10%) due: S$${g.shareOwed.toFixed(2)}\n\n`
-    + `Please arrange payment of the share above at your earliest convenience -- scan this PayNow QR for the exact amount (S$${g.shareOwed.toFixed(2)} pre-filled): ${qrUrl}\n\n`
+    + `Please arrange payment upon receiving this invoice -- scan this PayNow QR for the exact amount (S$${g.shareOwed.toFixed(2)} pre-filled): ${qrUrl}\n\n`
+    + `Once paid, please forward a screenshot of payment to +65 8887 7041.\n\n`
     + `Message us on WhatsApp if anything here looks off. Thanks for guiding with Waypoint!`;
   return `https://wa.me/65${digits}?text=${encodeURIComponent(msg)}`;
 }
