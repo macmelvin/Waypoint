@@ -1414,9 +1414,26 @@ function advanceMustEatPhoto(card) {
   const current = img.dataset.photoIndex ? parseInt(img.dataset.photoIndex, 10) : 0;
   const next = (current + 1) % photos.length;
   img.dataset.photoIndex = String(next);
+  delete img.dataset.retried; // allow a fresh retry-on-error for the new photo
   img.src = photos[next];
   return true;
 }
+// A photo occasionally fails to decode/load on some mobile browsers (seen on
+// iPad Safari/Chrome -- shows the browser's native broken-image glyph
+// instead of the dish photo) even though the file is fine and loads
+// perfectly on a second try moments later. Rather than leave that broken
+// icon on screen, retry once automatically with a cache-busting query param
+// (in case a flaky/odd cached response, not the real file, is what failed)
+// after a short delay. `data-retried` guards against looping forever if the
+// image is genuinely missing.
+document.querySelectorAll('.must-eat-preview').forEach((img) => {
+  img.addEventListener('error', () => {
+    if (img.dataset.retried) return;
+    img.dataset.retried = '1';
+    const base = img.src.split('?')[0];
+    setTimeout(() => { img.src = `${base}?retry=${Date.now()}`; }, 400);
+  });
+});
 const mustEatBackdrop = document.getElementById('mustEatBackdrop');
 function closeAllMustEatPreviews() {
   document.querySelectorAll('.must-eat-card.is-open').forEach((c) => c.classList.remove('is-open'));
