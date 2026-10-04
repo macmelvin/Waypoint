@@ -1419,21 +1419,29 @@ function advanceMustEatPhoto(card) {
   return true;
 }
 // A photo occasionally fails to decode/load on some mobile browsers (seen on
-// iPad Safari/Chrome -- shows the browser's native broken-image glyph
-// instead of the dish photo) even though the file is fine and loads
-// perfectly on a second try moments later. Rather than leave that broken
-// icon on screen, retry once automatically with a cache-busting query param
-// (in case a flaky/odd cached response, not the real file, is what failed)
-// after a short delay. `data-retried` guards against looping forever if the
-// image is genuinely missing.
-document.querySelectorAll('.must-eat-preview').forEach((img) => {
-  img.addEventListener('error', () => {
-    if (img.dataset.retried) return;
-    img.dataset.retried = '1';
-    const base = img.src.split('?')[0];
-    setTimeout(() => { img.src = `${base}?retry=${Date.now()}`; }, 400);
+// iPad -- shows the browser's native broken-image glyph instead of the
+// actual photo) even though the file is fine and loads perfectly on a
+// second try moments later. Rather than leave that broken icon on screen,
+// retry once automatically with a cache-busting query param (in case a
+// flaky/odd cached response, not the real file, is what failed) after a
+// short delay. `data-retried` guards against looping forever if a photo is
+// genuinely missing. Shared across all four photo-card blocks (Must-Eats,
+// Guided Walk, Tix & Tours, More Places) since they all hit the same class
+// of bug with the same fix -- confirmed on both Must-Eats and Guided Walk.
+function addPhotoRetryOnError(selector) {
+  document.querySelectorAll(selector).forEach((img) => {
+    img.addEventListener('error', () => {
+      if (img.dataset.retried) return;
+      img.dataset.retried = '1';
+      const base = img.src.split('?')[0];
+      setTimeout(() => { img.src = `${base}?retry=${Date.now()}`; }, 400);
+    });
   });
-});
+}
+addPhotoRetryOnError('.must-eat-preview');
+addPhotoRetryOnError('.guided-walk-preview');
+addPhotoRetryOnError('.ticket-preview');
+addPhotoRetryOnError('.places-preview');
 const mustEatBackdrop = document.getElementById('mustEatBackdrop');
 function closeAllMustEatPreviews() {
   document.querySelectorAll('.must-eat-card.is-open').forEach((c) => c.classList.remove('is-open'));
