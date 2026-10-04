@@ -115,6 +115,9 @@
         <input type="text" id="guideWhatsappInput" placeholder="WhatsApp number (e.g. 91234567)" style="margin-bottom:0">
       </div>
       <div class="row" style="margin-top:10px">
+        <input type="text" id="guideStbInput" placeholder="STB License number (e.g. 6902)" style="margin-bottom:0">
+      </div>
+      <div class="row" style="margin-top:10px">
         <input type="email" id="guideEmailInput" placeholder="Email (for the biweekly invoice reminder)" autocomplete="off" style="margin-bottom:0">
         <input type="text" inputmode="decimal" id="guidePriceInput" placeholder="Default price per adult, SGD (e.g. 20)" style="margin-bottom:0">
       </div>
@@ -381,6 +384,7 @@ function editGuide(id) {
   document.getElementById('guideSpecialtyInput').value = g.specialty || '';
   document.getElementById('guideLanguagesInput').value = (g.languages || []).join(', ');
   document.getElementById('guideWhatsappInput').value = g.whatsapp || '';
+  document.getElementById('guideStbInput').value = g.stbLicense || '';
   document.getElementById('guideEmailInput').value = g.email || '';
   document.getElementById('guidePriceInput').value = g.pricePerAdult != null ? g.pricePerAdult : '';
   document.getElementById('guideNoteInput').value = g.note || '';
@@ -401,6 +405,7 @@ function cancelEditGuide() {
   document.getElementById('guideSpecialtyInput').value = '';
   document.getElementById('guideLanguagesInput').value = '';
   document.getElementById('guideWhatsappInput').value = '';
+  document.getElementById('guideStbInput').value = '';
   document.getElementById('guideEmailInput').value = '';
   document.getElementById('guidePriceInput').value = '';
   document.getElementById('guideNoteInput').value = '';
@@ -432,6 +437,7 @@ async function createGuide() {
     specialty: specialtyInput.value.trim(),
     languages: languagesInput.value.split(',').map((l) => l.trim()).filter(Boolean),
     whatsapp: whatsappInput.value.trim(),
+    stbLicense: document.getElementById('guideStbInput').value.trim(),
     email: emailInput.value.trim(),
     pricePerAdult: priceInput.value.trim() ? Number(priceInput.value.trim()) : undefined,
     landmarkPrices,

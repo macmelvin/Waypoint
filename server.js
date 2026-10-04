@@ -972,6 +972,7 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
     languages,
     landmarks,
     whatsapp: (req.body?.whatsapp || '').replace(/[^0-9]/g, ''),
+    stbLicense: (req.body?.stbLicense || '').trim(),
     email: emailResult.email,
     verified: req.body?.verified !== false,
     active: true,
@@ -1102,6 +1103,7 @@ app.put('/api/admin/guides/:id', requireAdmin, (req, res) => {
   g.languages = languages;
   g.landmarks = landmarks;
   g.whatsapp = (req.body?.whatsapp || '').replace(/[^0-9]/g, '');
+  g.stbLicense = (req.body?.stbLicense || '').trim();
   g.email = emailResult.email;
   g.verified = req.body?.verified !== false;
   g.note = (req.body?.note || '').trim();
