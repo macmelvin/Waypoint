@@ -319,7 +319,8 @@ function renderGuides(guides) {
       .map((k) => `${guideLandmarks[k] || k}${landmarkPrices[k] != null ? ` (S$${Number(landmarkPrices[k]).toFixed(2)})` : ''}`)
       .join(', ');
     const priceLabel = g.pricePerAdult != null ? `default S$${Number(g.pricePerAdult).toFixed(2)}/adult` : '';
-    const meta = [g.specialty, (g.languages || []).join('/'), landmarkLabels, priceLabel].filter(Boolean).join(' · ');
+    const licenseLabel = g.stbLicense ? `STB ${g.stbLicense}` : '';
+    const meta = [g.specialty, licenseLabel, (g.languages || []).join('/'), landmarkLabels, priceLabel].filter(Boolean).join(' · ');
     const sampleBadge = g.sample ? '<span class="new-visitor-badge" style="background:#7c3aed">sample</span>' : '';
     // Self-submitted via guide-apply.html (see /api/guide-apply) always land
     // inactive -- this badge is what makes a brand-new application visible

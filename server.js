@@ -1014,6 +1014,12 @@ app.post('/api/guide-apply', (req, res) => {
   const landmarks = Array.isArray(req.body?.landmarks) ? req.body.landmarks.filter((k) => GUIDE_LANDMARKS[k]) : [];
   if (!name) return res.status(400).json({ error: 'name is required' });
   if (!GUIDE_SPECIALTIES.includes(specialty)) return res.status(400).json({ error: 'pick a specialty from the list' });
+  // Required so Melvin can actually verify a guide is licensed (STB = Singapore
+  // Tourism Board) before approving the application -- stored as free text
+  // rather than validated against any format, since it's just shown to Melvin
+  // for his own manual check, never re-parsed by the app.
+  const stbLicense = (req.body?.stbLicense || '').trim();
+  if (!stbLicense) return res.status(400).json({ error: 'your STB License number is required' });
   if (!landmarks.length) return res.status(400).json({ error: 'pick at least one neighbourhood/landmark' });
   const whatsapp = (req.body?.whatsapp || '').replace(/[^0-9]/g, '');
   if (!whatsapp) return res.status(400).json({ error: 'a WhatsApp number is required so we can reach you' });
@@ -1041,6 +1047,7 @@ app.post('/api/guide-apply', (req, res) => {
     id: crypto.randomUUID(),
     name,
     specialty,
+    stbLicense,
     languages,
     landmarks,
     whatsapp,

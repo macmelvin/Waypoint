@@ -76,6 +76,9 @@
         <option value="" selected disabled>Select a specialty…</option>
       </select>
 
+      <label class="field-label" for="stbLicenseInput">STB License number</label>
+      <input type="text" id="stbLicenseInput" placeholder="e.g. #6932" required>
+
       <label class="field-label">Neighbourhoods / landmarks you guide</label>
       <div id="landmarkChecks"><div class="hint">Loading…</div></div>
 
@@ -165,6 +168,7 @@ async function submitApplication() {
   errorEl.textContent = '';
   const name = document.getElementById('nameInput').value.trim();
   const specialty = document.getElementById('specialtyInput').value.trim();
+  const stbLicense = document.getElementById('stbLicenseInput').value.trim();
   const landmarks = Array.from(document.querySelectorAll('.landmark-check:checked')).map((cb) => cb.value);
   const languages = document.getElementById('languagesInput').value.trim();
   const whatsapp = document.getElementById('whatsappInput').value.trim();
@@ -176,6 +180,7 @@ async function submitApplication() {
 
   if (!name) { errorEl.textContent = 'Your name is required.'; return; }
   if (!specialty) { errorEl.textContent = 'Please select a specialty.'; return; }
+  if (!stbLicense) { errorEl.textContent = 'Your STB License number is required.'; return; }
   if (!landmarks.length) { errorEl.textContent = 'Pick at least one neighbourhood/landmark.'; return; }
   if (!whatsapp) { errorEl.textContent = 'A WhatsApp number is required.'; return; }
   if (!note) { errorEl.textContent = 'Please tell us a bit about yourself.'; return; }
@@ -187,7 +192,7 @@ async function submitApplication() {
     const res = await fetch('/api/guide-apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, specialty, landmarks, languages, whatsapp, email, pricePerAdult, note, agreedToTerms, companyWebsite }),
+      body: JSON.stringify({ name, specialty, stbLicense, landmarks, languages, whatsapp, email, pricePerAdult, note, agreedToTerms, companyWebsite }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
