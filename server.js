@@ -1552,6 +1552,10 @@ app.get('/api/guides-for-landmark', (req, res) => {
       id: g.id,
       name: g.name,
       specialty: g.specialty,
+      // Shown to visitors as a trust signal on the place card (Singapore
+      // Tourism Board license #), so this is meant to be public -- unlike
+      // most admin-only guide fields, it's deliberately included here.
+      stbLicense: g.stbLicense || '',
       languages: g.languages || [],
       verified: Boolean(g.verified),
       whatsapp: g.whatsapp || '',

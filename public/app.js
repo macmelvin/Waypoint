@@ -480,14 +480,19 @@ function renderGuidesSection(guideList, key) {
   return guideList.length
     ? `
       <div class="attraction-guides">
-        <h4>${t('attraction_guides_title')} <span class="attraction-guides-badge">Society of Tourist Guides</span></h4>
+        <h4>${t('attraction_guides_title')} <span class="attraction-guides-badge">Singapore Tourism Board</span></h4>
         ${guideList.map((g) => {
           const languages = (g.languages || []).join(', ');
+          // Each guide's own STB license # (not a single number in the shared
+          // header above) -- up to MAX_GUIDES_PER_LANDMARK guides can appear
+          // together under one landmark, each with a different license.
+          const stbLabel = g.stbLicense ? `<span class="attraction-guide-license">STB ${escapeHtml(g.stbLicense)}</span>` : '';
           return `
             <div class="attraction-guide-card">
               <div class="attraction-guide-head">
                 <span class="attraction-guide-name">${escapeHtml(g.name)}</span>
                 ${g.verified ? `<span class="attraction-guide-verified">✓ ${t('attraction_guide_verified')}</span>` : ''}
+                ${stbLabel}
               </div>
               ${g.specialty || languages ? `<div class="attraction-guide-meta">${escapeHtml([g.specialty, languages].filter(Boolean).join(' · '))}</div>` : ''}
               ${g.pricePerAdult != null ? `<div class="attraction-guide-price">S$${Number(g.pricePerAdult).toFixed(2)} / adult · children under 15 free</div>` : ''}
