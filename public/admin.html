@@ -35,12 +35,23 @@
   .invite {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 12px 0; border-bottom: 1px solid #334155;
+    flex-wrap: wrap;
   }
   .invite:last-child { border-bottom: none; }
   .invite-name { font-weight: 600; font-size: 15px; }
   .invite-meta { color: #94a3b8; font-size: 12px; margin-top: 2px; }
   .invite-meta.revoked { color: #f87171; }
-  .invite-actions { display: flex; gap: 6px; align-items: center; }
+  /* On a narrow screen, 4 guide-row buttons (Edit/Portal link/Disable/Delete)
+     don't fit beside the name+meta text. Without flex-wrap above, the row
+     refused to wrap at all and instead squeezed the text column down to
+     near-zero width, which forced every word of the name/meta line onto its
+     own line -- not a real line break, just severe wrapping from having only
+     a few px of width to work with. flex-wrap lets the actions drop to their
+     own row instead, so the text column keeps the full row width and wraps
+     normally (multiple words per line). flex-wrap on .invite-actions is the
+     same fix for the buttons themselves on very narrow screens, so they wrap
+     into two rows rather than overflowing. */
+  .invite-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .link-box {
     font-family: ui-monospace, monospace; font-size: 12px; color: #93c5fd;
     background: #0f172a; padding: 6px 8px; border-radius: 6px; word-break: break-all;
