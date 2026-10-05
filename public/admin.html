@@ -41,6 +41,7 @@
   .invite-name { font-weight: 600; font-size: 15px; }
   .invite-meta { color: #94a3b8; font-size: 12px; margin-top: 2px; }
   .invite-meta.revoked { color: #f87171; }
+  .invite-note { white-space: pre-line; margin-top: 4px; font-style: italic; }
   /* On a narrow screen, 4 guide-row buttons (Edit/Portal link/Disable/Delete)
      don't fit beside the name+meta text. Without flex-wrap above, the row
      refused to wrap at all and instead squeezed the text column down to
@@ -350,12 +351,21 @@ function renderGuides(guides) {
     const applicationBadge = g.source === 'signup' ? '<span class="new-visitor-badge" style="background:#0ea5e9">application</span>' : '';
     const contactState = g.whatsapp ? `WhatsApp on file` : '<span style="color:#f87171">no WhatsApp number yet</span>';
     const emailState = g.email ? `email on file` : '<span style="color:#f87171">no email -- won\'t get invoice reminders</span>';
-    const noteState = g.note ? ` · "${escapeHtml(g.note)}"` : '';
     // Only self-signups carry this -- a guide Melvin adds by hand agrees to
     // whatever was actually discussed, not the guide-apply.html terms text,
     // so there's nothing meaningful to timestamp there.
     const termsState = g.termsAcceptedAt ? ` · terms accepted ${new Date(g.termsAcceptedAt).toLocaleDateString()}` : '';
-    const detailsLine = `${escapeHtml(meta)} · ${contactState} · ${emailState}${noteState}${termsState}`;
+    const detailsLine = `${escapeHtml(meta)} · ${contactState} · ${emailState}${termsState}`;
+    // The curated note/tip is free text an applicant can write as multiple
+    // paragraphs (guide-apply.html's textarea). It used to be folded into
+    // detailsLine as one more " · "-joined segment, but that plain-text line
+    // has no white-space handling, so the browser collapsed every newline
+    // the applicant typed down to a single space -- the whole pitch came out
+    // as one run-on paragraph. Rendering it in its own block with
+    // white-space:pre-line (same treatment the public place-card note
+    // already gets -- see .attraction-guide-note in style.css) keeps the
+    // applicant's actual paragraph breaks.
+    const noteBlock = g.note ? `<div class="invite-meta invite-note">"${escapeHtml(g.note)}"</div>` : '';
     // A guide Melvin disabled on purpose already has its details memorized
     // from when it was added, so the old shorthand "disabled" was enough. A
     // brand-new application is the opposite -- this is the first time
@@ -368,6 +378,7 @@ function renderGuides(guides) {
         <div style="flex:1;min-width:0">
           <div class="invite-name">${escapeHtml(g.name)} ${sampleBadge}${applicationBadge}</div>
           <div class="invite-meta ${g.active ? '' : 'revoked'}">${metaLine}</div>
+          ${noteBlock}
         </div>
         <div class="invite-actions">
           <button class="secondary" onclick="editGuide('${g.id}')">Edit</button>
