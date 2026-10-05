@@ -1423,6 +1423,22 @@ document.querySelectorAll('.category-chip').forEach((btn) => {
   });
 });
 
+// Concerts show cards: the tour photo (and the rest of the card) should be
+// just as tappable as the little chip itself -- without this, only the
+// small icon+name pill at the bottom actually opened the ticket link, which
+// is an easy target to miss on a card whose photo takes up most of the
+// space. Delegates to the chip's own click handler (above) rather than
+// duplicating the BOOK_ONLINE_LINKS/LANDMARKS logic, so this stays correct
+// automatically if that logic ever changes. Skips re-firing when the click
+// already landed on the chip itself (that listener already ran).
+document.querySelectorAll('.concert-show-card').forEach((card) => {
+  card.addEventListener('click', (event) => {
+    if (event.target.closest('.category-chip')) return;
+    const chip = card.querySelector('.category-chip');
+    if (chip) chip.click();
+  });
+});
+
 // ---------- "4 Singapore Must-Eats" ----------
 // A fixed shortlist of iconically-Singaporean dishes, each pointing at one or
 // more curated landmarks known for it. Chicken Rice, Laksa and Chilli Crab

@@ -1229,6 +1229,10 @@ a:active {
   border-radius: var(--radius-md);
   background: var(--surface-elevated);
   overflow: hidden;
+  cursor: pointer; /* the whole card opens the ticket link, not just the chip */
+}
+@media (hover: hover) and (pointer: fine) {
+  .concert-show-card:hover { border-color: var(--accent); }
 }
 .concert-show-photo {
   width: 100%;
