@@ -1217,6 +1217,43 @@ a:active {
 .concert-show-row .category-chip-icon { font-size: 15px; height: auto; line-height: 1; }
 .concert-show-date { font-size: 11px; color: var(--muted); }
 
+/* Show rows with a tour photo (Melvin-supplied, from the show's own official
+   ticketing/promo listing) render as a small card -- photo on top, chip +
+   date below -- instead of the plain icon-pill layout above (still used for
+   "concert-show-list-tbd" entries with no photo yet, e.g. Jay Chou). */
+.concert-show-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  overflow: hidden;
+}
+.concert-show-photo {
+  width: 100%;
+  aspect-ratio: 2.3 / 1;
+  object-fit: cover;
+  display: block;
+  background: var(--surface-secondary);
+}
+.concert-show-card .concert-show-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+}
+/* The chip is already inside a bordered photo card, so drop its own
+   border/background/shadow here -- otherwise it reads as a card-in-a-card. */
+.concert-show-card .category-chip {
+  border: none;
+  background: none;
+  padding: 0;
+  box-shadow: none;
+  font-size: 12.5px;
+}
+
 /* ---- 5 Singapore Must-Eats ---- */
 .must-eats-section { margin: 4px 0 14px; }
 .must-eats-section.hidden { display: none; }
