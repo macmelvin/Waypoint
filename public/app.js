@@ -1209,14 +1209,30 @@ const TICKET_LINKS = {
 // a visitor can book (and often reuse an existing Hertz account/status) the
 // same way they would back home.
 //
+// "avengedsevenfold" through "jaychou" (9 keys below) used to be standalone
+// chips in the Book Online row. Melvin asked (5 Oct 2026) to fold all the
+// one-off concert chips into a single "Concerts" tab instead, grouped by
+// venue alongside that venue's transit guide (see index.html's
+// #concertsSection, where each show is a ".concert-show-row" -- a
+// ".category-chip" button carrying the data-category below, plus a plain
+// ".concert-show-date" span next to it that is NOT part of the chip's
+// translated label, so it survives language switches untouched). These
+// entries and their CHIP_I18N labels are otherwise unchanged -- the generic
+// .category-chip click handler and i18n machinery don't care where in the
+// DOM a chip lives. When a show's date passes, REMOVE: its entry here, its
+// CHIP_I18N entry, and its whole ".concert-show-row" div in index.html (its
+// parent ".concert-show-list" can stay empty-ish or be removed too if a
+// venue card ends up with no more upcoming shows -- the venue's transit
+// guide itself should stay, it's evergreen reference content independent of
+// any particular show).
+//
 // "avengedsevenfold" is a one-off, time-limited promo chip for a single
 // concert date (13 Oct 2026, Singapore Indoor Stadium -- Avenged Sevenfold's
 // Asia Tour 2026, opened by Nene Royal fresh off her America's Got Talent
 // Season 21 win) rather than an evergreen category. It links straight to the
 // event's own BookMyShow.sg page -- no affiliate deal, same reasoning as the
-// direct SISTIC link for Concerts. REMOVE THIS CHIP (and its CHIP_I18N entry
-// + index.html button) once 13 Oct 2026 has passed; it has no ongoing
-// relevance after the show.
+// direct SISTIC link for Concerts. REMOVE once 13 Oct 2026 has passed; it
+// has no ongoing relevance after the show.
 //
 // "gunsnroses" is the same kind of one-off promo chip as avengedsevenfold --
 // a single concert date (25 Nov 2026, Singapore National Stadium -- Guns N'
@@ -1226,9 +1242,8 @@ const TICKET_LINKS = {
 // Facebook-ad utm_source/utm_medium/utm_campaign/fbclid tracking params that
 // were on the URL Melvin supplied -- those tag a specific FB ad, not
 // Waypoint, so carrying them over would misattribute clicks from the app to
-// that ad campaign. REMOVE THIS CHIP (and its CHIP_I18N entry + index.html
-// button) once 25 Nov 2026 has passed; it has no ongoing relevance after the
-// show.
+// that ad campaign. REMOVE once 25 Nov 2026 has passed; it has no ongoing
+// relevance after the show.
 //
 // The next 7 ("bts" through "jaychou") are the same kind of one-off promo
 // chip, all big-demand touring acts Melvin asked to have added at once (Oct
@@ -1261,6 +1276,15 @@ const TICKET_LINKS = {
 //   - "jaychou": Jay Chou "Carnival II" World Tour 2027, 8-10 Jan 2027 (exact
 //     per-night venue split wasn't settled at announcement time). Ticketmaster
 //     SG. REMOVE once 10 Jan 2027 has passed.
+//
+// Venue transit guides (National Stadium, Singapore Indoor Stadium, The Star
+// Theatre) sourced from each venue's own official "getting here" page --
+// thekallang.com.sg for the two Sports Hub venues, thestar.sg for Buona
+// Vista -- plus mustsharenews.com for concert-specific crowd tips at
+// National Stadium. Last checked 5 Oct 2026; exact last-train times were
+// deliberately left out since they weren't confirmed on the official pages
+// and can change for big events -- the copy instead points to the SMRT app
+// / LTA MyTransport for same-day accuracy.
 //
 // "f1singapore", unlike avengedsevenfold, IS an evergreen category, not a
 // one-off -- the Singapore Grand Prix runs every year at Marina Bay Street
@@ -1367,6 +1391,12 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
     // them -- both live under the same "places" tab/group.
     const morePlacesCards = document.getElementById('morePlacesCards');
     if (morePlacesCards) morePlacesCards.classList.toggle('hidden', group !== 'places');
+    // Concerts is also its own tab/section -- all the one-off concert chips
+    // that used to sit in the Book Online row were folded in here, grouped
+    // by venue alongside that venue's transit guide, same reasoning as
+    // Must-Eats/Guided Walk/Tix & Tours above.
+    const concertsSection = document.getElementById('concertsSection');
+    if (concertsSection) concertsSection.classList.toggle('hidden', group !== 'concerts');
   });
 });
 
@@ -1683,10 +1713,10 @@ const I18N = {
     notify_title: 'Turn on train/traffic/haze alerts', where_am_i: 'Where am I',
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
-    category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online',
+    category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online', category_concerts: 'Concerts',
     must_eats_title: '🇸🇬 5 Singapore Must-Eats', find_nearby: '📍 Find nearby',
     guided_walk_title: '🚶 Self-Guided Walks', guided_walk_explore: '🧭 Explore',
-    tix_tours_title: '🎟️ Tix & Tours', places_explore: '🧭 Explore',
+    tix_tours_title: '🎟️ Tix & Tours', places_explore: '🧭 Explore', concerts_title: '🎤 Concerts',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
     hint_search: 'Try searching for a landmark, street, or postal code.',
@@ -1715,10 +1745,10 @@ const I18N = {
     notify_title: '开启地铁/交通/雾霾提醒', where_am_i: '我的位置',
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
-    category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订',
+    category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订', category_concerts: '演唱会',
     must_eats_title: '🇸🇬 5大新加坡必吃美食', find_nearby: '📍 附近寻找',
     guided_walk_title: '🚶 自助徒步游览', guided_walk_explore: '🧭 探索',
-    tix_tours_title: '🎟️ 门票与观光团', places_explore: '🧭 探索',
+    tix_tours_title: '🎟️ 门票与观光团', places_explore: '🧭 探索', concerts_title: '🎤 演唱会',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
     set_home: '🏠 设为住家', set_work: '💼 设为公司',
     hint_search: '试试搜索地标、街道或邮区编号。',
@@ -1747,10 +1777,10 @@ const I18N = {
     notify_title: 'Hidupkan makluman keretapi/trafik/jerebu', where_am_i: 'Di Mana Saya',
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
-    category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian',
+    category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian', category_concerts: 'Konsert',
     must_eats_title: '🇸🇬 5 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
     guided_walk_title: '🚶 Lawatan Jalan Kaki Sendiri', guided_walk_explore: '🧭 Terokai',
-    tix_tours_title: '🎟️ Tiket & Lawatan', places_explore: '🧭 Terokai',
+    tix_tours_title: '🎟️ Tiket & Lawatan', places_explore: '🧭 Terokai', concerts_title: '🎤 Konsert',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
     set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
@@ -1779,10 +1809,10 @@ const I18N = {
     notify_title: 'ரயில்/போக்குவரத்து/புகைமூட்ட எச்சரிக்கைகளை இயக்கு', where_am_i: 'நான் எங்கே',
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
-    category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்',
+    category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்', category_concerts: 'இசை நிகழ்ச்சிகள்',
     must_eats_title: '🇸🇬 சிங்கப்பூரின் 5 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
     guided_walk_title: '🚶 சுய-வழிகாட்டப்பட்ட நடைப் பயணங்கள்', guided_walk_explore: '🧭 ஆராயுங்கள்',
-    tix_tours_title: '🎟️ டிக்கெட் மற்றும் சுற்றுலாக்கள்', places_explore: '🧭 ஆராயுங்கள்',
+    tix_tours_title: '🎟️ டிக்கெட் மற்றும் சுற்றுலாக்கள்', places_explore: '🧭 ஆராயுங்கள்', concerts_title: '🎤 இசை நிகழ்ச்சிகள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
     set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
@@ -1811,10 +1841,10 @@ const I18N = {
     notify_title: '電車・交通・ヘイズ情報の通知をオンにする', where_am_i: '現在地',
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
-    category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約',
+    category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約', category_concerts: 'コンサート',
     must_eats_title: '🇸🇬 シンガポール必食5選', find_nearby: '📍 近くを探す',
     guided_walk_title: '🚶 セルフガイドウォーク', guided_walk_explore: '🧭 探索する',
-    tix_tours_title: '🎟️ チケット＆ツアー', places_explore: '🧭 探索する',
+    tix_tours_title: '🎟️ チケット＆ツアー', places_explore: '🧭 探索する', concerts_title: '🎤 コンサート',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
     set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
@@ -1843,10 +1873,10 @@ const I18N = {
     notify_title: '열차/교통/실안개 알림 켜기', where_am_i: '내 위치',
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
-    category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약',
+    category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약', category_concerts: '콘서트',
     must_eats_title: '🇸🇬 싱가포르 필수 음식 5', find_nearby: '📍 근처에서 찾기',
     guided_walk_title: '🚶 셀프 가이드 도보 투어', guided_walk_explore: '🧭 둘러보기',
-    tix_tours_title: '🎟️ 티켓 & 투어', places_explore: '🧭 둘러보기',
+    tix_tours_title: '🎟️ 티켓 & 투어', places_explore: '🧭 둘러보기', concerts_title: '🎤 콘서트',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
     set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
