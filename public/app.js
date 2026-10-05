@@ -1276,6 +1276,11 @@ const TICKET_LINKS = {
 //   - "jaychou": Jay Chou "Carnival II" World Tour 2027, 8-10 Jan 2027 (exact
 //     per-night venue split wasn't settled at announcement time). Ticketmaster
 //     SG. REMOVE once 10 Jan 2027 has passed.
+//   - "lany": LANY "soft by LANY" The World Tour, Singapore Indoor Stadium,
+//     single date 4 Nov 2026. Ticketmaster SG. Link strips the FB-ad
+//     utm_medium/utm_source/utm_id/utm_content/utm_term/utm_campaign/fbclid
+//     tracking params Melvin's URL had, same reasoning as gunsnroses. REMOVE
+//     once 4 Nov 2026 has passed.
 //
 // Venue transit guides (National Stadium, Singapore Indoor Stadium, The Star
 // Theatre) sourced from each venue's own official "getting here" page --
@@ -1323,6 +1328,7 @@ const BOOK_ONLINE_LINKS = {
   nct127: 'https://ticketmaster.sg/activity/detail/26sg_nct127',
   bensonboone: 'https://ticketmaster.sg/activity/detail/26sg_bensonboone',
   jaychou: 'https://ticketmaster.sg/activity/detail/27sg_jaychou',
+  lany: 'https://ticketmaster.sg/activity/detail/26sg_lany',
   f1singapore: 'https://tickets.formula1.com/en/f1-3301-singapore',
 };
 
@@ -1989,6 +1995,7 @@ const CHIP_I18N = {
   nct127: { en: 'NCT 127', zh: 'NCT 127', ms: 'NCT 127', ta: 'NCT 127', ja: 'NCT 127', ko: 'NCT 127' },
   bensonboone: { en: 'Benson Boone', zh: 'Benson Boone', ms: 'Benson Boone', ta: 'Benson Boone', ja: 'Benson Boone', ko: 'Benson Boone' },
   jaychou: { en: 'Jay Chou', zh: '周杰伦', ms: 'Jay Chou', ta: 'Jay Chou', ja: 'Jay Chou', ko: 'Jay Chou' },
+  lany: { en: 'LANY', zh: 'LANY', ms: 'LANY', ta: 'LANY', ja: 'LANY', ko: 'LANY' },
   f1singapore: { en: 'F1 Singapore GP', zh: 'F1新加坡大奖赛', ms: 'F1 Grand Prix Singapura', ta: 'F1 சிங்கப்பூர் கிராண்ட் பிரிக்ஸ்', ja: 'F1シンガポールGP', ko: 'F1 싱가포르 그랑프리' },
 };
 
