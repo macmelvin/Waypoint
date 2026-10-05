@@ -1218,6 +1218,18 @@ const TICKET_LINKS = {
 // + index.html button) once 13 Oct 2026 has passed; it has no ongoing
 // relevance after the show.
 //
+// "gunsnroses" is the same kind of one-off promo chip as avengedsevenfold --
+// a single concert date (25 Nov 2026, Singapore National Stadium -- Guns N'
+// Roses' World Tour 2026) rather than an evergreen category. Links straight
+// to the event's own Ticketmaster SG listing -- no affiliate deal, same
+// direct-link reasoning as the other one-off show chips. The link strips the
+// Facebook-ad utm_source/utm_medium/utm_campaign/fbclid tracking params that
+// were on the URL Melvin supplied -- those tag a specific FB ad, not
+// Waypoint, so carrying them over would misattribute clicks from the app to
+// that ad campaign. REMOVE THIS CHIP (and its CHIP_I18N entry + index.html
+// button) once 25 Nov 2026 has passed; it has no ongoing relevance after the
+// show.
+//
 // "f1singapore", unlike avengedsevenfold, IS an evergreen category, not a
 // one-off -- the Singapore Grand Prix runs every year at Marina Bay Street
 // Circuit (2026's race weekend: 9-11 Oct, race day Sun 11 Oct), and this
@@ -1247,6 +1259,7 @@ const BOOK_ONLINE_LINKS = {
   simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
   carrental: 'https://www.hertz.com.sg/sg/en',
   avengedsevenfold: 'https://bookmyshow.sg/en/events/avenged-sevenfold-asia-tour-2026/AVSEVENF',
+  gunsnroses: 'https://ticketmaster.sg/activity/detail/26sg_gunsnroses',
   f1singapore: 'https://tickets.formula1.com/en/f1-3301-singapore',
 };
 
@@ -1899,6 +1912,7 @@ const CHIP_I18N = {
   simcards: { en: 'SIM & eSIM', zh: 'Wi-Fi与SIM卡', ms: 'Wi-Fi & Kad SIM', ta: 'வைஃபை & சிம் கார்டுகள்', ja: 'Wi-Fi＆SIMカード', ko: '와이파이 & 유심' },
   carrental: { en: 'Car Rental', zh: '租车', ms: 'Sewa Kereta', ta: 'கார் வாடகை', ja: 'レンタカー', ko: '렌터카' },
   avengedsevenfold: { en: 'Avenged Sevenfold ft. Nene Royal', zh: 'Avenged Sevenfold ft. Nene Royal', ms: 'Avenged Sevenfold ft. Nene Royal', ta: 'Avenged Sevenfold ft. Nene Royal', ja: 'アヴェンジド・セヴンフォールド feat. ネネ・ロイヤル', ko: '어벤지드 세븐폴드 feat. 네네 로열' },
+  gunsnroses: { en: "Guns N' Roses", zh: "Guns N' Roses", ms: "Guns N' Roses", ta: "Guns N' Roses", ja: 'ガンズ・アンド・ローゼズ', ko: '건즈 앤드 로지즈' },
   f1singapore: { en: 'F1 Singapore GP', zh: 'F1新加坡大奖赛', ms: 'F1 Grand Prix Singapura', ta: 'F1 சிங்கப்பூர் கிராண்ட் பிரிக்ஸ்', ja: 'F1シンガポールGP', ko: 'F1 싱가포르 그랑프리' },
 };
 
