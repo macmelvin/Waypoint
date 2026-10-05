@@ -1230,6 +1230,38 @@ const TICKET_LINKS = {
 // button) once 25 Nov 2026 has passed; it has no ongoing relevance after the
 // show.
 //
+// The next 7 ("bts" through "jaychou") are the same kind of one-off promo
+// chip, all big-demand touring acts Melvin asked to have added at once (Oct
+// 2026). Each links straight to that show's own official ticket listing --
+// no affiliate deal, same reasoning as every other one-off chip above.
+// Ticketing platform and exact dates/venue were verified via local
+// entertainment press before adding (not guessed), since several of these
+// have multiple dates/added shows due to demand:
+//   - "bts": BTS, National Stadium, 17/19/20/22 Dec 2026 -- all 4 dates sold
+//     out already (19 Dec presale queue alone hit 144,000+). Ticketmaster SG.
+//     REMOVE once 22 Dec 2026 has passed.
+//   - "bigbang": BIGBANG "XX: COSMOS" 20th-anniversary tour, National
+//     Stadium -- 17 Oct 2026 sold out in 2hrs (500,000+ in queue), 18 Oct
+//     added as a 2nd night. Ticketmaster SG. REMOVE once 18 Oct 2026 has
+//     passed.
+//   - "mychemicalromance": My Chemical Romance, Singapore Indoor Stadium --
+//     10 Nov 2026 sold out, 11 Nov added as a 2nd night. Sold via SISTIC
+//     (not Ticketmaster) -- confirmed directly on the SISTIC event page.
+//     REMOVE once 11 Nov 2026 has passed.
+//   - "5sos": 5 Seconds of Summer "EVERYONE'S A STAR!" tour, The Star
+//     Theatre -- 16 Nov 2026 sold out, 3 Dec 2026 added as a 2nd date (may
+//     still have tickets as of adding this). Ticketmaster SG. REMOVE once
+//     3 Dec 2026 has passed.
+//   - "nct127": NCT 127 "NEO CITY: THE REDLINE" tour, Singapore Indoor
+//     Stadium, single date 18 Oct 2026. Ticketmaster SG. REMOVE once 18 Oct
+//     2026 has passed.
+//   - "bensonboone": Benson Boone "Wanted Man" tour, The Star Theatre,
+//     single date 2 Nov 2026. Ticketmaster SG. REMOVE once 2 Nov 2026 has
+//     passed.
+//   - "jaychou": Jay Chou "Carnival II" World Tour 2027, 8-10 Jan 2027 (exact
+//     per-night venue split wasn't settled at announcement time). Ticketmaster
+//     SG. REMOVE once 10 Jan 2027 has passed.
+//
 // "f1singapore", unlike avengedsevenfold, IS an evergreen category, not a
 // one-off -- the Singapore Grand Prix runs every year at Marina Bay Street
 // Circuit (2026's race weekend: 9-11 Oct, race day Sun 11 Oct), and this
@@ -1260,6 +1292,13 @@ const BOOK_ONLINE_LINKS = {
   carrental: 'https://www.hertz.com.sg/sg/en',
   avengedsevenfold: 'https://bookmyshow.sg/en/events/avenged-sevenfold-asia-tour-2026/AVSEVENF',
   gunsnroses: 'https://ticketmaster.sg/activity/detail/26sg_gunsnroses',
+  bts: 'https://ticketmaster.sg/activity/detail/26sg_bts',
+  bigbang: 'https://ticketmaster.sg/activity/detail/26sg_bigbang2026',
+  mychemicalromance: 'https://sistic.com.sg/events/chemical0426',
+  '5sos': 'https://ticketmaster.sg/activity/detail/26sg_5sos',
+  nct127: 'https://ticketmaster.sg/activity/detail/26sg_nct127',
+  bensonboone: 'https://ticketmaster.sg/activity/detail/26sg_bensonboone',
+  jaychou: 'https://ticketmaster.sg/activity/detail/27sg_jaychou',
   f1singapore: 'https://tickets.formula1.com/en/f1-3301-singapore',
 };
 
@@ -1913,6 +1952,13 @@ const CHIP_I18N = {
   carrental: { en: 'Car Rental', zh: '租车', ms: 'Sewa Kereta', ta: 'கார் வாடகை', ja: 'レンタカー', ko: '렌터카' },
   avengedsevenfold: { en: 'Avenged Sevenfold ft. Nene Royal', zh: 'Avenged Sevenfold ft. Nene Royal', ms: 'Avenged Sevenfold ft. Nene Royal', ta: 'Avenged Sevenfold ft. Nene Royal', ja: 'アヴェンジド・セヴンフォールド feat. ネネ・ロイヤル', ko: '어벤지드 세븐폴드 feat. 네네 로열' },
   gunsnroses: { en: "Guns N' Roses", zh: "Guns N' Roses", ms: "Guns N' Roses", ta: "Guns N' Roses", ja: 'ガンズ・アンド・ローゼズ', ko: '건즈 앤드 로지즈' },
+  bts: { en: 'BTS', zh: 'BTS', ms: 'BTS', ta: 'BTS', ja: 'BTS', ko: 'BTS' },
+  bigbang: { en: 'BIGBANG', zh: 'BIGBANG', ms: 'BIGBANG', ta: 'BIGBANG', ja: 'BIGBANG', ko: '빅뱅' },
+  mychemicalromance: { en: 'My Chemical Romance', zh: 'My Chemical Romance', ms: 'My Chemical Romance', ta: 'My Chemical Romance', ja: 'マイ・ケミカル・ロマンス', ko: '마이 케미컬 로맨스' },
+  '5sos': { en: '5 Seconds of Summer', zh: '5 Seconds of Summer', ms: '5 Seconds of Summer', ta: '5 Seconds of Summer', ja: '5 Seconds of Summer', ko: '5 Seconds of Summer' },
+  nct127: { en: 'NCT 127', zh: 'NCT 127', ms: 'NCT 127', ta: 'NCT 127', ja: 'NCT 127', ko: 'NCT 127' },
+  bensonboone: { en: 'Benson Boone', zh: 'Benson Boone', ms: 'Benson Boone', ta: 'Benson Boone', ja: 'Benson Boone', ko: 'Benson Boone' },
+  jaychou: { en: 'Jay Chou', zh: '周杰伦', ms: 'Jay Chou', ta: 'Jay Chou', ja: 'Jay Chou', ko: 'Jay Chou' },
   f1singapore: { en: 'F1 Singapore GP', zh: 'F1新加坡大奖赛', ms: 'F1 Grand Prix Singapura', ta: 'F1 சிங்கப்பூர் கிராண்ட் பிரிக்ஸ்', ja: 'F1シンガポールGP', ko: 'F1 싱가포르 그랑프리' },
 };
 
