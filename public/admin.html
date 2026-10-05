@@ -52,6 +52,14 @@
      same fix for the buttons themselves on very narrow screens, so they wrap
      into two rows rather than overflowing. */
   .invite-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  /* Guide rows specifically (not invites/partners/bookings, which share
+     .invite but keep the side-by-side layout): the curated-tip meta line
+     is long free text, and 4 action buttons (Edit/Portal link/Disable/
+     Delete) sitting beside it meant that text column never got the row's
+     full width even once it could wrap properly. Stacking puts the text
+     on its own full-width row on top, buttons in their own row below. */
+  .invite-stacked { flex-direction: column; align-items: stretch; }
+  .invite-stacked .invite-actions { margin-top: 4px; }
   .link-box {
     font-family: ui-monospace, monospace; font-size: 12px; color: #93c5fd;
     background: #0f172a; padding: 6px 8px; border-radius: 6px; word-break: break-all;
@@ -356,7 +364,7 @@ function renderGuides(guides) {
     // instead of collapsing to "disabled".
     const metaLine = g.active ? detailsLine : (g.source === 'signup' ? `${detailsLine} · awaiting review` : 'disabled');
     return `
-      <div class="invite">
+      <div class="invite invite-stacked">
         <div style="flex:1;min-width:0">
           <div class="invite-name">${escapeHtml(g.name)} ${sampleBadge}${applicationBadge}</div>
           <div class="invite-meta ${g.active ? '' : 'revoked'}">${metaLine}</div>
