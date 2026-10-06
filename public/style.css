@@ -2528,6 +2528,9 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   color: #1a1a1a;
   border-color: #e6c700;
 }
+/* Public-only: hidden for partner placements (hotel concierge QR visits) —
+   see isPartnerVisit() in app.js. */
+.support-footer.hidden { display: none; }
 
 .credits-footer {
   margin: 0 16px 16px;
@@ -2540,6 +2543,7 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   font-weight: 700;
   color: var(--muted);
 }
+.credits-author.hidden { display: none; }
 .credits-author a {
   color: var(--accent);
   text-decoration: none;
@@ -2555,6 +2559,7 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
    stays out of the way by default — a discreet text toggle rather than a
    permanently-visible row of links. */
 .more-tools { margin-top: 2px; }
+.more-tools.hidden { display: none; }
 .more-tools-toggle {
   list-style: none;
   display: inline-flex;

@@ -6457,7 +6457,16 @@ function maybeShowAlertNudge() {
   // Don't stack this on top of the install banner (same fixed bottom-of-
   // screen spot) — whichever shows first wins, the other waits its turn.
   const installBannerShowing = els.installBanner && !els.installBanner.classList.contains('hidden');
-  if (alreadyEnabled || !pushSupported() || alertNudgeDismissedRecently() || installBannerShowing) return;
+  // A brand-new public visitor (no localStorage yet, not arriving via a deep
+  // link, not a partner placement) is about to get the "Buy Melvin a coffee"
+  // full-screen popup at 2500ms (see paynowCoffeePopup below) — skip the
+  // nudge on this exact load rather than stack two prompts on someone's very
+  // first visit. It'll show normally on their next visit instead, un-
+  // throttled since we never set the dismiss key here. Partner visits never
+  // get the coffee popup at all, so this never applies to them.
+  const incomingParams = new URLSearchParams(window.location.search);
+  const coffeePopupPending = !isPartnerVisit() && !localStorage.getItem('paynow_coffee_popup_shown_v1') && !incomingParams.has('dest_lat');
+  if (alreadyEnabled || !pushSupported() || alertNudgeDismissedRecently() || installBannerShowing || coffeePopupPending) return;
   els.alertNudgeBanner.classList.remove('hidden');
 }
 
@@ -6881,4 +6890,140 @@ setInterval(checkTrainAlerts, TRAIN_ALERTS_POLL_MS);
     },
     GEO_OPTIONS
   );
+})();
+
+// ---------- Partner placements (hotel concierge, tour desk, etc.) ----------
+// Anyone who arrives via ANY ?ref=... link (printed QR codes we hand out to
+// hotels, concierge desks, tour partners, etc.) is treated as a "partner
+// visit" and never sees the coffee/PayNow donation ask or the "More tools
+// by me" list below — those are meant for organic/public visitors only.
+// The ref is remembered in localStorage so the clean experience persists on
+// later visits too, including after "Add to Home Screen" once the ?ref= is
+// no longer in the URL. Visitors who land on the plain public URL with no
+// ref (word of mouth, search, etc.) see the full "support the author"
+// footer and the occasional PayNow popup below. Adding a new partner is
+// just a new ?ref= value on their printed QR code — no code change needed.
+const PARTNER_VISIT_KEY = 'waypoint_partner_visit_v1';
+(function rememberPartnerRef() {
+  const ref = new URLSearchParams(window.location.search).get('ref');
+  if (ref) localStorage.setItem(PARTNER_VISIT_KEY, ref);
+})();
+function isPartnerVisit() {
+  return !!localStorage.getItem(PARTNER_VISIT_KEY);
+}
+(function showPublicSupportFooter() {
+  if (isPartnerVisit()) return;
+  const supportLink = document.getElementById('supportFooterLink');
+  const creditsAuthor = document.getElementById('creditsAuthor');
+  const moreTools = document.getElementById('moreToolsDetails');
+  if (supportLink) supportLink.classList.remove('hidden');
+  if (creditsAuthor) creditsAuthor.classList.remove('hidden');
+  if (moreTools) moreTools.classList.remove('hidden');
+})();
+
+// ---------- Buy Melvin a coffee — PayNow QR popup ----------
+// Shows once per visitor (localStorage flag), after a short delay so it
+// never blocks the page. Skipped entirely if the page was opened via a
+// destination deep link (e.g. from the appointment check-in app) — someone
+// mid-errand to an appointment shouldn't get a donation popup. Also skipped
+// for partner visits (see above) — a hotel concierge placement shouldn't
+// ask guests for tips.
+(function paynowCoffeePopup() {
+  if (isPartnerVisit()) return;
+  const MOBILE = '+6581617181';
+  const AMOUNT = 1.00;
+  const MERCHANT_NAME = 'Melvin';
+  const MERCHANT_CITY = 'Singapore';
+  const STORAGE_KEY = 'paynow_coffee_popup_shown_v1';
+
+  const incomingParams = new URLSearchParams(window.location.search);
+  if (incomingParams.has('dest_lat')) return;
+  if (localStorage.getItem(STORAGE_KEY)) return;
+
+  function crc16ccitt(str) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < str.length; i++) {
+      crc ^= (str.charCodeAt(i) << 8);
+      for (let j = 0; j < 8; j++) {
+        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+      }
+    }
+    return crc.toString(16).toUpperCase().padStart(4, '0');
+  }
+
+  function tlv(tag, value) {
+    return `${tag}${String(value.length).padStart(2, '0')}${value}`;
+  }
+
+  function buildPayNowPayload() {
+    const payNowInfo =
+      tlv('00', 'SG.PAYNOW') +
+      tlv('01', '0') +        // proxy type: 0 = mobile number
+      tlv('02', MOBILE) +
+      tlv('03', '0');          // amount not editable (fixed)
+
+    let payload =
+      tlv('00', '01') +
+      tlv('01', '12') +        // dynamic (carries a fixed amount)
+      tlv('26', payNowInfo) +
+      tlv('52', '0000') +
+      tlv('53', '702') +       // SGD
+      tlv('54', AMOUNT.toFixed(2)) +
+      tlv('58', 'SG') +
+      tlv('59', MERCHANT_NAME.slice(0, 25)) +
+      tlv('60', MERCHANT_CITY);
+
+    payload += '6304';
+    payload += crc16ccitt(payload);
+    return payload;
+  }
+
+  function showPopup() {
+    const payload = buildPayNowPayload();
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(payload)}`;
+    // WhatsApp's wa.me share link only supports pre-filled TEXT, not an
+    // attached image -- there's no click-to-chat parameter for media. The
+    // closest equivalent to "share this QR" is a link to the QR image
+    // itself, which the recipient can tap to open/view. Omitting a number
+    // from the wa.me URL opens WhatsApp's own contact picker instead of a
+    // fixed recipient, since this is meant to be forwarded to whoever the
+    // sharer chooses, not sent to one hardcoded number.
+    const shareText = `If Waypoint's been useful, you can buy Melvin a coffee via PayNow (totally optional) -- scan or open this QR: ${qrUrl}`;
+    const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .coffee-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+      .coffee-card { background: #fff; border-radius: 14px; padding: 24px 22px; max-width: 320px; width: 100%; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.25); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+      .coffee-card p { margin: 4px 0 14px; font-size: 13.5px; color: #555; }
+      .coffee-card img { width: 100%; max-width: 220px; border-radius: 8px; margin-bottom: 14px; }
+      .coffee-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+      .coffee-close { background: #111; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+      .coffee-share { background: #25D366; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+      .coffee-dismiss { display: block; margin: 10px auto 0; background: none; border: none; color: #888; font-size: 12.5px; cursor: pointer; text-decoration: underline; }
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'coffee-overlay';
+    overlay.innerHTML = `
+      <div class="coffee-card">
+        <p>If Waypoint's been useful, scan to send $1 via PayNow — totally optional!</p>
+        <img src="${qrUrl}" alt="PayNow QR code">
+        <div class="coffee-actions">
+          <button class="coffee-close">Close</button>
+          <a class="coffee-share" href="${shareUrl}" target="_blank" rel="noopener">Share via WhatsApp</a>
+        </div>
+        <button class="coffee-dismiss">Don't show this again</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.coffee-close').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('.coffee-dismiss').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  }
+
+  localStorage.setItem(STORAGE_KEY, '1');
+  setTimeout(showPopup, 2500);
 })();

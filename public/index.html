@@ -887,9 +887,27 @@
 
       <button id="shareBtn" class="share-footer" data-i18n="share_footer">💙 Share this app if you find it useful</button>
 
+      <!-- The coffee link, author credit, and "More tools" list below start
+           hidden and are only revealed by app.js for public/organic visitors
+           (no ?ref= partner placement detected) — see isPartnerVisit(). -->
+      <a id="supportFooterLink" href="https://buymeacoffee.com/waypointsg" target="_blank" rel="noopener" class="support-footer hidden" data-i18n="support_footer">☕ Buy me a coffee — help keep Waypoint running</a>
+
       <div class="credits-footer">
+        <p id="creditsAuthor" class="credits-author hidden">Build by Yours Truly - 小猫好介绍 - <a href="https://www.facebook.com/share/1EsHK8JzEM/" target="_blank" rel="noopener">Good Lobang must share</a></p>
         <p class="credits-label">+65 88877041</p>
         <p class="credits-label"><a href="/privacy">Privacy Policy</a></p>
+        <details id="moreToolsDetails" class="more-tools hidden">
+          <summary class="more-tools-toggle">More tools by me</summary>
+          <ul class="credits-links">
+            <li><a href="https://document-tools.up.railway.app/" target="_blank" rel="noopener">Document Tools</a></li>
+            <li><a href="https://sg-money-cpf-hdb-calculator-production.up.railway.app/" target="_blank" rel="noopener">SG Money</a></li>
+            <li><a href="https://bto-planning-tool.web.app/" target="_blank" rel="noopener">BTO Planning Tool</a></li>
+            <li><a href="https://expiry-tracker-201069.web.app/" target="_blank" rel="noopener">Expiry Tracker</a></li>
+            <li><a href="https://protein-tracker-for-50s.web.app/protein-tracker" target="_blank" rel="noopener">Protein Tracker</a></li>
+            <li><a href="https://persistent-appt-reminder.web.app/" target="_blank" rel="noopener">Appointment Reminder</a></li>
+            <li><a href="https://claude.ai/artifact/UcYRLuxcrxQ9MabUkE5kt9" target="_blank" rel="noopener">Value Compare</a></li>
+          </ul>
+        </details>
       </div>
 
     </aside>
