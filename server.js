@@ -4069,6 +4069,46 @@ app.get('/api/reverse-country', async (req, res) => {
   }
 });
 
+// Exchange rates for Split Bill's "what's that in SGD?" conversion at
+// settle-up time. Backed by open.er-api.com — a free, keyless endpoint that
+// refreshes once a day, so caching the whole rate table per base currency
+// for half a day here is plenty fresh and keeps us well under its "once an
+// hour per IP" soft limit. Per its terms (exchangerate-api.com/docs/free),
+// caching and reuse for personal/commercial conversion is explicitly fine;
+// we just never redistribute the raw table as our own public API.
+const FX_RATE_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const FX_RATE_CACHE_MAX_ENTRIES = 50;
+const fxRateCache = new Map(); // base currency code -> { at, rates }
+
+app.get('/api/fx-rate', async (req, res) => {
+  const base = String(req.query.base || '').toUpperCase();
+  if (!/^[A-Z]{3}$/.test(base)) {
+    return res.status(400).json({ error: 'base must be a 3-letter currency code' });
+  }
+  const cached = fxRateCache.get(base);
+  if (cached && Date.now() - cached.at < FX_RATE_CACHE_TTL_MS) {
+    return res.json({ base, rates: cached.rates });
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const r = await fetch(`https://open.er-api.com/v6/latest/${base}`, { signal: controller.signal });
+    if (!r.ok) throw new Error(`Exchange rate API responded ${r.status}`);
+    const data = await r.json();
+    if (!data || data.result !== 'success' || !data.rates) throw new Error('Unexpected response shape');
+    if (fxRateCache.size >= FX_RATE_CACHE_MAX_ENTRIES && !fxRateCache.has(base)) {
+      fxRateCache.delete(fxRateCache.keys().next().value);
+    }
+    fxRateCache.set(base, { at: Date.now(), rates: data.rates });
+    res.json({ base, rates: data.rates });
+  } catch (err) {
+    console.error('fx-rate error:', err.message);
+    res.status(502).json({ error: 'Could not fetch exchange rates.', detail: err.message });
+  } finally {
+    clearTimeout(timeout);
+  }
+});
+
 // Embassy/consulate directory, from the open, public-domain Database of
 // Embassies (sourced from Wikidata). Fetched and filtered once, cached for a
 // day, then served back sliced by the requesting country's name — the CSV is

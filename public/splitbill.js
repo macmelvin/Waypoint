@@ -305,7 +305,8 @@
   // ---------- Money helpers ----------
   function money(cents) {
     const v = (Math.abs(cents) / 100).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return (cents < 0 ? '-' : '') + 'S$' + v;
+    const symbol = (state && state.currency && state.currency.symbol) || 'S$';
+    return (cents < 0 ? '-' : '') + symbol + v;
   }
 
   function parseCents(str) {
@@ -364,7 +365,15 @@
   // ---------- State ----------
   let state = load();
 
-  function blank() { return { people: [], expenses: [], paid: {} }; }
+  // currency: { code, symbol } for the bill's own amounts (SGD by default).
+  // currencyAuto: true while it's still following GPS detection; false once
+  // the person has picked one from the dropdown, so we stop overwriting it.
+  function blank(carry) {
+    return Object.assign({
+      people: [], expenses: [], paid: {},
+      currency: { code: 'SGD', symbol: 'S$' }, currencyAuto: true,
+    }, carry || {});
+  }
 
   function load() {
     try {
@@ -381,6 +390,10 @@
           if (!x.among.length) x.among = s.people.map((p) => p.id);
           x.items = (x.items || []).map((it) => ({ name: it.name, cents: it.cents }));
         });
+        // Bills saved before the currency feature shipped have neither
+        // field — default them to SGD, still auto-following GPS.
+        if (!s.currency || !s.currency.code) s.currency = { code: 'SGD', symbol: 'S$' };
+        if (typeof s.currencyAuto !== 'boolean') s.currencyAuto = true;
         return Object.assign(blank(), s);
       }
     } catch (err) { /* ignore — fall back to an empty bill */ }
@@ -441,8 +454,95 @@
     receiptCamera: $('sbReceiptCamera'), receiptGallery: $('sbReceiptGallery'), scanStatus: $('sbScanStatus'), scanBar: $('sbScanBar'), scanText: $('sbScanText'),
     result: $('sbResult'), summary: $('sbSummary'), transfers: $('sbTransfers'),
     shareBtn: $('sbShareBtn'), resetBtn: $('sbResetBtn'),
+    currencyBox: $('sbCurrencyBox'), currencyName: $('sbCurrencyName'), currencySrc: $('sbCurrencySrc'),
+    currencySel: $('sbCurrencySel'), currencySym: $('sbCurrencySym'),
   };
   if (!el.people) return; // markup not present
+
+  // ---------- Currency (follows GPS; overridable; converts to SGD at settle-up) ----------
+  const SB_CTY_OVERRIDE_KEY = 'waypoint_sb_cty_override';
+  const fxRateCache = {}; // currency code -> { rate, at } — SGD-per-1-unit-of-that-currency, this page load only
+
+  function currencyLabel(code) {
+    // A country name that uses this currency (e.g. "Malaysia" for MYR) reads
+    // more naturally next to a symbol than the bare ISO code would.
+    if (code === 'SGD') return 'Singapore Dollar';
+    const countryCode = Object.keys(CURRENCY_BY_COUNTRY).find((k) => CURRENCY_BY_COUNTRY[k][0] === code);
+    return countryCode && SAFETY_DATA[countryCode] ? SAFETY_DATA[countryCode].n : code;
+  }
+
+  function renderCurrencyBox() {
+    if (el.currencySym) el.currencySym.textContent = state.currency.symbol;
+    if (!el.currencyBox) return;
+    const cur = state.currency;
+    el.currencyName.textContent = `${currencyLabel(cur.code)} (${cur.symbol})`;
+    el.currencySrc.textContent = state.currencyAuto ? (deviceCountryCache ? deviceCountryCache.src : "Based on your phone's time zone") : 'Chosen by you';
+    if (!el.currencySel.options.length) {
+      const override = localStorage.getItem(SB_CTY_OVERRIDE_KEY) || '';
+      const countryOptions = ['<option value="">Detect automatically</option>']
+        .concat(Object.keys(SAFETY_DATA).sort((a, b) => SAFETY_DATA[a].n.localeCompare(SAFETY_DATA[b].n))
+          .map((k) => `<option value="${k}">${escapeHtml(SAFETY_DATA[k].n)} — ${escapeHtml(currencyForCountry(k).symbol)} (${escapeHtml(currencyForCountry(k).code)})</option>`))
+        .join('');
+      el.currencySel.innerHTML = countryOptions;
+      el.currencySel.value = override;
+    }
+  }
+
+  function applyCurrencyFromCountry(countryCode, src) {
+    const cur = currencyForCountry(countryCode);
+    const changed = !state.currency || state.currency.code !== cur.code;
+    state.currency = cur;
+    save();
+    if (changed) renderAll();
+    else renderCurrencyBox();
+  }
+
+  // Called by app.js when the Split Bill tab is opened. Only runs GPS
+  // detection while the person hasn't manually picked a currency — once
+  // they have, we stop overriding it (same pattern as the Safety tab).
+  function onTabOpen() {
+    if (!state.currencyAuto) { renderCurrencyBox(); return; }
+    detectDeviceCountry().then((c) => applyCurrencyFromCountry(c.code, c.src));
+    renderCurrencyBox();
+  }
+
+  if (el.currencySel) {
+    el.currencySel.addEventListener('change', (e) => {
+      const code = e.target.value;
+      if (code) {
+        localStorage.setItem(SB_CTY_OVERRIDE_KEY, code);
+        localStorage.setItem(DEVICE_COUNTRY_OVERRIDE_KEY, code); // keep in sync so a future "detect automatically" elsewhere agrees
+        state.currencyAuto = false;
+        applyCurrencyFromCountry(code, 'Chosen by you');
+      } else {
+        localStorage.removeItem(SB_CTY_OVERRIDE_KEY);
+        localStorage.removeItem(DEVICE_COUNTRY_OVERRIDE_KEY);
+        deviceCountryCache = null;
+        state.currencyAuto = true;
+        save();
+        detectDeviceCountry().then((c) => applyCurrencyFromCountry(c.code, c.src));
+      }
+    });
+  }
+
+  // Looks up (and caches, this page load only) how many SGD one unit of
+  // `code` is worth, via our own /api/fx-rate proxy (server-cached too).
+  // Resolves to null on any failure — callers just skip showing the
+  // conversion rather than showing something wrong.
+  async function getSgdRate(code) {
+    if (code === 'SGD') return 1;
+    const cached = fxRateCache[code];
+    if (cached) return cached.rate;
+    try {
+      const r = await fetch(`/api/fx-rate?base=${encodeURIComponent(code)}`);
+      const j = await r.json();
+      const rate = j && j.rates && typeof j.rates.SGD === 'number' ? j.rates.SGD : null;
+      if (rate) fxRateCache[code] = { rate, at: Date.now() };
+      return rate;
+    } catch (err) {
+      return null;
+    }
+  }
 
   // Draft of the expense currently being added/edited.
   let draft = null;
@@ -527,6 +627,7 @@
       return;
     }
     const outstanding = transfers.filter((tr) => !state.paid[transferKey(tr)]).reduce((a, tr) => a + tr.amt, 0);
+    const showFx = state.currency.code !== 'SGD';
     el.transfers.innerHTML = transfers.map((tr) => {
       const k = transferKey(tr);
       const done = !!state.paid[k];
@@ -537,15 +638,35 @@
             <span class="sb-arrow">→</span>
             <strong>${escapeHtml(personName(tr.to))}</strong>
           </div>
-          <div class="sb-transfer-amt">${money(tr.amt)}</div>
+          <div class="sb-transfer-amt-wrap">
+            <div class="sb-transfer-amt">${money(tr.amt)}</div>
+            ${showFx ? `<div class="hint sb-transfer-fx" id="sbFx-${escapeHtml(k)}"></div>` : ''}
+          </div>
           <button type="button" class="pill-btn ${done ? 'ghost' : ''} sb-paid-btn" data-toggle-paid="${escapeHtml(k)}">${escapeHtml(done ? t('sb_paid_done') : t('sb_mark_paid'))}</button>
         </div>`;
     }).join('') + (outstanding
       ? `<p class="hint sb-left">${escapeHtml(tf('sb_left', { amt: money(outstanding) }))}</p>`
-      : `<div class="sb-settled">${escapeHtml(t('sb_all_settled'))}</div>`);
+      : `<div class="sb-settled">${escapeHtml(t('sb_all_settled'))}</div>`)
+      + (showFx ? `<p class="hint sb-fx-attr">Converted amounts by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">Exchange Rate API</a></p>` : '');
+
+    // Fill in "≈ S$x.xx" next to each transfer once the rate's fetched —
+    // async so it never blocks the (synchronous) local-currency render above.
+    if (showFx) {
+      getSgdRate(state.currency.code).then((rate) => {
+        if (!rate) return;
+        transfers.forEach((tr) => {
+          const node = document.getElementById(`sbFx-${transferKey(tr)}`);
+          if (!node) return; // bill changed before the rate came back
+          const sgdCents = Math.round(tr.amt * rate);
+          const v = (sgdCents / 100).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          node.textContent = `≈ S$${v}`;
+        });
+      });
+    }
   }
 
   function renderAll() {
+    renderCurrencyBox();
     renderPeople();
     renderExpenses();
     renderResult();
@@ -599,7 +720,7 @@
         <label class="sb-split-row">
           <span class="sb-avatar" style="--sb-hue:${hue(p.id)}">${escapeHtml(initial(p.name))}</span>
           <span class="sb-split-name">${escapeHtml(p.name)}</span>
-          <span class="sb-amount-wrap sb-amount-small"><span class="sb-currency">S$</span>
+          <span class="sb-amount-wrap sb-amount-small"><span class="sb-currency">${escapeHtml(state.currency.symbol)}</span>
             <input class="sb-input sb-amount" type="text" inputmode="decimal" placeholder="0.00" data-exact="${p.id}" value="${centsToInput(draft.exact[p.id] || 0)}" />
           </span>
         </label>`).join('');
@@ -723,7 +844,7 @@
     el.items.innerHTML = draft.items.map((it, i) => `
       <div class="sb-item">
         <input class="sb-input sb-item-name" type="text" maxlength="40" placeholder="${escapeHtml(t('sb_item_ph'))}" data-item-name="${i}" value="${escapeHtml(it.name)}" />
-        <span class="sb-amount-wrap sb-amount-small"><span class="sb-currency">S$</span>
+        <span class="sb-amount-wrap sb-amount-small"><span class="sb-currency">${escapeHtml(state.currency.symbol)}</span>
           <input class="sb-input sb-amount" type="text" inputmode="decimal" placeholder="0.00" data-item-price="${i}" value="${it.cents ? (it.cents / 100).toFixed(2) : ''}" />
         </span>
         <button type="button" class="sb-chip-x" data-item-remove="${i}" aria-label="Remove item">✕</button>
@@ -934,7 +1055,10 @@
     resetArmed = null;
     el.resetBtn.classList.remove('armed');
     el.resetBtn.textContent = t('sb_new_bill');
-    state = blank();
+    // Keep the current currency going into the new bill — starting a fresh
+    // bill almost always means you're still in the same place, so there's
+    // no reason to re-ask or silently drop back to SGD.
+    state = blank({ currency: state.currency, currencyAuto: state.currencyAuto });
     save();
     closeForm();
     renderAll();
@@ -947,6 +1071,7 @@
 
   renderAll();
 
-  // Exposed for quick checks in the console / tests.
-  window.WaypointSplitBill = { allocate, expenseTotal, expenseShares, computeTransfers };
+  // Exposed for quick checks in the console / tests, and onTabOpen for
+  // app.js's tab-switch handler to trigger currency detection on demand.
+  window.WaypointSplitBill = { allocate, expenseTotal, expenseShares, computeTransfers, onTabOpen };
 })();

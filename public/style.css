@@ -3215,10 +3215,13 @@ select.sb-input { appearance: auto; }
 .sb-transfer.done .sb-transfer-amt { text-decoration: line-through; }
 .sb-transfer-text { flex: 1; min-width: 0; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-arrow { color: var(--label-tertiary); margin: 0 4px; }
+.sb-transfer-amt-wrap { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
 .sb-transfer-amt { font-weight: 700; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.sb-transfer-fx { margin: 1px 0 0; font-size: 11.5px; }
 .sb-paid-btn { flex-shrink: 0; padding: 6px 10px; min-height: 32px; font-size: 12px; }
 .sb-settled { text-align: center; padding: 12px; font-weight: 700; color: var(--success); }
 .sb-left { margin: 0; text-align: right; }
+.sb-fx-attr { margin: 6px 0 0; text-align: right; font-size: 10.5px; opacity: 0.75; }
 .sb-reset { align-self: center; }
 .sb-reset.armed { color: var(--danger); }
 
