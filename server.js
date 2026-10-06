@@ -673,13 +673,6 @@ function partnerRefTracking(req, res, next) {
         sameSite: 'lax',
         maxAge: 60 * 24 * 60 * 60 * 1000, // 60 days — covers a trip plus buffer
       });
-      if (isAppShellRequest) {
-        const cleanQuery = Object.entries(req.query).filter(([k]) => k !== 'ref');
-        const qs = cleanQuery.length
-          ? '?' + cleanQuery.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
-          : '';
-        return res.redirect((req.path === '/' ? '' : req.path) + qs || '/');
-      }
     }
   } else if (isAppShellRequest && cookieRef) {
     const partner = partners.find((p) => p.slug === cookieRef && p.active);
