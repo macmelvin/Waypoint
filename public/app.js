@@ -1376,6 +1376,10 @@ function tagAffiliateUrl(url) {
 // switching tabs never touches which chip was last tapped.
 document.querySelectorAll('.category-group-tab').forEach((tab) => {
   tab.addEventListener('click', () => {
+    // Guided Walk is an in-page tab switch (no URL/page change, so Umami's
+    // own pageview tracking never sees it) -- track it explicitly so it
+    // shows up as an event rather than being invisible in analytics.
+    if (tab.dataset.group === 'guidedwalk' && typeof umami !== 'undefined') umami.track('guided-walk-click');
     document.querySelectorAll('.category-group-tab').forEach((b) => b.classList.remove('active'));
     tab.classList.add('active');
     const group = tab.dataset.group;
@@ -7027,3 +7031,15 @@ function isPartnerVisit() {
   localStorage.setItem(STORAGE_KEY, '1');
   setTimeout(showPopup, 2500);
 })();
+
+// ---------- Affiliate link click tracking ----------
+// Attraction ticket + food/gourmet affiliate links (KKday etc.) navigate
+// straight out to the affiliate's own site, so Umami's pageview tracking
+// never sees the click either -- same blind spot as the Guided Walk tab
+// above. One delegated listener covers every .attraction-ticket-btn link
+// on the page (both the "Book tickets" and "Explore food" variants use
+// this same class), including ones rendered after this script first runs.
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('a.attraction-ticket-btn');
+  if (link && typeof umami !== 'undefined') umami.track('affiliate-click', { link: link.href });
+});
