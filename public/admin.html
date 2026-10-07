@@ -541,7 +541,7 @@ function renderPartners(partners) {
     const flagged = p.active && isNew(p);
     const badge = flagged ? `<span class="new-visitor-badge">🆕 new visitor</span>` : '';
     return `
-      <div class="invite${flagged ? ' invite-flagged' : ''}">
+      <div class="invite invite-stacked${flagged ? ' invite-flagged' : ''}">
         <div style="flex:1;min-width:0">
           <div class="invite-name">${escapeHtml(p.name)} ${badge}</div>
           <div class="invite-meta ${p.active ? '' : 'revoked'}">${p.active ? `${stats} · ${seen}` : 'disabled'}</div>
