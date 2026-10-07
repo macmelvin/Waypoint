@@ -833,18 +833,27 @@ a:active {
   z-index: 2;
   animation: band-pulse 1.3s ease-in-out infinite;
 }
+/* Red instead of the plain white "you are here" ring -- an alert color for
+   an alert reading, and more visible against the band's own fill than
+   white was. var(--danger) so it stays theme-correct (a brighter red in
+   dark mode, same as every other alert element in the app). */
+.uv-scale-band.current.pulse::before {
+  border-top-color: var(--danger);
+}
 @keyframes band-pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: inset 0 0 0 2px #fff, 0 2px 6px rgba(0,0,0,0.3);
+    box-shadow: inset 0 0 0 3px var(--danger), 0 2px 6px rgba(0,0,0,0.3);
     filter: brightness(1);
   }
   50% {
-    /* A visible size grow + a much more opaque, wider halo + a brightness
-       flash -- the earlier version (shadow opacity only) was too subtle to
-       notice against the band's own orange/red fill. */
+    /* A visible size grow + a big, solid red halo (not just an opacity
+       change) + a brightness flash -- white was too easy to miss against
+       the band's own fill, and the first red attempt (ring only, same
+       3px) still wasn't "big" enough per Melvin's feedback. 6px inset
+       ring + an 11px outer ring at near-full opacity. */
     transform: scale(1.14);
-    box-shadow: inset 0 0 0 3px #fff, 0 0 0 8px rgba(255,255,255,0.95), 0 6px 18px rgba(0,0,0,0.45);
+    box-shadow: inset 0 0 0 6px var(--danger), 0 0 0 11px rgba(220,38,38,0.9), 0 6px 18px rgba(0,0,0,0.45);
     filter: brightness(1.25);
   }
 }
