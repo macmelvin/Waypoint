@@ -142,8 +142,6 @@ const els = {
   favSearchResults: document.getElementById('favSearchResults'),
   favList: document.getElementById('favList'),
   favEmptyHint: document.getElementById('favEmptyHint'),
-  themeToggle: document.getElementById('themeToggle'),
-  themeColorMeta: document.getElementById('themeColorMeta'),
   routePickingBanner: document.getElementById('routePickingBanner'),
   routePickingCancelBtn: document.getElementById('routePickingCancelBtn'),
   planRouteBtn: document.getElementById('planRouteBtn'),
@@ -151,58 +149,6 @@ const els = {
 };
 
 let currentPlace = null; // last searched place result
-
-// ---------- Theme (light/dark) ----------
-// Same localStorage pattern every other Waypoint preference uses (see
-// LANG_STORAGE_KEY, PUSH_ENABLED_KEY, etc. below). A tiny inline script in
-// index.html's <head> reads this same key and sets data-theme before first
-// paint (so there's no flash of the wrong theme) — keep THEME_KEY in sync
-// with the string literal there if it ever changes.
-const THEME_KEY = 'waypoint_theme';
-
-function getSystemTheme() {
-  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-}
-
-function getStoredTheme() {
-  try {
-    const v = localStorage.getItem(THEME_KEY);
-    return (v === 'light' || v === 'dark') ? v : null;
-  } catch (err) { return null; }
-}
-
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  if (els.themeToggle) {
-    els.themeToggle.setAttribute('aria-checked', theme === 'dark' ? 'true' : 'false');
-    const label = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
-    els.themeToggle.title = label;
-    els.themeToggle.setAttribute('aria-label', label);
-  }
-  // Matches the browser chrome (status bar / task switcher) to the theme,
-  // same idea as index.html's static #2563eb but theme-aware.
-  if (els.themeColorMeta) els.themeColorMeta.setAttribute('content', theme === 'dark' ? '#000000' : '#2563eb');
-}
-
-function initTheme() {
-  // The <head> inline script already set data-theme before paint (stored
-  // choice, else the OS preference) — normally this just wires up the
-  // toggle button to match whatever it landed on. The stored/system-theme
-  // fallback here only matters if that inline script didn't run (e.g. CSP).
-  const attr = document.documentElement.getAttribute('data-theme');
-  const current = (attr === 'dark' || attr === 'light') ? attr : (getStoredTheme() || getSystemTheme());
-  applyTheme(current);
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-  const next = current === 'dark' ? 'light' : 'dark';
-  applyTheme(next);
-  try { localStorage.setItem(THEME_KEY, next); } catch (err) { /* ignore */ }
-}
-
-if (els.themeToggle) els.themeToggle.addEventListener('click', toggleTheme);
-initTheme();
 
 // ---------- Utilities ----------
 

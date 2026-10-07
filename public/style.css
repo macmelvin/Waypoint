@@ -96,10 +96,13 @@
 }
 
 /* =========================================================================
-   DARK MODE — toggled explicitly via [data-theme="dark"] on <html> (see
-   app.js: THEME_KEY / applyTheme()), defaulting to the OS's color-scheme
-   preference on first load before the person ever touches the toggle.
-   Modeled on a transit-tracker reference (near-black background, outlined
+   DARK MODE — the toggle that used to flip [data-theme="dark"] on <html>
+   has been removed (index.html's inline <head> script now always sets
+   data-theme="light", unconditionally); these tokens are kept defined but
+   are currently unreachable. Not deleted outright in case a toggle comes
+   back later — removing it was a request to stop SWITCHING themes, not a
+   verdict on the dark palette itself. Modeled on a transit-tracker reference
+   (near-black background, outlined
    cards, oversized "hero number" countdowns, green live/good + blue LIVE
    accents) rather than a simple inverted palette — see the component
    overrides further down (search "[data-theme=\"dark\"]") for where that
@@ -241,6 +244,18 @@ html, body {
   color: var(--ink);
   background: var(--bg);
   -webkit-tap-highlight-color: transparent;
+  /* Safety net: the topbar packs several fixed-size icon buttons into one
+     row, and on a narrow enough phone (or once one more button gets added
+     later) their combined minimum width can exceed the viewport before the
+     flex-shrink rules on .brand/.weather-widget finish giving up space. Flex
+     items don't clip their own overflow by default, so without this that
+     shortfall doesn't just squeeze the topbar — it widens the ENTIRE page
+     and makes it horizontally scrollable (text sheared off down every line,
+     the actual bug reported after the currency-exchange button shipped).
+     Real fix is keeping the topbar's own content within budget; this just
+     makes sure a future miscalculation stays a topbar problem, not a
+     whole-page one. */
+  overflow-x: hidden;
 }
 
 button, input {
@@ -664,12 +679,6 @@ a:active {
 }
 .weather-widget:hover { background: var(--gray-100); }
 .weather-widget.hidden { display: none; }
-
-/* FX widget reuses .weather-widget's pill look (border/pad/shadow) but has
-   fixed short text ("💱 FX"), not a live-loaded value, so it skips the
-   ellipsis/min-width-0 shrink handling that exists only for the weather
-   widget's longer, data-dependent label. */
-.fx-widget { white-space: nowrap; }
 
 /* ---- Currency exchange panel — renders into the same .weather-panel /
    .weather-panel-card bottom-sheet markup as weather/lens/SOS (see above),
@@ -2989,58 +2998,6 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   .weather-widget { max-width: 34vw; }
 }
 
-/* =========================================================================
-   DARK-MODE THEME TOGGLE — a pill-shaped switch in the topbar (styled after
-   the reference's clock-side switch), not just an icon button, so the
-   control itself reads as an explicit on/off toggle rather than an action
-   button. Lives in #topbar's .topbar-actions, after the other icon buttons.
-   ========================================================================= */
-.theme-toggle {
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-}
-.theme-toggle-track {
-  position: relative;
-  width: 48px;
-  height: 28px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-fill-strong);
-  border: 1px solid var(--separator);
-  padding: 2px;
-  box-sizing: border-box;
-  transition: background var(--duration-base) var(--ease-snappy);
-}
-.theme-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #fff;
-  color: #d97706;
-  box-shadow: var(--shadow-1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateX(0);
-  transition: transform var(--duration-base) var(--ease-snappy), background var(--duration-base) var(--ease-snappy), color var(--duration-base) var(--ease-snappy);
-}
-.theme-toggle-thumb svg { width: 14px; height: 14px; }
-.theme-toggle-thumb .theme-icon-moon { display: none; }
-[data-theme="dark"] .theme-toggle-track { background: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .theme-toggle-thumb {
-  transform: translateX(20px);
-  background: #1c1c1e;
-  color: #9ec6ff;
-}
-[data-theme="dark"] .theme-toggle-thumb .theme-icon-sun { display: none; }
-[data-theme="dark"] .theme-toggle-thumb .theme-icon-moon { display: block; }
 
 /* =========================================================================
    LIVE / HERO NUMBER — a small reusable pair (value + unit) used on
