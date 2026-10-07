@@ -802,6 +802,15 @@
       <section id="panel-splitbill" class="panel">
         <p class="planroute-intro" data-i18n="sb_intro">Add who's in the group and what was paid. Waypoint works out who owes whom — with the fewest transfers — so nobody has to do awkward maths at the table.</p>
 
+        <div class="safety-where" id="sbCurrencyBox">
+          <div>
+            <div class="safety-sub" style="margin:0 0 2px">Bill currency</div>
+            <div class="safety-where-who" id="sbCurrencyName">Singapore Dollar (S$)</div>
+            <div class="safety-sub" style="margin:2px 0 0" id="sbCurrencySrc">Based on your phone's time zone</div>
+          </div>
+          <select id="sbCurrencySel" aria-label="Choose bill currency"></select>
+        </div>
+
         <div class="sb-section">
           <div class="sb-section-title" data-i18n="sb_people">People</div>
           <div id="sbPeople" class="sb-people"></div>
@@ -822,7 +831,7 @@
           <form id="sbExpenseForm" class="sb-expense-form hidden" autocomplete="off">
             <input id="sbDesc" class="sb-input" type="text" maxlength="40" data-i18n-placeholder="sb_desc_ph" placeholder="What was it? e.g. Dinner at Lau Pa Sat" />
             <div class="sb-row">
-              <label class="sb-amount-wrap"><span class="sb-currency">S$</span>
+              <label class="sb-amount-wrap"><span class="sb-currency" id="sbCurrencySym">S$</span>
                 <input id="sbAmount" class="sb-input sb-amount" type="text" inputmode="decimal" placeholder="0.00" />
               </label>
               <label class="sb-select-wrap"><span class="sb-mini-label" data-i18n="sb_paid_by">Paid by</span>
@@ -878,13 +887,16 @@
 
       <button id="shareBtn" class="share-footer" data-i18n="share_footer">💙 Share this app if you find it useful</button>
 
-      <a href="https://buymeacoffee.com/waypointsg" target="_blank" rel="noopener" class="support-footer" data-i18n="support_footer">☕ Buy me a coffee — help keep Waypoint running</a>
+      <!-- The coffee link, author credit, and "More tools" list below start
+           hidden and are only revealed by app.js for public/organic visitors
+           (no ?ref= partner placement detected) — see isPartnerVisit(). -->
+      <a id="supportFooterLink" href="https://buymeacoffee.com/waypointsg" target="_blank" rel="noopener" class="support-footer hidden" data-i18n="support_footer">☕ Buy me a coffee — help keep Waypoint running</a>
 
       <div class="credits-footer">
-        <p class="credits-author">Build by Yours Truly - 小猫好介绍 - <a href="https://www.facebook.com/share/1EsHK8JzEM/" target="_blank" rel="noopener">Good Lobang must share</a></p>
+        <p id="creditsAuthor" class="credits-author hidden">Build by Yours Truly - 小猫好介绍 - <a href="https://www.facebook.com/share/1EsHK8JzEM/" target="_blank" rel="noopener">Good Lobang must share</a></p>
         <p class="credits-label">+65 88877041</p>
         <p class="credits-label"><a href="/privacy">Privacy Policy</a></p>
-        <details class="more-tools">
+        <details id="moreToolsDetails" class="more-tools hidden">
           <summary class="more-tools-toggle">More tools by me</summary>
           <ul class="credits-links">
             <li><a href="https://document-tools.up.railway.app/" target="_blank" rel="noopener">Document Tools</a></li>

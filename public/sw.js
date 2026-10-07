@@ -15,7 +15,7 @@
 // Without a bump, the fetch handler switching to network-first (see below)
 // is the real fix for staleness, but bumping this too guarantees today's
 // deploy self-heals immediately instead of waiting for a natural change.
-const SHELL_CACHE = 'waypoint-shell-v106';
+const SHELL_CACHE = 'waypoint-shell-v108';
 const RUNTIME_CACHE = 'waypoint-runtime-v1';
 
 const SHELL_ASSETS = [
@@ -35,7 +35,7 @@ const SHELL_ASSETS = [
 // short list of "nice to see stale" data, not everything, so we don't cache
 // stuff that's misleading when stale (e.g. never cache directions/search).
 // (Never cache /api/lens or /api/receipt — they're live AI calls.)
-const CACHEABLE_API_PATHS = ['/api/weather-nearby', '/api/weather-today', '/api/psi-nearby', '/api/uv-index', '/api/bus-arrivals', '/api/train-alerts', '/api/dengue-clusters', '/api/flood-alerts'];
+const CACHEABLE_API_PATHS = ['/api/weather-nearby', '/api/weather-today', '/api/psi-nearby', '/api/uv-index', '/api/bus-arrivals', '/api/train-alerts', '/api/dengue-clusters', '/api/flood-alerts', '/api/fx-rate'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

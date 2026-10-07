@@ -284,6 +284,9 @@ els.tabs.forEach(btn => {
     } else {
       stopNearbyArrivalsRefresh();
     }
+    if (target === 'splitbill' && window.WaypointSplitBill && window.WaypointSplitBill.onTabOpen) {
+      window.WaypointSplitBill.onTabOpen();
+    }
   });
 });
 
@@ -5895,6 +5898,266 @@ async function detectSafetyCountry() {
   return safetyCountryDetectInFlight;
 }
 
+// ---- Currency detection for Split Bill ("the currency should follow GPS") ----
+// Maps every country in SAFETY_DATA to its currency, so Split Bill can show
+// amounts in the local currency of wherever the trip actually is, and offer
+// a converted figure in SGD (home currency) at settle-up time. Generated
+// from Unicode CLDR territory->currency data (via Python's `babel` library),
+// with a handful of symbol overrides for SEA currencies CLDR's "en" locale
+// doesn't give a narrow symbol for (MYR, THB, IDR, BND, KHR, LAK, MMK) so
+// they read naturally next to amounts instead of showing the bare ISO code.
+const CURRENCY_BY_COUNTRY = {
+  AD: ["EUR", "€"],
+  AE: ["AED", "AED"],
+  AF: ["AFN", "AFN"],
+  AL: ["ALL", "ALL"],
+  AM: ["AMD", "AMD"],
+  AO: ["AOA", "AOA"],
+  AR: ["ARS", "ARS"],
+  AT: ["EUR", "€"],
+  AU: ["AUD", "A$"],
+  AZ: ["AZN", "AZN"],
+  BA: ["BAM", "BAM"],
+  BB: ["BBD", "BBD"],
+  BD: ["BDT", "BDT"],
+  BE: ["EUR", "€"],
+  BF: ["XOF", "F CFA"],
+  BG: ["BGN", "BGN"],
+  BH: ["BHD", "BHD"],
+  BI: ["BIF", "BIF"],
+  BJ: ["XOF", "F CFA"],
+  BN: ["BND", "B$"],
+  BO: ["BOB", "BOB"],
+  BR: ["BRL", "R$"],
+  BS: ["BSD", "BSD"],
+  BT: ["INR", "₹"],
+  BW: ["BWP", "BWP"],
+  BY: ["BYN", "BYN"],
+  BZ: ["BZD", "BZD"],
+  CA: ["CAD", "CA$"],
+  CD: ["CDF", "CDF"],
+  CF: ["XAF", "FCFA"],
+  CG: ["XAF", "FCFA"],
+  CH: ["CHF", "CHF"],
+  CI: ["XOF", "F CFA"],
+  CL: ["CLP", "CLP"],
+  CM: ["XAF", "FCFA"],
+  CN: ["CNY", "CN¥"],
+  CO: ["COP", "COP"],
+  CR: ["CRC", "CRC"],
+  CU: ["CUP", "CUP"],
+  CV: ["CVE", "CVE"],
+  CY: ["EUR", "€"],
+  CZ: ["CZK", "CZK"],
+  DE: ["EUR", "€"],
+  DJ: ["DJF", "DJF"],
+  DK: ["DKK", "DKK"],
+  DO: ["DOP", "DOP"],
+  DZ: ["DZD", "DZD"],
+  EC: ["USD", "$"],
+  EE: ["EUR", "€"],
+  EG: ["EGP", "EGP"],
+  ER: ["ERN", "ERN"],
+  ES: ["EUR", "€"],
+  ET: ["ETB", "ETB"],
+  FI: ["EUR", "€"],
+  FJ: ["FJD", "FJD"],
+  FM: ["USD", "$"],
+  FR: ["EUR", "€"],
+  GA: ["XAF", "FCFA"],
+  GB: ["GBP", "£"],
+  GE: ["GEL", "GEL"],
+  GH: ["GHS", "GHS"],
+  GM: ["GMD", "GMD"],
+  GN: ["GNF", "GNF"],
+  GQ: ["XAF", "FCFA"],
+  GR: ["EUR", "€"],
+  GT: ["GTQ", "GTQ"],
+  GU: ["USD", "$"],
+  GW: ["XOF", "F CFA"],
+  GY: ["GYD", "GYD"],
+  HK: ["HKD", "HK$"],
+  HN: ["HNL", "HNL"],
+  HR: ["EUR", "€"],
+  HT: ["HTG", "HTG"],
+  HU: ["HUF", "HUF"],
+  ID: ["IDR", "Rp"],
+  IE: ["EUR", "€"],
+  IL: ["ILS", "₪"],
+  IN: ["INR", "₹"],
+  IQ: ["IQD", "IQD"],
+  IR: ["IRR", "IRR"],
+  IS: ["ISK", "ISK"],
+  IT: ["EUR", "€"],
+  JM: ["JMD", "JMD"],
+  JO: ["JOD", "JOD"],
+  JP: ["JPY", "¥"],
+  KE: ["KES", "KES"],
+  KG: ["KGS", "KGS"],
+  KH: ["KHR", "៛"],
+  KI: ["AUD", "A$"],
+  KM: ["KMF", "KMF"],
+  KR: ["KRW", "₩"],
+  KW: ["KWD", "KWD"],
+  KZ: ["KZT", "KZT"],
+  LA: ["LAK", "₭"],
+  LB: ["LBP", "LBP"],
+  LI: ["CHF", "CHF"],
+  LK: ["LKR", "LKR"],
+  LR: ["LRD", "LRD"],
+  LS: ["ZAR", "ZAR"],
+  LT: ["EUR", "€"],
+  LU: ["EUR", "€"],
+  LV: ["EUR", "€"],
+  LY: ["LYD", "LYD"],
+  MA: ["MAD", "MAD"],
+  MC: ["EUR", "€"],
+  MD: ["MDL", "MDL"],
+  ME: ["EUR", "€"],
+  MG: ["MGA", "MGA"],
+  MH: ["USD", "$"],
+  MK: ["MKD", "MKD"],
+  ML: ["XOF", "F CFA"],
+  MM: ["MMK", "K"],
+  MN: ["MNT", "MNT"],
+  MO: ["MOP", "MOP"],
+  MR: ["MRU", "MRU"],
+  MT: ["EUR", "€"],
+  MU: ["MUR", "MUR"],
+  MV: ["MVR", "MVR"],
+  MW: ["MWK", "MWK"],
+  MX: ["MXN", "MX$"],
+  MY: ["MYR", "RM"],
+  MZ: ["MZN", "MZN"],
+  NA: ["ZAR", "ZAR"],
+  NC: ["XPF", "CFPF"],
+  NE: ["XOF", "F CFA"],
+  NG: ["NGN", "NGN"],
+  NI: ["NIO", "NIO"],
+  NL: ["EUR", "€"],
+  NO: ["NOK", "NOK"],
+  NP: ["NPR", "NPR"],
+  NR: ["AUD", "A$"],
+  NZ: ["NZD", "NZ$"],
+  OM: ["OMR", "OMR"],
+  PA: ["PAB", "PAB"],
+  PE: ["PEN", "PEN"],
+  PF: ["XPF", "CFPF"],
+  PG: ["PGK", "PGK"],
+  PH: ["PHP", "₱"],
+  PK: ["PKR", "PKR"],
+  PL: ["PLN", "PLN"],
+  PR: ["USD", "$"],
+  PS: ["ILS", "₪"],
+  PT: ["EUR", "€"],
+  PW: ["USD", "$"],
+  PY: ["PYG", "PYG"],
+  QA: ["QAR", "QAR"],
+  RO: ["RON", "RON"],
+  RS: ["RSD", "RSD"],
+  RU: ["RUB", "RUB"],
+  RW: ["RWF", "RWF"],
+  SA: ["SAR", "SAR"],
+  SB: ["SBD", "SBD"],
+  SC: ["SCR", "SCR"],
+  SD: ["SDG", "SDG"],
+  SE: ["SEK", "SEK"],
+  SG: ["SGD", "S$"],
+  SI: ["EUR", "€"],
+  SK: ["EUR", "€"],
+  SL: ["SLE", "SLE"],
+  SM: ["EUR", "€"],
+  SN: ["XOF", "F CFA"],
+  SO: ["SOS", "SOS"],
+  SR: ["SRD", "SRD"],
+  SS: ["SSP", "SSP"],
+  ST: ["STN", "STN"],
+  SV: ["USD", "$"],
+  SY: ["SYP", "SYP"],
+  SZ: ["SZL", "SZL"],
+  TD: ["XAF", "FCFA"],
+  TG: ["XOF", "F CFA"],
+  TH: ["THB", "฿"],
+  TJ: ["TJS", "TJS"],
+  TL: ["USD", "$"],
+  TM: ["TMT", "TMT"],
+  TN: ["TND", "TND"],
+  TO: ["TOP", "TOP"],
+  TR: ["TRY", "TRY"],
+  TT: ["TTD", "TTD"],
+  TW: ["TWD", "NT$"],
+  TZ: ["TZS", "TZS"],
+  UA: ["UAH", "UAH"],
+  UG: ["UGX", "UGX"],
+  US: ["USD", "$"],
+  UY: ["UYU", "UYU"],
+  UZ: ["UZS", "UZS"],
+  VA: ["EUR", "€"],
+  VE: ["VES", "VES"],
+  VN: ["VND", "₫"],
+  VU: ["VUV", "VUV"],
+  WS: ["WST", "WST"],
+  XK: ["EUR", "€"],
+  YE: ["YER", "YER"],
+  ZA: ["ZAR", "ZAR"],
+  ZM: ["ZMW", "ZMW"],
+  ZW: ["USD", "$"],
+};
+
+function currencyForCountry(code) {
+  const e = CURRENCY_BY_COUNTRY[code];
+  return e ? { code: e[0], symbol: e[1] } : { code: 'SGD', symbol: 'S$' };
+}
+
+// Generic "what country is this device in" detector — independent of the
+// Safety tab's own detectSafetyCountry() (separate override key, separate
+// cached result) so Split Bill's currency can be overridden without
+// disturbing the Safety tab's country, and vice versa. Mirrors the same
+// override -> GPS+reverse-geocode -> timezone fallback chain.
+const DEVICE_COUNTRY_OVERRIDE_KEY = 'waypoint_device_cty_override';
+let deviceCountryCache = null; // { code, src }
+let deviceCountryDetectInFlight = null;
+
+function detectDeviceCountry() {
+  if (deviceCountryCache) return Promise.resolve(deviceCountryCache);
+  if (deviceCountryDetectInFlight) return deviceCountryDetectInFlight;
+  const override = localStorage.getItem(DEVICE_COUNTRY_OVERRIDE_KEY);
+  if (override) {
+    deviceCountryCache = { code: override, src: 'Chosen by you' };
+    return Promise.resolve(deviceCountryCache);
+  }
+  deviceCountryDetectInFlight = (async () => {
+    if (!navigator.geolocation) {
+      deviceCountryCache = { code: safetyTzCountry(), src: "Based on your phone's time zone" };
+      return deviceCountryCache;
+    }
+    await new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const r = await fetch(`/api/reverse-country?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+            const j = await r.json();
+            deviceCountryCache = (j && j.code)
+              ? { code: j.code, src: 'Detected from your GPS location' }
+              : { code: safetyTzCountry(), src: "Based on your phone's time zone" };
+          } catch (err) {
+            deviceCountryCache = { code: safetyTzCountry(), src: "Based on your phone's time zone" };
+          }
+          resolve();
+        },
+        () => {
+          deviceCountryCache = { code: safetyTzCountry(), src: "Based on your phone's time zone" };
+          resolve();
+        },
+        GEO_OPTIONS_FAST
+      );
+    });
+    return deviceCountryCache;
+  })();
+  deviceCountryDetectInFlight.then(() => { deviceCountryDetectInFlight = null; });
+  return deviceCountryDetectInFlight;
+}
+
 function refreshSafetyRenderIfNeeded() {
   if (els.sosModal.classList.contains('hidden')) return;
   if (safetyActiveTab === 'sos' || safetyActiveTab === 'hotlines' || safetyActiveTab === 'check') renderSafetyTab(safetyActiveTab);
@@ -6194,14 +6457,15 @@ function maybeShowAlertNudge() {
   // Don't stack this on top of the install banner (same fixed bottom-of-
   // screen spot) — whichever shows first wins, the other waits its turn.
   const installBannerShowing = els.installBanner && !els.installBanner.classList.contains('hidden');
-  // A brand-new visitor (no localStorage yet, not arriving via a deep link)
-  // is about to get the "Buy Melvin a coffee" full-screen popup at 2500ms
-  // (see paynowCoffeePopup below) — skip the nudge on this exact load rather
-  // than stack two prompts on someone's very first visit. It'll show
-  // normally on their next visit instead, un-throttled since we never set
-  // the dismiss key here.
+  // A brand-new public visitor (no localStorage yet, not arriving via a deep
+  // link, not a partner placement) is about to get the "Buy Melvin a coffee"
+  // full-screen popup at 2500ms (see paynowCoffeePopup below) — skip the
+  // nudge on this exact load rather than stack two prompts on someone's very
+  // first visit. It'll show normally on their next visit instead, un-
+  // throttled since we never set the dismiss key here. Partner visits never
+  // get the coffee popup at all, so this never applies to them.
   const incomingParams = new URLSearchParams(window.location.search);
-  const coffeePopupPending = !localStorage.getItem('paynow_coffee_popup_shown_v1') && !incomingParams.has('dest_lat');
+  const coffeePopupPending = !isPartnerVisit() && !localStorage.getItem('paynow_coffee_popup_shown_v1') && !incomingParams.has('dest_lat');
   if (alreadyEnabled || !pushSupported() || alertNudgeDismissedRecently() || installBannerShowing || coffeePopupPending) return;
   els.alertNudgeBanner.classList.remove('hidden');
 }
@@ -6628,12 +6892,44 @@ setInterval(checkTrainAlerts, TRAIN_ALERTS_POLL_MS);
   );
 })();
 
+// ---------- Partner placements (hotel concierge, tour desk, etc.) ----------
+// Anyone who arrives via ANY ?ref=... link (printed QR codes we hand out to
+// hotels, concierge desks, tour partners, etc.) is treated as a "partner
+// visit" and never sees the coffee/PayNow donation ask or the "More tools
+// by me" list below — those are meant for organic/public visitors only.
+// The ref is remembered in localStorage so the clean experience persists on
+// later visits too, including after "Add to Home Screen" once the ?ref= is
+// no longer in the URL. Visitors who land on the plain public URL with no
+// ref (word of mouth, search, etc.) see the full "support the author"
+// footer and the occasional PayNow popup below. Adding a new partner is
+// just a new ?ref= value on their printed QR code — no code change needed.
+const PARTNER_VISIT_KEY = 'waypoint_partner_visit_v1';
+(function rememberPartnerRef() {
+  const ref = new URLSearchParams(window.location.search).get('ref');
+  if (ref) localStorage.setItem(PARTNER_VISIT_KEY, ref);
+})();
+function isPartnerVisit() {
+  return !!localStorage.getItem(PARTNER_VISIT_KEY);
+}
+(function showPublicSupportFooter() {
+  if (isPartnerVisit()) return;
+  const supportLink = document.getElementById('supportFooterLink');
+  const creditsAuthor = document.getElementById('creditsAuthor');
+  const moreTools = document.getElementById('moreToolsDetails');
+  if (supportLink) supportLink.classList.remove('hidden');
+  if (creditsAuthor) creditsAuthor.classList.remove('hidden');
+  if (moreTools) moreTools.classList.remove('hidden');
+})();
+
 // ---------- Buy Melvin a coffee — PayNow QR popup ----------
 // Shows once per visitor (localStorage flag), after a short delay so it
 // never blocks the page. Skipped entirely if the page was opened via a
 // destination deep link (e.g. from the appointment check-in app) — someone
-// mid-errand to an appointment shouldn't get a donation popup.
+// mid-errand to an appointment shouldn't get a donation popup. Also skipped
+// for partner visits (see above) — a hotel concierge placement shouldn't
+// ask guests for tips.
 (function paynowCoffeePopup() {
+  if (isPartnerVisit()) return;
   const MOBILE = '+6581617181';
   const AMOUNT = 1.00;
   const MERCHANT_NAME = 'Melvin';
