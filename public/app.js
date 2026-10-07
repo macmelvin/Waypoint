@@ -6699,9 +6699,9 @@ function renderUvScale(value) {
 const PSI_BANDS = [
   { max: 50, range: '0-50', label: 'Good', color: '2E7D32', advice: 'Normal activities can be carried out as usual.' },
   { max: 100, range: '51-100', label: 'Moderate', color: 'F9A825', advice: 'Normal activities as usual. If you\'re unusually sensitive to haze, cutting down on prolonged outdoor exertion can help.' },
-  { max: 200, range: '101-200', label: 'Unhealthy', color: 'EF6C00', advice: 'Reduce prolonged or strenuous outdoor physical exertion.' },
-  { max: 300, range: '201-300', label: 'Very Unhealthy', color: 'C62828', advice: 'Avoid prolonged or strenuous outdoor physical exertion.' },
-  { max: Infinity, range: '301+', label: 'Hazardous', color: '6A1B9A', advice: 'Minimise outdoor activity.' },
+  { max: 200, range: '101-200', label: 'Unhealthy', color: 'EF6C00', advice: 'Reduce prolonged or strenuous outdoor physical exertion.', pulse: true },
+  { max: 300, range: '201-300', label: 'Very Unhealthy', color: 'C62828', advice: 'Avoid prolonged or strenuous outdoor physical exertion.', pulse: true },
+  { max: Infinity, range: '301+', label: 'Hazardous', color: '6A1B9A', advice: 'Minimise outdoor activity.', pulse: true },
 ];
 
 function renderPsiScale(value) {
@@ -6710,7 +6710,12 @@ function renderPsiScale(value) {
     const prevMax = i === 0 ? -Infinity : PSI_BANDS[i - 1].max;
     const isCurrent = value != null && value > prevMax && value <= band.max;
     if (isCurrent) currentBand = band;
-    return `<div class="uv-scale-band${isCurrent ? ' current' : ''}" style="background:#${band.color}">`
+    // Unhealthy-or-worse bands (101+) pulse when current -- the plain white
+    // "you are here" ring (shared with the UV/PM2.5 scales below) reads as
+    // neutral, which undersells a reading that actually calls for cutting
+    // outdoor activity. Good/Moderate stay static since nothing's wrong.
+    const pulseClass = isCurrent && band.pulse ? ' pulse' : '';
+    return `<div class="uv-scale-band${isCurrent ? ' current' : ''}${pulseClass}" style="background:#${band.color}">`
       + `<span class="uv-scale-range">${band.range}</span>`
       + `<span class="uv-scale-label">${band.label}</span>`
       + '</div>';
