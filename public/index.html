@@ -77,6 +77,7 @@
         <span id="langBtnText">EN</span>
       </button>
       <button id="weatherWidget" class="weather-widget hidden" type="button" title="Current weather"></button>
+      <button id="fxWidget" class="weather-widget fx-widget" type="button" title="Currency exchange" aria-label="Currency exchange">💱 FX</button>
       <a id="mrtMapBtn" class="icon-btn" href="https://www.lta.gov.sg/content/dam/ltagov/getting_around/public_transport/rail_network/pdf/SM_EN_(Ver200526)_CCL6.png" target="_blank" rel="noopener" title="View the official LTA MRT/LRT system map" aria-label="View the official LTA MRT/LRT system map">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="3.5" width="13" height="12" rx="4"/><path d="M5.5 11.2h13"/><circle cx="9" cy="14.3" r="0.65" fill="currentColor" stroke="none"/><circle cx="15" cy="14.3" r="0.65" fill="currentColor" stroke="none"/><path d="M8.3 19.2l-2 2.3M15.7 19.2l2 2.3"/></svg>
       </a>
@@ -972,6 +973,34 @@
   <div class="weather-panel-card">
     <button id="weatherPanelClose" class="weather-panel-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div id="weatherPanelBody" class="weather-panel-body">Loading…</div>
+  </div>
+</div>
+
+<div id="fxPanel" class="weather-panel hidden" role="dialog" aria-modal="true" aria-labelledby="fxPanelTitle">
+  <div class="weather-panel-card fx-card">
+    <button id="fxPanelClose" class="weather-panel-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="weather-panel-body fx-body">
+      <h3 id="fxPanelTitle" class="weather-panel-headline">💱 Currency Exchange</h3>
+      <div class="fx-row">
+        <div class="fx-field fx-field-amount">
+          <label for="fxAmount">Amount</label>
+          <input id="fxAmount" type="number" inputmode="decimal" min="0" step="any" value="1" />
+        </div>
+        <div class="fx-field">
+          <label for="fxFrom">From</label>
+          <select id="fxFrom" aria-label="Convert from currency"></select>
+        </div>
+        <button id="fxSwap" class="icon-btn fx-swap" type="button" title="Swap currencies" aria-label="Swap currencies">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>
+        </button>
+        <div class="fx-field">
+          <label for="fxTo">To</label>
+          <select id="fxTo" aria-label="Convert to currency"></select>
+        </div>
+      </div>
+      <div id="fxResult" class="fx-result">—</div>
+      <p id="fxMeta" class="fx-meta weather-panel-note"></p>
+    </div>
   </div>
 </div>
 

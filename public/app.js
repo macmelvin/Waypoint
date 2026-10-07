@@ -111,6 +111,15 @@ const els = {
   weatherPanel: document.getElementById('weatherPanel'),
   weatherPanelBody: document.getElementById('weatherPanelBody'),
   weatherPanelClose: document.getElementById('weatherPanelClose'),
+  fxWidget: document.getElementById('fxWidget'),
+  fxPanel: document.getElementById('fxPanel'),
+  fxPanelClose: document.getElementById('fxPanelClose'),
+  fxAmount: document.getElementById('fxAmount'),
+  fxFrom: document.getElementById('fxFrom'),
+  fxTo: document.getElementById('fxTo'),
+  fxSwap: document.getElementById('fxSwap'),
+  fxResult: document.getElementById('fxResult'),
+  fxMeta: document.getElementById('fxMeta'),
   toast: document.getElementById('toast'),
   tabs: document.querySelectorAll('.tab-btn'),
   panels: document.querySelectorAll('.panel'),
@@ -6833,6 +6842,95 @@ els.weatherPanel.addEventListener('click', (e) => {
 });
 
 initWeatherWidget();
+
+// ---------- Currency exchange (standalone converter, topbar button) ----------
+// A short, curated list rather than every ISO code the backend's rate table
+// returns — travelers care about their own currency and a handful of
+// regional ones, not all ~160. SGD first since that's what everything here
+// ultimately gets compared to; From/To default to a traveler's currency ->
+// SGD, the direction most people opening this actually want.
+const FX_CURRENCIES = [
+  ['SGD', 'Singapore Dollar'], ['USD', 'US Dollar'], ['EUR', 'Euro'],
+  ['GBP', 'British Pound'], ['AUD', 'Australian Dollar'], ['MYR', 'Malaysian Ringgit'],
+  ['THB', 'Thai Baht'], ['IDR', 'Indonesian Rupiah'], ['PHP', 'Philippine Peso'],
+  ['VND', 'Vietnamese Dong'], ['INR', 'Indian Rupee'], ['CNY', 'Chinese Yuan'],
+  ['HKD', 'Hong Kong Dollar'], ['JPY', 'Japanese Yen'], ['KRW', 'South Korean Won'],
+  ['TWD', 'New Taiwan Dollar'], ['AED', 'UAE Dirham'], ['CHF', 'Swiss Franc'],
+  ['CAD', 'Canadian Dollar'], ['NZD', 'New Zealand Dollar'],
+];
+const FX_DEFAULT_FROM = 'USD';
+const FX_DEFAULT_TO = 'SGD';
+const fxRateCache = {}; // base currency code -> { rates, at } — this page load only; server already caches per-base for 12h
+
+function populateFxSelects() {
+  if (els.fxFrom.options.length) return; // already populated
+  const optionsHtml = FX_CURRENCIES.map(([code, label]) => `<option value="${code}">${code} — ${label}</option>`).join('');
+  els.fxFrom.innerHTML = optionsHtml;
+  els.fxTo.innerHTML = optionsHtml;
+  els.fxFrom.value = FX_DEFAULT_FROM;
+  els.fxTo.value = FX_DEFAULT_TO;
+}
+
+async function getFxRates(base) {
+  const cached = fxRateCache[base];
+  if (cached) return cached;
+  const res = await fetch(`/api/fx-rate?base=${encodeURIComponent(base)}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not fetch exchange rates.');
+  fxRateCache[base] = data.rates;
+  return data.rates;
+}
+
+async function runFxConversion() {
+  const from = els.fxFrom.value;
+  const to = els.fxTo.value;
+  const amount = parseFloat(els.fxAmount.value);
+  if (!Number.isFinite(amount) || amount < 0) {
+    els.fxResult.textContent = '—';
+    els.fxMeta.textContent = 'Enter an amount.';
+    return;
+  }
+  if (from === to) {
+    els.fxResult.textContent = `${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${to}`;
+    els.fxMeta.textContent = 'Same currency on both sides.';
+    return;
+  }
+  els.fxMeta.textContent = 'Loading…';
+  try {
+    const rates = await getFxRates(from);
+    const rate = rates[to];
+    if (typeof rate !== 'number') throw new Error(`No rate available for ${to}.`);
+    const converted = amount * rate;
+    els.fxResult.textContent = `${converted.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${to}`;
+    els.fxMeta.textContent = `1 ${from} ≈ ${rate.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${to} — rates update daily`;
+  } catch (err) {
+    console.error('fx conversion failed:', err.message);
+    els.fxResult.textContent = '—';
+    els.fxMeta.textContent = 'Could not fetch exchange rates. Check your connection and try again.';
+  }
+}
+const runFxConversionDebounced = debounce(runFxConversion, 350);
+
+function openFxPanel() {
+  populateFxSelects();
+  els.fxPanel.classList.remove('hidden');
+  runFxConversion();
+}
+
+els.fxWidget.addEventListener('click', openFxPanel);
+els.fxPanelClose.addEventListener('click', () => els.fxPanel.classList.add('hidden'));
+els.fxPanel.addEventListener('click', (e) => {
+  if (e.target === els.fxPanel) els.fxPanel.classList.add('hidden');
+});
+els.fxAmount.addEventListener('input', runFxConversionDebounced);
+els.fxFrom.addEventListener('change', runFxConversion);
+els.fxTo.addEventListener('change', runFxConversion);
+els.fxSwap.addEventListener('click', () => {
+  const from = els.fxFrom.value;
+  els.fxFrom.value = els.fxTo.value;
+  els.fxTo.value = from;
+  runFxConversion();
+});
 
 // ---------- MRT/LRT service disruption banner (LTA TrainServiceAlerts) ----------
 // Polls a cached server endpoint every couple of minutes. Dismissing a

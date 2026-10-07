@@ -665,6 +665,57 @@ a:active {
 .weather-widget:hover { background: var(--gray-100); }
 .weather-widget.hidden { display: none; }
 
+/* FX widget reuses .weather-widget's pill look (border/pad/shadow) but has
+   fixed short text ("💱 FX"), not a live-loaded value, so it skips the
+   ellipsis/min-width-0 shrink handling that exists only for the weather
+   widget's longer, data-dependent label. */
+.fx-widget { white-space: nowrap; }
+
+/* ---- Currency exchange panel — renders into the same .weather-panel /
+   .weather-panel-card bottom-sheet markup as weather/lens/SOS (see above),
+   just with its own body layout below. ---- */
+.fx-body { text-align: left; }
+.fx-body .weather-panel-headline { text-align: center; }
+.fx-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+.fx-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.fx-field-amount { flex: 0.8; }
+.fx-field label { font-size: 11px; color: var(--muted); font-weight: 600; }
+.fx-field input, .fx-field select {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  border-radius: var(--radius-sm);
+  padding: 8px 9px;
+  font-size: 14px;
+  color: var(--ink);
+  width: 100%;
+  min-width: 0;
+}
+.fx-swap {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+  /* Nudge up so it lines up with the <select>s, not their labels above them. */
+  margin-bottom: 1px;
+}
+.fx-swap svg { width: 16px; height: 16px; }
+.fx-result {
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: 6px;
+  /* Reserve height up front so the panel doesn't jump as "Loading…" (short)
+     is replaced by the actual converted figure. */
+  min-height: 32px;
+}
+.fx-meta { text-align: center; }
+
 /* ---- Weather panel / SOS modal — both render into the same markup
    (.weather-panel-card), so both become iOS-style bottom sheets here:
    anchored to the bottom edge, rounded top corners, a drag-handle bar,
