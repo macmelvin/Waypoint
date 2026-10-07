@@ -827,11 +827,26 @@ a:active {
    than a plain Good/Moderate "you are here" marker. Respects
    prefers-reduced-motion via the global override above. */
 .uv-scale-band.current.pulse {
-  animation: band-pulse 1.6s ease-in-out infinite;
+  /* Raised above its flex siblings so the grown (scaled-up) band draws on
+     top of them at the peak of the pulse instead of being overlapped. */
+  position: relative;
+  z-index: 2;
+  animation: band-pulse 1.3s ease-in-out infinite;
 }
 @keyframes band-pulse {
-  0%, 100% { box-shadow: inset 0 0 0 2px #fff, 0 2px 6px rgba(0,0,0,0.3); }
-  50% { box-shadow: inset 0 0 0 2px #fff, 0 2px 6px rgba(0,0,0,0.3), 0 0 0 5px rgba(255,255,255,0.45); }
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: inset 0 0 0 2px #fff, 0 2px 6px rgba(0,0,0,0.3);
+    filter: brightness(1);
+  }
+  50% {
+    /* A visible size grow + a much more opaque, wider halo + a brightness
+       flash -- the earlier version (shadow opacity only) was too subtle to
+       notice against the band's own orange/red fill. */
+    transform: scale(1.14);
+    box-shadow: inset 0 0 0 3px #fff, 0 0 0 8px rgba(255,255,255,0.95), 0 6px 18px rgba(0,0,0,0.45);
+    filter: brightness(1.25);
+  }
 }
 .uv-scale-range { display: block; font-size: 9.5px; font-weight: 700; line-height: 1.3; }
 .uv-scale-label { display: block; font-size: 7.5px; line-height: 1.2; opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
