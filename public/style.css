@@ -3466,3 +3466,14 @@ body.lens-open { overflow: hidden; }
 }
 .lens-cta-gallery svg { width: 19px; height: 19px; }
 .lens-cta-gallery:hover { background: rgba(0,0,0,0.06); }
+
+/* ---- Tourist mode (partner-referred visitors) ---------------------------
+   <html class="partner-visit"> is set in index.html <head>. Hides exactly:
+   More Places + Nearby category tabs, and the Split Bill main tab.
+   display:none keeps the elements in the DOM so handlers/tracking still
+   work; the remaining flex tabs simply share the freed width. */
+html.partner-visit .tab-btn[data-tab="splitbill"],
+html.partner-visit .category-group-tab[data-group="places"],
+html.partner-visit .category-group-tab[data-group="nearby"] {
+  display: none !important;
+}

@@ -22,6 +22,21 @@
 })();
 </script>
 
+<!-- Partner-referred visitors (any ?ref= landing, remembered in localStorage;
+     same key/logic as isPartnerVisit() in app.js) get a tourist-focused UI:
+     More Places, Nearby and Split Bill are hidden via CSS (style.css,
+     "Tourist mode"). Runs in <head> so there is no flash of hidden items. -->
+<script>
+(function () {
+  try {
+    var KEY = 'waypoint_partner_visit_v1';
+    var ref = new URLSearchParams(window.location.search).get('ref');
+    if (ref) localStorage.setItem(KEY, ref);
+    if (localStorage.getItem(KEY)) document.documentElement.classList.add('partner-visit');
+  } catch (err) { /* storage blocked: treat as public visitor */ }
+})();
+</script>
+
 <!-- Open Graph / social share preview (WhatsApp, Telegram, etc.) -->
 <meta property="og:type" content="website" />
 <meta property="og:title" content="🇸🇬 Singapore Tourist Map — Your Travel Companion" />
