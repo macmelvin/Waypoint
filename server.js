@@ -640,12 +640,14 @@ function slugify(name) {
   return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-// Counts a "visit" toward a partner: totalVisits on every app-shell load
-// (rough proxy for "opened the app during their trip"), uniqueVisitors only
-// the first time (no existing cookie yet, or cookie names a different/no
-// partner). Deliberately not counted per-API-call — this is a single-page
-// app, so the shell only reloads when someone actually (re)opens it, not on
-// every search/directions request.
+// Counts a "visit" toward a partner: totalVisits on every eligible landing
+// (rough proxy for "opened the app, via this partner's link, during their
+// trip"), uniqueVisitors only the first time (no existing cookie yet, or
+// cookie names a different/no partner). Deliberately not counted per-API-call
+// or on every later app reload — this is a single-page app, and a partner's
+// attribution is set once on the explicit ?ref= landing, not re-earned on
+// every subsequent open. See isLandingPageRequest()/partnerRefTracking()
+// below for exactly what qualifies.
 // `seenUniqueVisitors` tracks the uniqueVisitors count as of the last time
 // the admin panel acknowledged this partner (see the /ack endpoint below).
 // Whenever uniqueVisitors climbs past it, the admin panel flags that
@@ -658,8 +660,47 @@ function trackPartnerVisit(partner, alreadyAttributed) {
   savePartners();
 }
 
+// Only a GET for the app's actual map entry page ("/" or "/index.html") that
+// accepts HTML can start or renew partner attribution — never an API call,
+// a static asset (app.js/style.css/icons/etc.), another standalone HTML page
+// (admin.html, guide-apply.html, guide-booking.html, guide-portal.html,
+// privacy.html, track.html), or a HEAD/POST request. This used to be any GET
+// that accepted HTML and wasn't under /api/, which meant a request for any
+// of those other pages or assets — as long as it happened to carry a stray
+// ?ref= — was eligible too. The /api/ exclusion is also still true by
+// construction (neither "/" nor "/index.html" can start with "/api/"), kept
+// explicit here for clarity rather than relying on that being incidental.
+function isLandingPageRequest(req) {
+  return req.method === 'GET' && req.accepts('html') && !req.path.startsWith('/api/') &&
+    (req.path === '/' || req.path === '/index.html');
+}
+
+// ---- Bot / crawler / automation filtering (analytics only — never blocks) --
+// Search-engine crawlers, chat-AI crawlers, link-preview fetchers (Slack,
+// WhatsApp, Discord etc. unfurling a shared ?ref= link), and headless
+// browser automation all issue real GET requests for "/" that would
+// otherwise look like a genuine tourist landing. An explicit list of known
+// UA tokens, matched case-insensitively — deliberately NOT a broad substring
+// like "bot" alone, which would also catch ordinary UAs that happen to
+// contain it. Matching here never blocks the request; the page still loads
+// and next() still runs — this only skips the partner counters/cookie.
+const BOT_USER_AGENT_TOKENS = [
+  'googlebot', 'googleother', 'bingbot', 'bingpreview', 'duckduckbot', 'baiduspider',
+  'yandexbot', 'applebot', 'petalbot', 'ahrefsbot', 'semrushbot', 'mj12bot', 'dotbot',
+  'bytespider', 'gptbot', 'chatgpt-user', 'claudebot', 'facebookexternalhit', 'facebot',
+  'twitterbot', 'linkedinbot', 'slackbot', 'discordbot', 'telegrambot', 'whatsapp',
+  'headlesschrome', 'phantomjs', 'playwright', 'puppeteer', 'selenium', 'crawler', 'spider',
+];
+const BOT_USER_AGENT_RE = new RegExp(BOT_USER_AGENT_TOKENS.join('|'), 'i');
+
+function isAutomatedUserAgent(req) {
+  const ua = req.headers['user-agent'];
+  return typeof ua === 'string' && BOT_USER_AGENT_RE.test(ua);
+}
+
 function partnerRefTracking(req, res, next) {
-  const isAppShellRequest = req.method === 'GET' && req.accepts('html') && !req.path.startsWith('/api/');
+  if (!isLandingPageRequest(req) || isAutomatedUserAgent(req)) return next();
+
   const cookieRef = parseCookies(req)[PARTNER_REF_COOKIE] || null;
   const refParam = typeof req.query.ref === 'string' ? slugify(req.query.ref) : null;
 
@@ -674,10 +715,12 @@ function partnerRefTracking(req, res, next) {
         maxAge: 60 * 24 * 60 * 60 * 1000, // 60 days — covers a trip plus buffer
       });
     }
-  } else if (isAppShellRequest && cookieRef) {
-    const partner = partners.find((p) => p.slug === cookieRef && p.active);
-    if (partner) trackPartnerVisit(partner, true);
   }
+  // No ?ref= on this landing: deliberately does nothing now, even if
+  // waypoint_ref is still set from an earlier visit. The cookie's only job
+  // is affiliate-link attribution (read client-side by app.js) and the
+  // unique-visitor check above — it is not a trigger to recount a partner on
+  // every later app open.
 
   next();
 }
