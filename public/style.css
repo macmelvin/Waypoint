@@ -3334,6 +3334,54 @@ select.sb-input { appearance: auto; }
 .sb-scan-row .sb-scan-btn { flex: 1; min-width: 0; }
 .sb-scan-btn.sb-scan-gallery { border-style: solid; border-color: var(--border); background: var(--surface-elevated); color: var(--ink); }
 
+/* ---------- Itineraries (ready-made multi-day trip plans) ----------
+   Length picker copies the Split Bill segmented-control idiom (.sb-seg);
+   day picker copies the category-group-tabs pill-row idiom; stop cards
+   copy the Guided Walk/Must-Eats card layout (padding/radius/shadow) but
+   drop the hover/tap photo-preview mechanism those use, since this photo
+   is just a small always-visible thumbnail, not the main point of the card. */
+.tp-seg { display: flex; padding: 3px; gap: 3px; border-radius: var(--radius-sm); background: var(--surface-fill); margin-bottom: 10px; }
+.tp-seg-btn {
+  flex: 1; border: none; background: none; padding: 9px 4px; border-radius: calc(var(--radius-sm) - 2px);
+  font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer;
+}
+.tp-seg-btn.active { background: var(--surface-elevated); color: var(--ink); box-shadow: var(--shadow-1); }
+
+.tp-day-tabs { display: flex; gap: 6px; margin: 0 0 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+.tp-day-tab {
+  flex: 0 0 auto; border: 1px solid var(--border); background: var(--surface-elevated); border-radius: var(--radius-pill);
+  padding: 7px 14px; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; white-space: nowrap;
+}
+.tp-day-tab.active { border-color: var(--accent); background: var(--accent); color: #fff; box-shadow: var(--shadow-1); }
+
+.tp-day-title { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
+.tp-day-summary { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+
+.tp-stop {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border); background: var(--surface-elevated); border-radius: var(--radius-md);
+  padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--shadow-1);
+}
+.tp-stop-photo { width: 56px; height: 56px; flex: 0 0 auto; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface-fill); }
+.tp-stop-photo-fallback {
+  width: 56px; height: 56px; flex: 0 0 auto; border-radius: var(--radius-sm); background: var(--accent-light);
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+.tp-stop-text { flex: 1 1 auto; min-width: 0; }
+.tp-stop-time { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+.tp-stop-name { font-size: 14px; font-weight: 700; margin-top: 1px; }
+.tp-stop-note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tp-stop-explore {
+  flex: 0 0 auto; border: none; background: var(--accent); color: #fff; border-radius: var(--radius-pill);
+  padding: 8px 13px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.tp-stop-explore:hover { background: var(--accent-dark); }
+
+.tp-coming-soon {
+  text-align: center; color: var(--muted); padding: 28px 16px;
+  border: 1.5px dashed var(--border); border-radius: var(--radius-md); font-size: 13px;
+}
+
 /* ---------- Waypoint Lens (camera → what is this + history) ---------- */
 .lens-btn {
   position: absolute; right: 6px; top: 50%; transform: translateY(-50%);

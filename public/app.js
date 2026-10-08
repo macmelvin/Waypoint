@@ -242,6 +242,9 @@ els.tabs.forEach(btn => {
     if (target === 'splitbill' && window.WaypointSplitBill && window.WaypointSplitBill.onTabOpen) {
       window.WaypointSplitBill.onTabOpen();
     }
+    if (target === 'itineraries' && window.WaypointItineraries && window.WaypointItineraries.onTabOpen) {
+      window.WaypointItineraries.onTabOpen();
+    }
   });
 });
 
