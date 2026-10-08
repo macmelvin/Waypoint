@@ -978,6 +978,11 @@ const LANDMARKS = {
   chinatown: { label: 'Chinatown', address: 'Chinatown, Singapore', lat: 1.28120, lon: 103.84430 },
   littleindia: { label: 'Little India', address: 'Little India, Singapore', lat: 1.30670, lon: 103.85180 },
   kampongglam: { label: 'Kampong Glam', address: 'Kampong Glam, Singapore', lat: 1.30210, lon: 103.85900 },
+  // Peranakan heritage shophouse district -- same area-pin pattern as
+  // Chinatown/Little India/Kampong Glam above. Centred on Koon Seng Road,
+  // the row of colourful conservation shophouses that's the single most
+  // iconic (and most-photographed) spot in the neighbourhood.
+  joochiat: { label: 'Joo Chiat', address: 'Joo Chiat, Singapore', lat: 1.31280, lon: 103.90280 },
   // Singapore's colonial-era civic core, centred on the Padang -- same
   // area-style pin as Chinatown/Little India/Kampong Glam above rather than
   // one specific building, since "Civic District" itself isn't a single
