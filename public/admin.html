@@ -119,6 +119,10 @@
       </div>
       <div id="partnerCreateStatus" style="color:#f87171;font-size:13px;margin-top:8px;"></div>
     </div>
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div class="sub" style="margin:0">Clear visit history (unique visitors, total visits, last-seen time) for every partner, including disabled ones, to start a fresh baseline. Partner links and settings are unchanged.</div>
+      <button id="resetAllPartnersBtn" class="danger" onclick="resetAllPartnerCounts()">Reset all partner counts</button>
+    </div>
     <div class="card">
       <div id="partnerList"><div class="empty">Loading…</div></div>
     </div>
@@ -518,7 +522,14 @@ async function deleteGuide(id) {
   }
 }
 
+// Cached so resetPartnerCounts() can look up a partner's name for the
+// confirmation prompt without re-fetching or risking any HTML-escaping
+// issue — it's only ever read back out via confirm(), a plain-text dialog,
+// never re-inserted into the page.
+let lastPartners = [];
+
 function renderPartners(partners) {
+  lastPartners = partners;
   const list = document.getElementById('partnerList');
   if (!partners.length) {
     list.innerHTML = '<div class="empty">No partners yet — add a travel agency above.</div>';
@@ -549,6 +560,7 @@ function renderPartners(partners) {
         </div>
         <div class="invite-actions">
           ${flagged ? `<button class="secondary" onclick="ackPartner('${p.id}')">Mark seen</button>` : ''}
+          <button class="secondary partner-reset-btn" onclick="resetPartnerCounts('${p.id}')">Reset counts</button>
           <button class="secondary" onclick="togglePartner('${p.id}')">${p.active ? 'Disable' : 'Enable'}</button>
           <button class="danger" onclick="deletePartner('${p.id}')">Delete</button>
         </div>
@@ -600,6 +612,46 @@ async function deletePartner(id) {
     loadPartners();
   } catch (err) {
     alert(err.message);
+  }
+}
+
+// Disables/re-enables every reset-related button (every row's "Reset
+// counts" plus "Reset all partner counts") while any one reset request is
+// in flight, so a double-click or an overlapping per-row + reset-all click
+// can't fire a duplicate submission. Re-queried live each call rather than
+// cached, so it still does the right thing whether or not loadPartners()
+// has already rebuilt the row buttons by the time this runs again.
+function setPartnerResetControlsDisabled(disabled) {
+  document.querySelectorAll('.partner-reset-btn, #resetAllPartnersBtn').forEach((btn) => {
+    btn.disabled = disabled;
+  });
+}
+
+async function resetPartnerCounts(id) {
+  const p = lastPartners.find((x) => x.id === id);
+  const label = p ? p.name : 'this partner';
+  if (!confirm(`Reset visit counts for "${label}"? This clears its visit history (unique visitors, total visits, last-seen time) for this partner only — its link and settings stay unchanged. This cannot be undone.`)) return;
+  setPartnerResetControlsDisabled(true);
+  try {
+    await api(`/api/admin/partners/${id}/reset`, { method: 'POST' });
+    await loadPartners();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setPartnerResetControlsDisabled(false);
+  }
+}
+
+async function resetAllPartnerCounts() {
+  if (!confirm('Reset visit counts for ALL partners, including disabled ones? This clears unique visitors, total visits and last-seen time for every partner — links and settings stay unchanged. This cannot be undone.')) return;
+  setPartnerResetControlsDisabled(true);
+  try {
+    await api('/api/admin/partners/reset-all', { method: 'POST' });
+    await loadPartners();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setPartnerResetControlsDisabled(false);
   }
 }
 

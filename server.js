@@ -337,12 +337,19 @@ function loadPartners() {
   }
 }
 
+// Returns true/false for whether the write actually succeeded, so a caller
+// that needs to know (the reset routes below, which must not report success
+// — or leave counters zeroed in memory — if the write silently failed) can
+// check it. Existing callers that already just called this for its
+// side-effect and ignored any return value are unaffected either way.
 function savePartners() {
   try {
     fs.mkdirSync(path.dirname(PARTNERS_FILE), { recursive: true });
     fs.writeFileSync(PARTNERS_FILE, JSON.stringify(partners, null, 2));
+    return true;
   } catch (err) {
     console.error('failed to persist partners:', err.message);
+    return false;
   }
 }
 
@@ -877,6 +884,64 @@ app.post('/api/admin/partners/:id/ack', requireAdmin, (req, res) => {
   if (!p) return res.status(404).json({ error: 'not found' });
   p.seenUniqueVisitors = p.uniqueVisitors || 0;
   savePartners();
+  res.json({ partner: p });
+});
+
+// Resets a partner's visit-tracking fields only — uniqueVisitors,
+// totalVisits, seenUniqueVisitors, lastSeenAt — back to zero/null. Every
+// other field (id, name, slug, active, createdAt, and any other metadata)
+// is left completely untouched; this clears visit HISTORY, not the partner
+// record itself and not visitor identity (the waypoint_ref cookie is never
+// touched here, so a returning browser with a matching cookie still
+// dedupes against uniqueVisitors exactly as before). Returns a snapshot of
+// the previous values so the caller can restore them if persistence then
+// fails — see the two routes below, which must not report success (or
+// leave the reset applied only in memory) when savePartners() fails.
+function resetPartnerVisitCounters(partner) {
+  const snapshot = {
+    uniqueVisitors: partner.uniqueVisitors,
+    totalVisits: partner.totalVisits,
+    seenUniqueVisitors: partner.seenUniqueVisitors,
+    lastSeenAt: partner.lastSeenAt,
+  };
+  partner.uniqueVisitors = 0;
+  partner.totalVisits = 0;
+  partner.seenUniqueVisitors = 0;
+  partner.lastSeenAt = null;
+  return snapshot;
+}
+
+function restorePartnerVisitCounters(partner, snapshot) {
+  partner.uniqueVisitors = snapshot.uniqueVisitors;
+  partner.totalVisits = snapshot.totalVisits;
+  partner.seenUniqueVisitors = snapshot.seenUniqueVisitors;
+  partner.lastSeenAt = snapshot.lastSeenAt;
+}
+
+// Resets ALL registered partners' visit counters — active and inactive
+// alike. One persistence write for the whole batch (not one per partner),
+// so a failure rolls every partner back together rather than leaving some
+// reset and others not. Idempotent, including an empty partner list (the
+// map/forEach below is simply a no-op and the write re-saves the same []).
+app.post('/api/admin/partners/reset-all', requireAdmin, (req, res) => {
+  const snapshots = partners.map((p) => [p, resetPartnerVisitCounters(p)]);
+  if (!savePartners()) {
+    for (const [p, snapshot] of snapshots) restorePartnerVisitCounters(p, snapshot);
+    return res.status(500).json({ error: 'Failed to save the reset — counters were left unchanged.' });
+  }
+  res.json({ partners });
+});
+
+// Resets one partner's visit counters. 404s (no changes made) if the id
+// doesn't exist — same lookup pattern as toggle/ack/delete above.
+app.post('/api/admin/partners/:id/reset', requireAdmin, (req, res) => {
+  const p = partners.find((x) => x.id === req.params.id);
+  if (!p) return res.status(404).json({ error: 'not found' });
+  const snapshot = resetPartnerVisitCounters(p);
+  if (!savePartners()) {
+    restorePartnerVisitCounters(p, snapshot);
+    return res.status(500).json({ error: 'Failed to save the reset — counters were left unchanged.' });
+  }
   res.json({ partner: p });
 });
 
