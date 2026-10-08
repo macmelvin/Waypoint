@@ -1261,14 +1261,6 @@ const TICKET_LINKS = {
 // and can change for big events -- the copy instead points to the SMRT app
 // / LTA MyTransport for same-day accuracy.
 //
-// "f1singapore", unlike avengedsevenfold, IS an evergreen category, not a
-// one-off -- the Singapore Grand Prix runs every year at Marina Bay Street
-// Circuit (2026's race weekend: 9-11 Oct, race day Sun 11 Oct), and this
-// links to F1's own official ticketing page for the Singapore round, which
-// gets reused/updated for whichever year is currently on sale rather than
-// pointing at a single dated event. No affiliate deal -- same direct-link
-// reasoning as Concerts/Car Rental, since KKday doesn't sell F1 tickets.
-//
 // "ktmbtrain" links to KTMB's own official ticketing website rather than an
 // app, deliberately: KTMB's old "KTMB Mobile" app was discontinued (Dec
 // 2025) and replaced by a different app ("KITS Style"), which shows how
@@ -1276,7 +1268,7 @@ const TICKET_LINKS = {
 // online.ktmb.com.my covers the same booking flow (ETS/Intercity, Komuter,
 // and the JB Sentral-Woodlands Shuttle most SG visitors actually want) and
 // works in any mobile browser with no install required. No affiliate deal,
-// same direct-link reasoning as Concerts/F1/Car Rental.
+// same direct-link reasoning as Concerts/Car Rental.
 const BOOK_ONLINE_LINKS = {
   sistic: 'https://www.sistic.com.sg/events?genre=64',
   ticketmelon: 'https://www.ticketmelon.com/',
@@ -1299,7 +1291,6 @@ const BOOK_ONLINE_LINKS = {
   bensonboone: 'https://ticketmaster.sg/activity/detail/26sg_bensonboone',
   jaychou: 'https://ticketmaster.sg/activity/detail/27sg_jaychou',
   lany: 'https://ticketmaster.sg/activity/detail/26sg_lany',
-  f1singapore: 'https://tickets.formula1.com/en/f1-3301-singapore',
 };
 
 // ---- Travel-agency / distribution-partner referral tagging -------------------
@@ -1998,7 +1989,6 @@ const CHIP_I18N = {
   bensonboone: { en: 'Benson Boone', zh: 'Benson Boone', ms: 'Benson Boone', ta: 'Benson Boone', ja: 'Benson Boone', ko: 'Benson Boone' },
   jaychou: { en: 'Jay Chou', zh: '周杰伦', ms: 'Jay Chou', ta: 'Jay Chou', ja: 'Jay Chou', ko: 'Jay Chou' },
   lany: { en: 'LANY', zh: 'LANY', ms: 'LANY', ta: 'LANY', ja: 'LANY', ko: 'LANY' },
-  f1singapore: { en: 'F1 Singapore GP', zh: 'F1新加坡大奖赛', ms: 'F1 Grand Prix Singapura', ta: 'F1 சிங்கப்பூர் கிராண்ட் பிரிக்ஸ்', ja: 'F1シンガポールGP', ko: 'F1 싱가포르 그랑프리' },
 };
 
 function t(key) {
