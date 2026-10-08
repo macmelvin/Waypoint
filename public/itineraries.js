@@ -12,10 +12,14 @@
 // selectSearchResult(), switchToSearchTab(), I18N, currentLang, t(),
 // applyTranslations(), escapeHtml().
 //
-// Only the 7-day Singapore plan is filled in so far. The 3-day and 5-day
-// lengths are deliberately kept as real, selectable options (not hidden)
-// so the length picker itself doesn't need to change shape later — they
-// just show a "coming soon" placeholder until someone curates them.
+// The 3- and 5-day lengths are the same trip as the 7-day one, just cut
+// short -- SG_7_DAY is written in priority order (Marina Bay first, then
+// Sentosa, then the river/heritage day, ...), so a shorter visit gets
+// that same ordered list sliced to however many days they have, rather
+// than a separately-curated set that could drift out of sync with it.
+// renderStops() still has a "coming soon" fallback for an empty days
+// array, kept as defensive insurance for any future length added before
+// its content is ready, but nothing currently exercises that path.
 (function () {
   'use strict';
 
@@ -178,8 +182,8 @@
   ];
 
   const TRIP_PLANS = {
-    3: { days: [] },
-    5: { days: [] },
+    3: { days: SG_7_DAY.slice(0, 3) },
+    5: { days: SG_7_DAY.slice(0, 5) },
     7: { days: SG_7_DAY },
   };
   const LENGTHS = [3, 5, 7];
