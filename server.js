@@ -390,6 +390,7 @@ const GUIDE_LANDMARKS = {
   chinatown: 'Chinatown',
   littleindia: 'Little India',
   kampongglam: 'Kampong Glam',
+  joochiat: 'Joo Chiat',
   botanicgardens: 'Singapore Botanic Gardens',
   hawparvilla: 'Haw Par Villa',
   nationalgallery: 'National Gallery Singapore',
