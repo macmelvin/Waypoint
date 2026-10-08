@@ -10,20 +10,15 @@
 <meta name="theme-color" content="#2563eb" id="themeColorMeta" />
 <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
-<!-- Applies the saved (or system-default) color theme before first paint so
-     there's no flash of the wrong theme. Keep the storage key ('waypoint_theme')
-     in sync with THEME_KEY in app.js — they must match. -->
+<!-- Light mode only — the dark-mode toggle was removed, so this always
+     pins data-theme to 'light' regardless of OS preference (dark-mode CSS
+     under [data-theme="dark"] and the prefers-color-scheme fallback further
+     down in style.css simply never match anymore) and clears out any
+     'dark' choice a returning user saved before the toggle existed. -->
 <script>
 (function () {
-  try {
-    var saved = localStorage.getItem('waypoint_theme');
-    var theme = (saved === 'light' || saved === 'dark')
-      ? saved
-      : ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', theme);
-  } catch (err) {
-    document.documentElement.setAttribute('data-theme', 'light');
-  }
+  try { localStorage.removeItem('waypoint_theme'); } catch (err) { /* ignore */ }
+  document.documentElement.setAttribute('data-theme', 'light');
 })();
 </script>
 
@@ -77,6 +72,7 @@
         <span id="langBtnText">EN</span>
       </button>
       <button id="weatherWidget" class="weather-widget hidden" type="button" title="Current weather"></button>
+      <button id="fxWidget" class="icon-btn" type="button" title="Currency exchange" aria-label="Currency exchange">💱</button>
       <a id="mrtMapBtn" class="icon-btn" href="https://www.lta.gov.sg/content/dam/ltagov/getting_around/public_transport/rail_network/pdf/SM_EN_(Ver200526)_CCL6.png" target="_blank" rel="noopener" title="View the official LTA MRT/LRT system map" aria-label="View the official LTA MRT/LRT system map">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="3.5" width="13" height="12" rx="4"/><path d="M5.5 11.2h13"/><circle cx="9" cy="14.3" r="0.65" fill="currentColor" stroke="none"/><circle cx="15" cy="14.3" r="0.65" fill="currentColor" stroke="none"/><path d="M8.3 19.2l-2 2.3M15.7 19.2l2 2.3"/></svg>
       </a>
@@ -88,14 +84,6 @@
       </button>
       <button id="locateBtn" class="icon-btn locate-btn" type="button" data-i18n-title="where_am_i" data-i18n-aria="where_am_i" title="Where am I" aria-label="Where am I">
         <span id="locateBtnIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><path d="M12 2.3v3M12 18.7v3M2.3 12h3M18.7 12h3"/></svg></span>
-      </button>
-      <button id="themeToggle" class="theme-toggle" type="button" role="switch" aria-checked="false" title="Switch to dark mode" aria-label="Switch to dark mode">
-        <span class="theme-toggle-track">
-          <span class="theme-toggle-thumb">
-            <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
-            <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.7a8.5 8.5 0 0 1-11-11.2 9 9 0 1 0 11 11.2z"/></svg>
-          </span>
-        </span>
       </button>
     </div>
   </header>
@@ -972,6 +960,34 @@
   <div class="weather-panel-card">
     <button id="weatherPanelClose" class="weather-panel-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div id="weatherPanelBody" class="weather-panel-body">Loading…</div>
+  </div>
+</div>
+
+<div id="fxPanel" class="weather-panel hidden" role="dialog" aria-modal="true" aria-labelledby="fxPanelTitle">
+  <div class="weather-panel-card fx-card">
+    <button id="fxPanelClose" class="weather-panel-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="weather-panel-body fx-body">
+      <h3 id="fxPanelTitle" class="weather-panel-headline">💱 Currency Exchange</h3>
+      <div class="fx-row">
+        <div class="fx-field fx-field-amount">
+          <label for="fxAmount">Amount</label>
+          <input id="fxAmount" type="number" inputmode="decimal" min="0" step="any" value="1" />
+        </div>
+        <div class="fx-field">
+          <label for="fxFrom">From</label>
+          <select id="fxFrom" aria-label="Convert from currency"></select>
+        </div>
+        <button id="fxSwap" class="icon-btn fx-swap" type="button" title="Swap currencies" aria-label="Swap currencies">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>
+        </button>
+        <div class="fx-field">
+          <label for="fxTo">To</label>
+          <select id="fxTo" aria-label="Convert to currency"></select>
+        </div>
+      </div>
+      <div id="fxResult" class="fx-result">—</div>
+      <p id="fxMeta" class="fx-meta weather-panel-note"></p>
+    </div>
   </div>
 </div>
 

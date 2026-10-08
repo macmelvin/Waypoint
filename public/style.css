@@ -96,10 +96,13 @@
 }
 
 /* =========================================================================
-   DARK MODE — toggled explicitly via [data-theme="dark"] on <html> (see
-   app.js: THEME_KEY / applyTheme()), defaulting to the OS's color-scheme
-   preference on first load before the person ever touches the toggle.
-   Modeled on a transit-tracker reference (near-black background, outlined
+   DARK MODE — the toggle that used to flip [data-theme="dark"] on <html>
+   has been removed (index.html's inline <head> script now always sets
+   data-theme="light", unconditionally); these tokens are kept defined but
+   are currently unreachable. Not deleted outright in case a toggle comes
+   back later — removing it was a request to stop SWITCHING themes, not a
+   verdict on the dark palette itself. Modeled on a transit-tracker reference
+   (near-black background, outlined
    cards, oversized "hero number" countdowns, green live/good + blue LIVE
    accents) rather than a simple inverted palette — see the component
    overrides further down (search "[data-theme=\"dark\"]") for where that
@@ -241,6 +244,18 @@ html, body {
   color: var(--ink);
   background: var(--bg);
   -webkit-tap-highlight-color: transparent;
+  /* Safety net: the topbar packs several fixed-size icon buttons into one
+     row, and on a narrow enough phone (or once one more button gets added
+     later) their combined minimum width can exceed the viewport before the
+     flex-shrink rules on .brand/.weather-widget finish giving up space. Flex
+     items don't clip their own overflow by default, so without this that
+     shortfall doesn't just squeeze the topbar — it widens the ENTIRE page
+     and makes it horizontally scrollable (text sheared off down every line,
+     the actual bug reported after the currency-exchange button shipped).
+     Real fix is keeping the topbar's own content within budget; this just
+     makes sure a future miscalculation stays a topbar problem, not a
+     whole-page one. */
+  overflow-x: hidden;
 }
 
 button, input {
@@ -297,8 +312,30 @@ a:active {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0; /* never let the action buttons get squeezed by a long brand name */
+  /* .brand (the flag/name) shrinks first -- see its own flex:1/min-width:26px
+     -- so in the common case this row keeps its natural width and never
+     gets squeezed. But .brand bottoms out at 26px, and once there are
+     enough always-visible buttons (weather + FX + MRT map + notify + SOS +
+     locate — six 38px circles plus the lang button, none of which can
+     shrink below their own touch-target size), their combined width can
+     still exceed what's left on a narrow phone. flex-shrink: 0 used to mean
+     that excess had nowhere to go but true overflow (the first reported
+     bug) or, after clipping was added as a safety net, a silently
+     unreachable button (locate, the last one in the row — the second
+     reported bug). min-width: 0 + overflow-x lets this row shrink past its
+     own content width and become its own small horizontally-scrollable
+     strip instead, the same pattern already used for .category-row /
+     .category-group-tabs below -- every button stays reachable with a
+     swipe, and nothing else on the page has to move to make room. */
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
+/* Buttons inside must not shrink themselves (that's what made the locate
+   icon's touch target collapse/clip instead of the row just scrolling) --
+   each one keeps its full size and the row scrolls past them instead. */
+.topbar-actions > * { flex-shrink: 0; }
 
 .train-alert-banner {
   display: flex;
@@ -380,7 +417,18 @@ a:active {
   font-weight: 700;
   font-size: 18px;
   min-width: 26px; /* always keep enough room for the flag mark itself — see overflow: hidden below */
-  flex: 1 1 auto;  /* claims only the space left over after the topbar action buttons */
+  /* Shrink factor 50, not 1: .topbar-actions can now also shrink (down to a
+     horizontally-scrollable strip once it runs out of room — see its own
+     comment), so with equal factors flexbox would split the squeeze between
+     both roughly in proportion to their content width, which — since the
+     icon row's content is much wider than the brand text — meant most of
+     the actual icon row got crushed into "needs a swipe to find the locate
+     button" territory while the brand name had barely given up any space.
+     This large a shrink-factor gap makes brand absorb virtually all of the
+     deficit down to its 26px floor FIRST; only once it's pinned there does
+     any remainder spill over to the icon row, so a swipe is only ever
+     needed as the last resort, not the first one. */
+  flex: 1 999 auto;  /* claims only the space left over after the topbar action buttons */
   overflow: hidden; /* on a narrow phone, clip the shrinking name/tagline INSIDE this box instead of
                         letting the flag mark spill out and get painted over by the topbar-actions
                         buttons that follow it in the DOM (that overlap was the actual reported bug) */
@@ -664,6 +712,51 @@ a:active {
 }
 .weather-widget:hover { background: var(--gray-100); }
 .weather-widget.hidden { display: none; }
+
+/* ---- Currency exchange panel — renders into the same .weather-panel /
+   .weather-panel-card bottom-sheet markup as weather/lens/SOS (see above),
+   just with its own body layout below. ---- */
+.fx-body { text-align: left; }
+.fx-body .weather-panel-headline { text-align: center; }
+.fx-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+.fx-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.fx-field-amount { flex: 0.8; }
+.fx-field label { font-size: 11px; color: var(--muted); font-weight: 600; }
+.fx-field input, .fx-field select {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  border-radius: var(--radius-sm);
+  padding: 8px 9px;
+  font-size: 14px;
+  color: var(--ink);
+  width: 100%;
+  min-width: 0;
+}
+.fx-swap {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+  /* Nudge up so it lines up with the <select>s, not their labels above them. */
+  margin-bottom: 1px;
+}
+.fx-swap svg { width: 16px; height: 16px; }
+.fx-result {
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: 6px;
+  /* Reserve height up front so the panel doesn't jump as "Loading…" (short)
+     is replaced by the actual converted figure. */
+  min-height: 32px;
+}
+.fx-meta { text-align: center; }
 
 /* ---- Weather panel / SOS modal — both render into the same markup
    (.weather-panel-card), so both become iOS-style bottom sheets here:
@@ -2938,58 +3031,6 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   .weather-widget { max-width: 34vw; }
 }
 
-/* =========================================================================
-   DARK-MODE THEME TOGGLE — a pill-shaped switch in the topbar (styled after
-   the reference's clock-side switch), not just an icon button, so the
-   control itself reads as an explicit on/off toggle rather than an action
-   button. Lives in #topbar's .topbar-actions, after the other icon buttons.
-   ========================================================================= */
-.theme-toggle {
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-}
-.theme-toggle-track {
-  position: relative;
-  width: 48px;
-  height: 28px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-fill-strong);
-  border: 1px solid var(--separator);
-  padding: 2px;
-  box-sizing: border-box;
-  transition: background var(--duration-base) var(--ease-snappy);
-}
-.theme-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #fff;
-  color: #d97706;
-  box-shadow: var(--shadow-1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateX(0);
-  transition: transform var(--duration-base) var(--ease-snappy), background var(--duration-base) var(--ease-snappy), color var(--duration-base) var(--ease-snappy);
-}
-.theme-toggle-thumb svg { width: 14px; height: 14px; }
-.theme-toggle-thumb .theme-icon-moon { display: none; }
-[data-theme="dark"] .theme-toggle-track { background: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .theme-toggle-thumb {
-  transform: translateX(20px);
-  background: #1c1c1e;
-  color: #9ec6ff;
-}
-[data-theme="dark"] .theme-toggle-thumb .theme-icon-sun { display: none; }
-[data-theme="dark"] .theme-toggle-thumb .theme-icon-moon { display: block; }
 
 /* =========================================================================
    LIVE / HERO NUMBER — a small reusable pair (value + unit) used on
