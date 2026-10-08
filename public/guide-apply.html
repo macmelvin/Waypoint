@@ -96,10 +96,10 @@
       <label class="field-label" for="priceInput">Price per adult, SGD (optional)</label>
       <input type="text" inputmode="decimal" id="priceInput" placeholder="Leave blank to use the standard rate">
 
-      <label class="field-label" for="noteInput">Tell us a bit about yourself</label>
-      <div class="hint">Paint a picture of what a walk with you feels like -- this becomes your curated preview on the app. For example:</div>
-      <div class="example-quote">"The Singapore river is a wonderful dreamy place with fabled landscape of the Fullerton Hotel in the backdrop.<br><br>Taking a time travelling delorean into the past cannot compare to walking by foot around the civic district.<br><br>The sounds of a symphony orchestra (SSO) beckons us into the Victoria Theatre and Concert Hall (VTCH) to experience a grand reopening of the place in 1958, and then again in 2014."</div>
-      <textarea id="noteInput" placeholder="Share a story or scene from one of your own walks" rows="5" required></textarea>
+      <label class="field-label" for="noteInput">Describe the walk visitors will experience</label>
+      <div class="hint" id="noteHint">Write directly to the traveller using "you". Describe the places you'll explore, the stories you'll share, and a few sights, sounds or moments they'll remember. This will appear as your walk's preview on Waypoint, so focus on the experience rather than your CV. Please write at least 200 characters. For example:</div>
+      <div class="example-quote" id="noteExample">"Step into Chinatown's shophouse-lined lanes, where incense drifts from temples and the aroma of breakfast fills the air. You'll hear stories of the people who made this neighbourhood home, pause to spot details above the five-foot ways, and see familiar streets through fresh eyes."</div>
+      <textarea id="noteInput" placeholder="What will visitors see, hear and discover on a walk with you? Share a few specific places, stories and moments." rows="6" minlength="200" required aria-describedby="noteHint noteExample"></textarea>
 
       <div class="hp" aria-hidden="true">
         <label for="companyWebsite">Leave this field blank</label>
@@ -183,7 +183,11 @@ async function submitApplication() {
   if (!stbLicense) { errorEl.textContent = 'Your STB License number is required.'; return; }
   if (!landmarks.length) { errorEl.textContent = 'Pick at least one neighbourhood/landmark.'; return; }
   if (!whatsapp) { errorEl.textContent = 'A WhatsApp number is required.'; return; }
-  if (!note) { errorEl.textContent = 'Please tell us a bit about yourself.'; return; }
+  if (note.length < 200) {
+    errorEl.textContent = 'Please add a little more detail (at least 200 characters) so visitors can picture the places, stories and moments on your walk.';
+    document.getElementById('noteInput').focus();
+    return;
+  }
   if (!agreedToTerms) { errorEl.textContent = 'Please agree to the payment terms before applying.'; return; }
 
   const btn = document.getElementById('submitBtn');

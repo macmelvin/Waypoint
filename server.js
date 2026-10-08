@@ -1129,13 +1129,15 @@ app.post('/api/guide-apply', (req, res) => {
   if (!whatsapp) return res.status(400).json({ error: 'a WhatsApp number is required so we can reach you' });
   const emailResult = sanitizeGuideEmail(req.body?.email, res);
   if (!emailResult) return; // sanitizeGuideEmail already sent the 400
-  // "Tell us a bit about yourself" is the applicant's own pitch -- shown to
-  // Melvin in the admin review list (see the noteState line there) and, once
-  // approved, as the guide's curated preview on the place card. Required so
-  // every application actually has something for Melvin to judge it by,
-  // rather than a bare name + checkbox list.
-  const note = (req.body?.note || '').trim();
-  if (!note) return res.status(400).json({ error: 'tell us a bit about yourself' });
+  // Visitor-facing preview, shown to Melvin for review and on the place
+  // card after approval. Match the application page's 200-character minimum
+  // here too so direct API submissions cannot bypass the requirement.
+  const note = typeof req.body?.note === 'string' ? req.body.note.trim() : '';
+  if (note.length < 200) {
+    return res.status(400).json({
+      error: 'Please add a little more detail (at least 200 characters) so visitors can picture the places, stories and moments on your walk.',
+    });
+  }
   // The 10%-share/biweekly-invoice/QR-payment terms shown on the form --
   // checked server-side too (not just the checkbox being required in the
   // UI), since this is a real commercial condition of listing, not just a
