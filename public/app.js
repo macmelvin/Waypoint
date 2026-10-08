@@ -6245,10 +6245,22 @@ function renderSafetyHotlinesTab() {
 // ---------- Share ----------
 
 els.shareBtn.addEventListener('click', async () => {
+  // Tagged so a recipient's arrival can be told apart from someone just
+  // opening the app directly — Umami reads these back as UTM Source/Medium.
+  // This is deliberately separate from partner/affiliate attribution
+  // (?ref=/waypoint_ref below): a sender who got here through a partner
+  // link still shares the plain app, not their own ?ref= or any other
+  // current-page state — new URL("/", location.origin) can never carry
+  // those over, since location.origin itself never has a path, query
+  // string or hash to begin with.
+  const appShareUrl = new URL('/', location.origin);
+  appShareUrl.searchParams.set('utm_source', 'share');
+  appShareUrl.searchParams.set('utm_medium', 'app');
+
   const shareData = {
     title: 'Waypoint',
     text: 'Waypoint — a clean, ad-free maps & directions app for Singapore.',
-    url: location.origin,
+    url: appShareUrl.toString(),
   };
 
   if (navigator.share) {
