@@ -391,6 +391,7 @@ const GUIDE_LANDMARKS = {
   littleindia: 'Little India',
   kampongglam: 'Kampong Glam',
   joochiat: 'Joo Chiat',
+  gardensbythebay: 'Gardens by the Bay',
   botanicgardens: 'Singapore Botanic Gardens',
   hawparvilla: 'Haw Par Villa',
   nationalgallery: 'National Gallery Singapore',
