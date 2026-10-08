@@ -231,6 +231,10 @@ els.tabs.forEach(btn => {
     btn.classList.add('active');
     btn.setAttribute('aria-selected', 'true');
     const target = btn.dataset.tab;
+    // Switching the main tab bar (Search/Directions/Bus Times/Split
+    // Bill/Plan Route/Itineraries) is an in-page switch too -- same
+    // Umami-pageview blind spot as the category tabs/chips above.
+    if (typeof umami !== 'undefined') umami.track('tab-click', { tab: target });
     els.panels.forEach(p => p.classList.remove('active'));
     document.getElementById(`panel-${target}`).classList.add('active');
     if (target === 'favourites') {
@@ -1343,6 +1347,13 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
     // own pageview tracking never sees it) -- track it explicitly so it
     // shows up as an event rather than being invisible in analytics.
     if (tab.dataset.group === 'guidedwalk' && typeof umami !== 'undefined') umami.track('guided-walk-click');
+    // Every category group tab is the same kind of invisible-to-Umami
+    // in-page switch, not just Guided Walk -- this generic event (group
+    // name as event data) lets which group (Must-Eats, Gourmet, Tix &
+    // Tours, Nearby, Places, Concerts, Book Online) gets tapped most be
+    // broken down in Umami, without touching the guided-walk-click metric
+    // above that already existed before this.
+    if (typeof umami !== 'undefined') umami.track('category-tab-click', { group: tab.dataset.group });
     document.querySelectorAll('.category-group-tab').forEach((b) => b.classList.remove('active'));
     tab.classList.add('active');
     const group = tab.dataset.group;
@@ -1379,6 +1390,11 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
 document.querySelectorAll('.category-chip').forEach((btn) => {
   btn.addEventListener('click', () => {
     const category = btn.dataset.category;
+    // Same in-page-click blind spot as the category-group-tab/affiliate
+    // trackers elsewhere in this file -- tapping a chip never changes the
+    // URL, so Umami's own pageview tracking can't see which specific chip
+    // (landmark, food category, ticket, etc.) gets tapped most.
+    if (typeof umami !== 'undefined') umami.track('category-chip-click', { category });
     // Book Online chips aren't places at all (Wi-Fi & SIM Cards, Cruise
     // Vacation, etc.) — they just open their KKday category page directly,
     // skipping the place-card/GPS-search flow entirely.
@@ -2016,6 +2032,11 @@ if (els.langBtn) {
     const idx = LANG_CYCLE.indexOf(currentLang);
     currentLang = LANG_CYCLE[(idx + 1) % LANG_CYCLE.length];
     try { localStorage.setItem(LANG_STORAGE_KEY, currentLang); } catch (err) { /* ignore */ }
+    // Cycling languages never changes the URL, so same Umami blind spot as
+    // the tab/chip trackers above -- tracked with the language switched TO,
+    // not just a bare click count, so it's clear which languages are
+    // actually in demand.
+    if (typeof umami !== 'undefined') umami.track('language-click', { lang: currentLang });
     applyTranslations();
   });
 }
@@ -5556,7 +5577,12 @@ function resumeSosLiveTrackingIfActive() {
   startSosLiveTracking(saved.sessionId, saved.contactName);
 }
 
-els.sosBtn.addEventListener('click', openSosModal);
+els.sosBtn.addEventListener('click', () => {
+  // Opening the Safety Center is an in-page modal, not a URL change --
+  // same Umami blind spot as the tab/chip trackers above.
+  if (typeof umami !== 'undefined') umami.track('sos-click');
+  openSosModal();
+});
 els.sosModalClose.addEventListener('click', closeSosModal);
 els.sosModal.addEventListener('click', (e) => {
   if (e.target === els.sosModal) closeSosModal();
@@ -6801,7 +6827,15 @@ async function openWeatherPanel() {
   }
 }
 
-els.weatherWidget.addEventListener('click', openWeatherPanel);
+els.weatherWidget.addEventListener('click', () => {
+  // Opening the weather/haze/PM2.5/UV detail panel is an in-page overlay,
+  // not a URL change -- same Umami blind spot as the tab/chip trackers
+  // above. Named for haze specifically since that's the one most often
+  // asked about, even though the same widget/panel covers weather and UV
+  // too.
+  if (typeof umami !== 'undefined') umami.track('haze-widget-click');
+  openWeatherPanel();
+});
 els.weatherPanelClose.addEventListener('click', () => els.weatherPanel.classList.add('hidden'));
 els.weatherPanel.addEventListener('click', (e) => {
   if (e.target === els.weatherPanel) els.weatherPanel.classList.add('hidden');
@@ -6883,7 +6917,12 @@ function openFxPanel() {
   runFxConversion();
 }
 
-els.fxWidget.addEventListener('click', openFxPanel);
+els.fxWidget.addEventListener('click', () => {
+  // Opening the currency converter is an in-page overlay, not a URL
+  // change -- same Umami blind spot as the tab/chip trackers above.
+  if (typeof umami !== 'undefined') umami.track('currency-click');
+  openFxPanel();
+});
 els.fxPanelClose.addEventListener('click', () => els.fxPanel.classList.add('hidden'));
 els.fxPanel.addEventListener('click', (e) => {
   if (e.target === els.fxPanel) els.fxPanel.classList.add('hidden');
