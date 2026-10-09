@@ -199,6 +199,16 @@
       <div id="bookingList"><div class="empty">Loading…</div></div>
     </div>
 
+    <h1 style="margin-top:36px">Guide feedback</h1>
+    <p class="sub">Comments visitors leave via the "💬 Feedback" button on a guide's place-card entry — not shown anywhere on the public site, just for you.</p>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div id="feedbackSummary" style="color:#94a3b8;font-size:13px"></div>
+        <button class="secondary" onclick="loadGuideFeedback()">Refresh</button>
+      </div>
+      <div id="guideFeedbackList"><div class="empty">Loading…</div></div>
+    </div>
+
     <h1 style="margin-top:36px">Guide invoices</h1>
     <p class="sub">Who owes a share this period -- the same figures the biweekly reminder email summarizes for you. That email only goes to you (Melvin), since Resend can't yet deliver to a guide's own inbox; notify each guide directly with one tap on WhatsApp instead.</p>
     <div class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
@@ -263,6 +273,7 @@ async function loadInvites() {
     await loadGuideLandmarks();
     loadGuides();
     loadGuideBookings();
+    loadGuideFeedback();
     loadGuideInvoices();
     syncAdminPushState();
   } catch (err) {
@@ -765,6 +776,52 @@ async function loadGuideBookings() {
     applyBookingFilter();
   } catch (err) {
     document.getElementById('bookingList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// ---- Guide feedback (the "💬 Feedback" button on a guide's place-card
+// entry) -- admin-only, same card-list styling as invites/bookings above.
+async function loadGuideFeedback() {
+  try {
+    const { feedback } = await api('/api/admin/guide-feedback');
+    renderGuideFeedback(feedback);
+  } catch (err) {
+    document.getElementById('guideFeedbackList').innerHTML = `<div class="empty">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function starString(rating) {
+  const n = Math.max(0, Math.min(5, Number(rating) || 0));
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}
+
+function renderGuideFeedback(feedback) {
+  const list = document.getElementById('guideFeedbackList');
+  const summaryEl = document.getElementById('feedbackSummary');
+  if (!feedback.length) {
+    list.innerHTML = '<div class="empty">No feedback yet.</div>';
+    summaryEl.textContent = '';
+    return;
+  }
+  const avg = feedback.reduce((sum, f) => sum + (f.rating || 0), 0) / feedback.length;
+  summaryEl.textContent = `${feedback.length} comment${feedback.length === 1 ? '' : 's'} · avg ${avg.toFixed(1)} ★`;
+  list.innerHTML = feedback.map((f) => `
+    <div class="invite">
+      <div style="flex:1;min-width:0">
+        <div class="invite-name">${escapeHtml(f.guideName)} <span style="color:#f5b942;font-weight:600">${starString(f.rating)}</span></div>
+        <div class="invite-meta">${new Date(f.createdAt).toLocaleString()}${f.comment ? ` · "${escapeHtml(f.comment)}"` : ' · (no comment left)'}</div>
+      </div>
+      <button class="secondary" style="padding:6px 10px;font-size:12px;flex-shrink:0" onclick="deleteGuideFeedback('${f.id}')">Delete</button>
+    </div>`).join('');
+}
+
+async function deleteGuideFeedback(id) {
+  if (!confirm('Delete this feedback entry permanently? This cannot be undone.')) return;
+  try {
+    await api(`/api/admin/guide-feedback/${id}`, { method: 'DELETE' });
+    loadGuideFeedback();
+  } catch (err) {
+    alert(err.message);
   }
 }
 

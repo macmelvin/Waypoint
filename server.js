@@ -572,6 +572,33 @@ function saveGuideBookings() {
 
 let guideBookings = loadGuideBookings();
 
+// Free-standing "leave feedback" on a guide's place-card entry -- separate
+// from GUIDE_BOOKINGS_FILE on purpose: a visitor can leave this without
+// having gone through (or Waypoint being able to verify) an actual booking,
+// since there's no visitor account/login to tie a comment back to a
+// specific booking record. Admin-only (see /api/admin/guide-feedback below)
+// -- not shown anywhere on the public site, per the scope Melvin picked.
+const GUIDE_FEEDBACK_FILE = process.env.GUIDE_FEEDBACK_FILE || '/data/guide-feedback.json';
+
+function loadGuideFeedback() {
+  try {
+    return JSON.parse(fs.readFileSync(GUIDE_FEEDBACK_FILE, 'utf8'));
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveGuideFeedback() {
+  try {
+    fs.mkdirSync(path.dirname(GUIDE_FEEDBACK_FILE), { recursive: true });
+    fs.writeFileSync(GUIDE_FEEDBACK_FILE, JSON.stringify(guideFeedback, null, 2));
+  } catch (err) {
+    console.error('failed to persist guide feedback:', err.message);
+  }
+}
+
+let guideFeedback = loadGuideFeedback();
+
 function isValidHHMM(v) {
   return typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 }
@@ -1474,6 +1501,22 @@ app.delete('/api/admin/guide-bookings/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/admin/guide-feedback', requireAdmin, (req, res) => {
+  const byId = new Map(guides.map((g) => [g.id, g]));
+  const results = [...guideFeedback]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map((f) => ({ ...f, guideName: byId.get(f.guideId)?.name || '(deleted guide)' }));
+  res.json({ feedback: results });
+});
+
+app.delete('/api/admin/guide-feedback/:id', requireAdmin, (req, res) => {
+  const idx = guideFeedback.findIndex((x) => x.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'not found' });
+  guideFeedback.splice(idx, 1);
+  saveGuideFeedback();
+  res.json({ ok: true });
+});
+
 // Express's static middleware ignores dotfiles (like .well-known) by
 // default, which would 404 the Android app's Digital Asset Links file —
 // serve that one path explicitly before the catch-all static handler.
@@ -1887,6 +1930,36 @@ app.post('/api/guides/:id/book', (req, res) => {
     text: `${pushBody}\n\nOpen the admin panel to review: /admin.html`,
     html: `<div style="font-family:sans-serif"><p><strong>New booking request for ${escapeEmailHtml(guide.name)}</strong></p><p>${escapeEmailHtml(pushBody)}</p><p><a href="https://waypoint-production-0307.up.railway.app/admin.html">Open admin panel</a></p></div>`,
   });
+});
+
+// Public: the "💬 Feedback" button beside a guide's "Check availability &
+// book" link on the place card (see attraction-guide-feedback-btn in
+// app.js). Deliberately open to any visitor browsing that guide's card --
+// there's no visitor login/account to gate this on "did you actually book
+// this guide", and requiring one would defeat the point of keeping this
+// low-friction. Star rating is required; the comment is optional (a rating
+// alone is still useful signal). Not shown anywhere on the public site --
+// only surfaced to Melvin in /admin (see GET /api/admin/guide-feedback).
+app.post('/api/guides/:id/feedback', (req, res) => {
+  const guide = guides.find((g) => g.id === req.params.id);
+  if (!guide) return res.status(404).json({ error: 'guide not found' });
+  const rating = parseInt(req.body?.rating, 10);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: 'rating must be a whole number from 1 to 5' });
+  }
+  // Generous but bounded -- long enough for a real comment, short enough
+  // that a scripted flood of posts can't write unbounded data to disk.
+  const comment = String(req.body?.comment || '').trim().slice(0, 2000);
+  const entry = {
+    id: crypto.randomUUID(),
+    guideId: guide.id,
+    rating,
+    comment,
+    createdAt: new Date().toISOString(),
+  };
+  guideFeedback.push(entry);
+  saveGuideFeedback();
+  res.json({ ok: true });
 });
 
 // ---- Guide portal (token-authed, no admin login) ----------------------------

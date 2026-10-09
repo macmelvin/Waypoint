@@ -104,6 +104,14 @@ const els = {
   sosModal: document.getElementById('sosModal'),
   sosModalBody: document.getElementById('sosModalBody'),
   sosModalClose: document.getElementById('sosModalClose'),
+  guideFeedbackModal: document.getElementById('guideFeedbackModal'),
+  guideFeedbackClose: document.getElementById('guideFeedbackClose'),
+  guideFeedbackGuideName: document.getElementById('guideFeedbackGuideName'),
+  guideFeedbackStars: document.getElementById('guideFeedbackStars'),
+  guideFeedbackComment: document.getElementById('guideFeedbackComment'),
+  guideFeedbackError: document.getElementById('guideFeedbackError'),
+  guideFeedbackSubmitBtn: document.getElementById('guideFeedbackSubmitBtn'),
+  guideFeedbackThanks: document.getElementById('guideFeedbackThanks'),
   sosTrackingBanner: document.getElementById('sosTrackingBanner'),
   sosTrackingText: document.getElementById('sosTrackingText'),
   sosTrackingStopBtn: document.getElementById('sosTrackingStopBtn'),
@@ -462,7 +470,11 @@ function renderGuidesSection(guideList, key) {
               ${g.specialty || languages ? `<div class="attraction-guide-meta">${escapeHtml([g.specialty, languages].filter(Boolean).join(' · '))}</div>` : ''}
               ${g.pricePerAdult != null ? `<div class="attraction-guide-price">S$${Number(g.pricePerAdult).toFixed(2)} / adult · children under 15 free</div>` : ''}
               ${g.note ? `<p class="attraction-guide-note">“${escapeHtml(g.note)}”</p>` : ''}
-              ${g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : `<a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}&landmark=${encodeURIComponent(key)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>`}
+              ${g.sample ? `<div class="attraction-guide-sample-note">${t('attraction_guide_sample')}</div>` : `
+              <div class="attraction-guide-actions">
+                <a class="attraction-guide-availability" href="/guide-booking.html?guide=${encodeURIComponent(g.id)}&landmark=${encodeURIComponent(key)}" target="_blank" rel="noopener">📅 ${t('attraction_guide_availability')}</a>
+                <button type="button" class="attraction-guide-feedback-btn" data-guide-id="${escapeHtml(g.id)}" data-guide-name="${escapeHtml(g.name)}">💬 ${t('attraction_guide_feedback')}</button>
+              </div>`}
             </div>`;
         }).join('')}
       </div>`
@@ -577,6 +589,9 @@ async function loadAttractionInfo(r) {
       const landmark = LANDMARKS[btn.dataset.landmark];
       if (landmark) selectSearchResult(landmark);
     });
+  });
+  els.attractionInfo.querySelectorAll('.attraction-guide-feedback-btn').forEach((btn) => {
+    btn.addEventListener('click', () => openGuideFeedbackModal(btn.dataset.guideId, btn.dataset.guideName));
   });
 }
 
@@ -1732,6 +1747,7 @@ const I18N = {
     attraction_loading: 'Loading nearby info…', attraction_walk_prefix: 'Walk', attraction_estimated: 'estimated',
     attraction_no_station: 'No MRT/LRT station nearby.', attraction_nearby_title: 'Nearby attractions',
     attraction_book_tickets: '🎟️ Book Tickets', attraction_explore_food: "🍽️ Explore More of Singapore's Melting Pot", attraction_try: 'Try:', attraction_guides_title: 'Certified local guides', attraction_guide_verified: 'Verified', attraction_guide_message: 'Secure a Guided Walk Booking', attraction_guide_sample: 'Sample profile — contact number not yet added', attraction_guide_availability: 'Check availability & book',
+    attraction_guide_feedback: 'Feedback', guide_feedback_title: 'Leave feedback', guide_feedback_comment_placeholder: 'Tell us about your guided walk (optional)', guide_feedback_submit: 'Submit feedback', guide_feedback_thanks: '🙏 Thanks for your feedback!', guide_feedback_error_rating: 'Please select a star rating', guide_feedback_error_generic: 'Something went wrong — please try again',
     fav_search_placeholder: 'Add a bus stop — code or name…',
     fav_empty_hint: 'Search for a bus stop above and add it to check live arrivals here anytime — no need to plan a trip first.',
     share_footer: '💙 Share this app if you find it useful', support_footer: '☕ Buy me a coffee — help keep Waypoint running',
@@ -5320,6 +5336,73 @@ function closeSosModal() {
   stopSafetySosRefreshTimer();
 }
 
+// ---- Guide feedback modal (the "💬 Feedback" button beside "Check
+// availability & book" on a guide's card -- see renderGuidesSection above).
+// Open to any visitor browsing the card, no booking/login required (see the
+// server-side comment on POST /api/guides/:id/feedback for why). Admin-only
+// on the receiving end -- nothing here is shown back on the public site.
+
+let guideFeedbackGuideId = null;
+let guideFeedbackRating = 0;
+
+function renderGuideFeedbackStars() {
+  els.guideFeedbackStars.querySelectorAll('.guide-feedback-star').forEach((star) => {
+    const value = Number(star.dataset.star);
+    star.classList.toggle('is-filled', value <= guideFeedbackRating);
+    star.setAttribute('aria-checked', value === guideFeedbackRating ? 'true' : 'false');
+  });
+}
+
+function openGuideFeedbackModal(guideId, guideName) {
+  guideFeedbackGuideId = guideId;
+  guideFeedbackRating = 0;
+  els.guideFeedbackGuideName.textContent = guideName || '';
+  els.guideFeedbackComment.value = '';
+  els.guideFeedbackError.classList.add('hidden');
+  els.guideFeedbackError.textContent = '';
+  els.guideFeedbackThanks.classList.add('hidden');
+  els.guideFeedbackStars.classList.remove('hidden');
+  els.guideFeedbackComment.classList.remove('hidden');
+  els.guideFeedbackSubmitBtn.classList.remove('hidden');
+  els.guideFeedbackSubmitBtn.disabled = false;
+  renderGuideFeedbackStars();
+  els.guideFeedbackModal.classList.remove('hidden');
+}
+
+function closeGuideFeedbackModal() {
+  els.guideFeedbackModal.classList.add('hidden');
+}
+
+async function submitGuideFeedback() {
+  if (!guideFeedbackGuideId) return;
+  if (guideFeedbackRating < 1) {
+    els.guideFeedbackError.textContent = t('guide_feedback_error_rating');
+    els.guideFeedbackError.classList.remove('hidden');
+    return;
+  }
+  els.guideFeedbackError.classList.add('hidden');
+  els.guideFeedbackSubmitBtn.disabled = true;
+  try {
+    const res = await fetch(`/api/guides/${encodeURIComponent(guideFeedbackGuideId)}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating: guideFeedbackRating, comment: els.guideFeedbackComment.value }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || t('guide_feedback_error_generic'));
+    }
+    els.guideFeedbackStars.classList.add('hidden');
+    els.guideFeedbackComment.classList.add('hidden');
+    els.guideFeedbackSubmitBtn.classList.add('hidden');
+    els.guideFeedbackThanks.classList.remove('hidden');
+  } catch (err) {
+    els.guideFeedbackError.textContent = err.message || t('guide_feedback_error_generic');
+    els.guideFeedbackError.classList.remove('hidden');
+    els.guideFeedbackSubmitBtn.disabled = false;
+  }
+}
+
 function switchSafetyTab(name) {
   safetyActiveTab = name;
   document.querySelectorAll('.safety-tab').forEach((btn) => {
@@ -5583,6 +5666,17 @@ els.sosModalClose.addEventListener('click', closeSosModal);
 els.sosModal.addEventListener('click', (e) => {
   if (e.target === els.sosModal) closeSosModal();
 });
+els.guideFeedbackClose.addEventListener('click', closeGuideFeedbackModal);
+els.guideFeedbackModal.addEventListener('click', (e) => {
+  if (e.target === els.guideFeedbackModal) closeGuideFeedbackModal();
+});
+els.guideFeedbackStars.querySelectorAll('.guide-feedback-star').forEach((star) => {
+  star.addEventListener('click', () => {
+    guideFeedbackRating = Number(star.dataset.star);
+    renderGuideFeedbackStars();
+  });
+});
+els.guideFeedbackSubmitBtn.addEventListener('click', submitGuideFeedback);
 els.sosTrackingStopBtn.addEventListener('click', () => {
   stopSosLiveTracking();
   showToast('Stopped sharing your live location.');

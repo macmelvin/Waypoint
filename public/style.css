@@ -1290,12 +1290,52 @@ a:active {
 .attraction-guide-sample-note {
   margin-top: 8px; font-size: 11.5px; color: var(--muted); font-style: italic;
 }
+.attraction-guide-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+}
 .attraction-guide-availability {
-  display: inline-block; margin-top: 8px; margin-left: 8px; padding: 7px 12px; border-radius: var(--radius-sm);
+  display: inline-block; padding: 7px 12px; border-radius: var(--radius-sm);
   background: transparent; color: var(--accent); font-size: 12.5px; font-weight: 600;
   text-decoration: none; border: 1px solid var(--accent);
 }
 .attraction-guide-availability:hover { background: var(--accent); color: #fff; }
+.attraction-guide-feedback-btn {
+  display: inline-block; padding: 7px 12px; border-radius: var(--radius-sm);
+  background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600;
+  text-decoration: none; border: 1px solid var(--border); cursor: pointer;
+  font-family: inherit;
+}
+.attraction-guide-feedback-btn:hover { background: var(--surface-fill); color: var(--ink); }
+
+/* ---- Guide feedback modal (the "💬 Feedback" button above) ---- */
+.guide-feedback-guide-name { font-size: 13px; color: var(--muted); margin: -4px 0 14px; }
+.guide-feedback-stars {
+  display: flex; justify-content: center; gap: 6px; margin-bottom: 14px;
+}
+.guide-feedback-star {
+  background: none; border: none; cursor: pointer; font-size: 30px; line-height: 1;
+  color: var(--gray-300, #d1d5db); padding: 2px; transition: color 0.1s ease, transform 0.1s ease;
+}
+.guide-feedback-star.is-filled { color: #f5b942; }
+.guide-feedback-star:hover { transform: scale(1.08); }
+.guide-feedback-textarea {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 12px; font-size: 13.5px; font-family: inherit; color: var(--ink); background: var(--surface-elevated);
+  resize: vertical; margin-bottom: 12px; text-align: left;
+}
+.guide-feedback-error { color: #d14343; font-size: 12.5px; margin: -6px 0 10px; text-align: left; }
+.guide-feedback-submit {
+  display: block; width: 100%; border: none; border-radius: var(--radius-pill); padding: 12px;
+  background: var(--accent); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.guide-feedback-submit:hover { background: var(--accent-dark); }
+.guide-feedback-submit:disabled { opacity: 0.6; cursor: default; }
+.guide-feedback-thanks { font-size: 14px; font-weight: 600; color: var(--ink); padding: 10px 0; }
+.guide-feedback-thanks.hidden,
+.guide-feedback-stars.hidden,
+.guide-feedback-submit.hidden,
+.guide-feedback-textarea.hidden,
+.guide-feedback-error.hidden { display: none; }
 
 /* ---- Concerts (venue transit guides, grouped shows) ---- */
 .concerts-note { font-size: 12px; color: var(--muted); margin: 0 0 10px; line-height: 1.4; }
