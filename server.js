@@ -1283,6 +1283,7 @@ app.post('/api/guide-apply', (req, res) => {
   if (!whatsapp) return res.status(400).json({ error: 'a WhatsApp number is required so we can reach you' });
   const emailResult = sanitizeGuideEmail(req.body?.email, res);
   if (!emailResult) return; // sanitizeGuideEmail already sent the 400
+  if (!emailResult.email) return res.status(400).json({ error: 'an email address is required' });
   // Visitor-facing preview, shown to Melvin for review and on the place
   // card after approval. Match the application page's 200-character minimum
   // here too so direct API submissions cannot bypass the requirement.

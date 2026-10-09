@@ -227,8 +227,8 @@
         <input type="text" id="whatsappInput" placeholder="e.g. 91234567">
         <div class="hint">This is how visitors (and Melvin) reach you -- required</div>
 
-        <label class="field-label" for="emailInput">Email (optional)</label>
-        <input type="email" id="emailInput" placeholder="you@example.com">
+        <label class="field-label" for="emailInput">Email</label>
+        <input type="email" id="emailInput" placeholder="you@example.com" required>
 
         <label class="field-label" for="priceInput">Price per adult, SGD (optional)</label>
         <input type="text" inputmode="decimal" id="priceInput" placeholder="Leave blank to use the standard rate ($20)">
@@ -314,7 +314,8 @@ async function submitApplication() {
   const landmarks = Array.from(document.querySelectorAll('.landmark-check:checked')).map((cb) => cb.value);
   const languages = document.getElementById('languagesInput').value.trim();
   const whatsapp = document.getElementById('whatsappInput').value.trim();
-  const email = document.getElementById('emailInput').value.trim();
+  const emailInput = document.getElementById('emailInput');
+  const email = emailInput.value.trim();
   const pricePerAdult = document.getElementById('priceInput').value.trim();
   const note = document.getElementById('noteInput').value.trim();
   const agreedToTerms = document.getElementById('agreeTermsInput').checked;
@@ -325,6 +326,16 @@ async function submitApplication() {
   if (!stbLicense) { errorEl.textContent = 'Your STB License number is required.'; return; }
   if (!landmarks.length) { errorEl.textContent = 'Pick at least one neighbourhood/landmark.'; return; }
   if (!whatsapp) { errorEl.textContent = 'A WhatsApp number is required.'; return; }
+  if (!email) {
+    errorEl.textContent = 'Your email address is required.';
+    emailInput.focus();
+    return;
+  }
+  if (!emailInput.validity.valid) {
+    errorEl.textContent = 'Please enter a valid email address.';
+    emailInput.focus();
+    return;
+  }
   if (note.length < 200) {
     errorEl.textContent = 'Please add a little more detail (at least 200 characters) so visitors can picture the places, stories and moments on your walk.';
     document.getElementById('noteInput').focus();
