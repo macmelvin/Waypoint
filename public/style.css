@@ -3479,15 +3479,25 @@ body.lens-open { overflow: hidden; }
 
 /* ---- Tourist mode (partner-referred visitors) ---------------------------
    <html class="partner-visit"> is set in index.html <head>. Hides exactly:
-   More Places + Nearby category tabs, the Split Bill main tab, and the Bus
+   More Places + Nearby category tabs, the Split Bill main tab, the Bus
    Times main tab (data-tab="favourites" — nearby live arrivals + saved bus
-   stop favourites). The "Bus / MRT" option under Directions, and the live
-   arrivals panel shown inside a transit itinerary leg, are untouched.
+   stop favourites), and six Book Online chips (SISTIC, Ticketmelon, Cruise
+   Vacation, Ferries, Car Rental, KTMB Train Tickets). The "Bus / MRT" option
+   under Directions, and the live arrivals panel shown inside a transit
+   itinerary leg, are untouched -- as are every other Book Online chip
+   (Browse All Tickets, Half/Full-day Tours, Airport Transfer,
+   Accommodation, SIM & eSIM).
    display:none keeps the elements in the DOM so handlers/tracking still
-   work; the remaining flex tabs simply share the freed width. */
+   work; the remaining flex tabs/chips simply share the freed width. */
 html.partner-visit .tab-btn[data-tab="splitbill"],
 html.partner-visit .tab-btn[data-tab="favourites"],
 html.partner-visit .category-group-tab[data-group="places"],
-html.partner-visit .category-group-tab[data-group="nearby"] {
+html.partner-visit .category-group-tab[data-group="nearby"],
+html.partner-visit .category-chip[data-category="sistic"],
+html.partner-visit .category-chip[data-category="ticketmelon"],
+html.partner-visit .category-chip[data-category="cruisevacation"],
+html.partner-visit .category-chip[data-category="ferries"],
+html.partner-visit .category-chip[data-category="carrental"],
+html.partner-visit .category-chip[data-category="ktmbtrain"] {
   display: none !important;
 }
