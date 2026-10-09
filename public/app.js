@@ -42,9 +42,7 @@ const els = {
   dirFromHere: document.getElementById('dirFromHere'),
   dirToHere: document.getElementById('dirToHere'),
   setHomeBtn: document.getElementById('setHomeBtn'),
-  setWorkBtn: document.getElementById('setWorkBtn'),
   quickHomeBtn: document.getElementById('quickHomeBtn'),
-  quickWorkBtn: document.getElementById('quickWorkBtn'),
   fromInput: document.getElementById('fromInput'),
   toInput: document.getElementById('toInput'),
   fromResults: document.getElementById('fromResults'),
@@ -1732,9 +1730,9 @@ const I18N = {
     guided_walk_title: '🚶 Guided Walks', guided_walk_explore: '🧭 Explore',
     tix_tours_title: '🎟️ Tix & Tours', places_explore: '🧭 Explore', concerts_title: '🎤 Concerts',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
-    set_home: '🏠 Set as Home', set_work: '💼 Set as Work',
+    set_home: '🏠 I am staying here',
     hint_search: 'Try searching for a landmark, street, or postal code.',
-    quick_home: '🏠 Home', quick_work: '💼 Work',
+    quick_home: '🏠 I am staying here',
     dir_from_placeholder: 'From — postal code, address, or place', dir_to_placeholder: 'To — postal code, address, or place',
     swap: 'Swap', mode_drive: 'Drive', mode_transit: 'Bus / MRT', mode_cycle: 'Cycle', mode_walk: 'Walk',
     get_directions: 'Get Directions', start_navigation: '▶️ Start Navigation',
@@ -1765,9 +1763,9 @@ const I18N = {
     guided_walk_title: '🚶 步行导览', guided_walk_explore: '🧭 探索',
     tix_tours_title: '🎟️ 门票与观光团', places_explore: '🧭 探索', concerts_title: '🎤 演唱会',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
-    set_home: '🏠 设为住家', set_work: '💼 设为公司',
+    set_home: '🏠 我住在这里',
     hint_search: '试试搜索地标、街道或邮区编号。',
-    quick_home: '🏠 住家', quick_work: '💼 公司',
+    quick_home: '🏠 我住在这里',
     dir_from_placeholder: '起点 — 邮区编号、地址或地点', dir_to_placeholder: '终点 — 邮区编号、地址或地点',
     swap: '互换', mode_drive: '驾车', mode_transit: '巴士 / 地铁', mode_cycle: '骑行', mode_walk: '步行',
     get_directions: '获取路线', start_navigation: '▶️ 开始导航',
@@ -1797,9 +1795,9 @@ const I18N = {
     guided_walk_title: '🚶 Lawatan Jalan Kaki Berpandu', guided_walk_explore: '🧭 Terokai',
     tix_tours_title: '🎟️ Tiket & Lawatan', places_explore: '🧭 Terokai', concerts_title: '🎤 Konsert',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
-    set_home: '🏠 Tetapkan sebagai Rumah', set_work: '💼 Tetapkan sebagai Tempat Kerja',
+    set_home: '🏠 Saya menginap di sini',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
-    quick_home: '🏠 Rumah', quick_work: '💼 Tempat Kerja',
+    quick_home: '🏠 Saya menginap di sini',
     dir_from_placeholder: 'Dari — poskod, alamat, atau tempat', dir_to_placeholder: 'Ke — poskod, alamat, atau tempat',
     swap: 'Tukar', mode_drive: 'Memandu', mode_transit: 'Bas / MRT', mode_cycle: 'Berbasikal', mode_walk: 'Berjalan kaki',
     get_directions: 'Dapatkan Arah', start_navigation: '▶️ Mula Navigasi',
@@ -1829,9 +1827,9 @@ const I18N = {
     guided_walk_title: '🚶 வழிகாட்டப்பட்ட நடைப் பயணங்கள்', guided_walk_explore: '🧭 ஆராயுங்கள்',
     tix_tours_title: '🎟️ டிக்கெட் மற்றும் சுற்றுலாக்கள்', places_explore: '🧭 ஆராயுங்கள்', concerts_title: '🎤 இசை நிகழ்ச்சிகள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
-    set_home: '🏠 வீடாக அமை', set_work: '💼 பணியிடமாக அமை',
+    set_home: '🏠 நான் இங்கே தங்கியுள்ளேன்',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
-    quick_home: '🏠 வீடு', quick_work: '💼 பணியிடம்',
+    quick_home: '🏠 நான் இங்கே தங்கியுள்ளேன்',
     dir_from_placeholder: 'இருந்து — அஞ்சல் குறியீடு, முகவரி அல்லது இடம்', dir_to_placeholder: 'வரை — அஞ்சல் குறியீடு, முகவரி அல்லது இடம்',
     swap: 'மாற்று', mode_drive: 'ஓட்டுதல்', mode_transit: 'பேருந்து / எம்ஆர்டி', mode_cycle: 'சைக்கிள்', mode_walk: 'நடை',
     get_directions: 'வழிகளைப் பெறுக', start_navigation: '▶️ வழிகாட்டலைத் தொடங்கு',
@@ -1861,9 +1859,9 @@ const I18N = {
     guided_walk_title: '🚶 ガイドウォーク', guided_walk_explore: '🧭 探索する',
     tix_tours_title: '🎟️ チケット＆ツアー', places_explore: '🧭 探索する', concerts_title: '🎤 コンサート',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
-    set_home: '🏠 自宅に設定', set_work: '💼 職場に設定',
+    set_home: '🏠 ここに滞在しています',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
-    quick_home: '🏠 自宅', quick_work: '💼 職場',
+    quick_home: '🏠 ここに滞在しています',
     dir_from_placeholder: '出発地 — 郵便番号、住所、または場所', dir_to_placeholder: '目的地 — 郵便番号、住所、または場所',
     swap: '入れ替え', mode_drive: '車', mode_transit: 'バス / MRT', mode_cycle: '自転車', mode_walk: '徒歩',
     get_directions: 'ルートを取得', start_navigation: '▶️ ナビ開始',
@@ -1893,9 +1891,9 @@ const I18N = {
     guided_walk_title: '🚶 가이드 도보 투어', guided_walk_explore: '🧭 둘러보기',
     tix_tours_title: '🎟️ 티켓 & 투어', places_explore: '🧭 둘러보기', concerts_title: '🎤 콘서트',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
-    set_home: '🏠 집으로 설정', set_work: '💼 직장으로 설정',
+    set_home: '🏠 여기 머무르고 있어요',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
-    quick_home: '🏠 집', quick_work: '💼 직장',
+    quick_home: '🏠 여기 머무르고 있어요',
     dir_from_placeholder: '출발지 — 우편번호, 주소 또는 장소', dir_to_placeholder: '도착지 — 우편번호, 주소 또는 장소',
     swap: '전환', mode_drive: '운전', mode_transit: '버스 / MRT', mode_cycle: '자전거', mode_walk: '도보',
     get_directions: '경로 가져오기', start_navigation: '▶️ 내비게이션 시작',
@@ -2061,15 +2059,20 @@ els.dirToHere.addEventListener('click', () => {
   switchToDirectionsTab();
 });
 
-// ---------- Home / Work quick locations ----------
-// Saved once from a search result ("Set as Home"/"Set as Work"), then usable
-// as a one-tap fill from the Directions panel — Home fills the "From" field
-// (the common case of starting a trip from home) and Work fills "To" (the
-// common case of heading to work), so tapping both in sequence gives a
-// ready-to-go "Home → Work" route without retyping either address.
+// ---------- "I am staying here" quick location ----------
+// Saved once from a search result's place card ("I am staying here"), then
+// usable as a one-tap fill of the Directions panel's "From" field — this is
+// a tourist's accommodation (hotel, hostel, Airbnb), not a literal personal
+// "home", which is why it's labelled that way rather than "Home". Renamed
+// from "Home" (and the separate "Work" quick location removed entirely --
+// visitors don't have a work commute to speed up) since a tourist app has
+// no use for either as originally framed.
+// Formerly a generic Home/Work pair sharing one `useQuickLocation(key,
+// label, setter)` helper; now that there's only ever the one of these, the
+// click handler below is just inlined instead of keeping a one-case-only
+// "generic" abstraction around.
 
 const HOME_KEY = 'waypoint_home';
-const WORK_KEY = 'waypoint_work';
 
 function loadQuickLocation(key) {
   try {
@@ -2099,11 +2102,8 @@ function currentPlaceCoords() {
 
 function updateQuickButtons() {
   const home = loadQuickLocation(HOME_KEY);
-  const work = loadQuickLocation(WORK_KEY);
   els.quickHomeBtn.classList.toggle('unset', !home);
-  els.quickHomeBtn.title = home ? `Start from ${home.label}` : 'Not set yet — search a place, then "Set as Home"';
-  els.quickWorkBtn.classList.toggle('unset', !work);
-  els.quickWorkBtn.title = work ? `Directions to ${work.label}` : 'Not set yet — search a place, then "Set as Work"';
+  els.quickHomeBtn.title = home ? `Start from ${home.label}` : 'Not set yet — search a place, then "I am staying here"';
 }
 
 els.setHomeBtn.addEventListener('click', () => {
@@ -2111,32 +2111,19 @@ els.setHomeBtn.addEventListener('click', () => {
   if (!coords) return;
   saveQuickLocation(HOME_KEY, coords);
   updateQuickButtons();
-  showToast('🏠 Home set!');
+  showToast('🏠 Saved!');
 });
 
-els.setWorkBtn.addEventListener('click', () => {
-  const coords = currentPlaceCoords();
-  if (!coords) return;
-  saveQuickLocation(WORK_KEY, coords);
-  updateQuickButtons();
-  showToast('💼 Work set!');
-});
-
-function useQuickLocation(key, label, setter) {
-  const loc = loadQuickLocation(key);
+els.quickHomeBtn.addEventListener('click', () => {
+  const loc = loadQuickLocation(HOME_KEY);
   if (!loc) {
-    showToast(`Set your ${label} first — search a place, then tap "Set as ${label}".`);
+    showToast('Tell us where you\'re staying first — search a place, then tap "I am staying here".');
     document.querySelector('.tab-btn[data-tab="search"]').click();
     return;
   }
-  setter(loc);
+  setFrom(loc);
   switchToDirectionsTab();
-}
-
-// Home fills "From" (you're usually starting a trip from home); Work fills
-// "To" (you're usually heading to work) — tap both for a ready "Home → Work".
-els.quickHomeBtn.addEventListener('click', () => useQuickLocation(HOME_KEY, 'Home', setFrom));
-els.quickWorkBtn.addEventListener('click', () => useQuickLocation(WORK_KEY, 'Work', setTo));
+});
 
 // ---------- "My Parked Car" — remember where you left it ----------
 // Saved locally only (never sent anywhere). Auto-saved the moment live
@@ -7121,6 +7108,21 @@ const PARTNER_VISIT_KEY = 'waypoint_partner_visit_v1';
 })();
 function isPartnerVisit() {
   return !!localStorage.getItem(PARTNER_VISIT_KEY);
+}
+// Partner visitors never see "Drive"/"Cycle" under Directions (see the
+// tourist-mode hides in style.css) -- leaving selectedMode defaulted to
+// 'driving' (set at the very top of this file) would silently compute a
+// car route with no mode button even showing as selected. Flip both the
+// default and the visual "active" state to "Bus / MRT" for a partner
+// visit. This has to sit here rather than up at `let selectedMode =
+// 'driving'` because isPartnerVisit() needs PARTNER_VISIT_KEY, which isn't
+// initialized yet that early in the file -- but since app.js loads after
+// the DOM (a plain <script src> at the end of body, not deferred/modular),
+// els.modeButtons already exists by the time this runs regardless of
+// where in the file it sits.
+if (isPartnerVisit()) {
+  selectedMode = 'transit';
+  els.modeButtons.forEach((b) => b.classList.toggle('active', b.dataset.mode === 'transit'));
 }
 (function showPublicSupportFooter() {
   if (isPartnerVisit()) return;
