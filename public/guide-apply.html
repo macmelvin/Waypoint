@@ -4,26 +4,88 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Waypoint — Become a Guide</title>
+<meta name="description" content="List your guided walks on Waypoint, the free travel app tourists already use to get around Singapore. Free to apply, pay only when you earn.">
 <style>
-  /* Same light palette as guide-booking.html, for visual consistency across
-     the app's visitor/guide-facing standalone pages (admin.html is the only
-     dark-themed one, since that's Melvin's own internal tool). */
+  /* Same light palette as guide-booking.html / guide-portal.html, for visual
+     consistency across the app's guide-facing standalone pages (admin.html
+     is the only dark-themed one, since that's Melvin's own internal tool).
+     This page used to be just the form card -- it's now a full landing page
+     (nav, hero, benefits, how-it-works, FAQ) that funnels into the exact
+     same form/fields/IDs/endpoints as before, so the JS below and the
+     server-side /api/guide-apply contract are both untouched. */
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0; font-family: system-ui, -apple-system, sans-serif;
-    background: #FBF8F7; color: #1F2A2E; padding: 20px;
+    background: #FBF8F7; color: #1F2A2E;
   }
-  .wrap { max-width: 480px; margin: 0 auto; }
-  h1 { font-size: 22px; margin: 0 0 4px; color: #1B3A4B; }
-  .sub { color: #5C6A70; font-size: 14px; margin: 0 0 16px; line-height: 1.5; }
+  a { color: #C0783C; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 0 20px; }
+  .wide { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---- Top nav ---- */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid #E6DDCB; background: #FBF8F7;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; color: #1B3A4B; text-decoration: none; }
+  .nav-brand-icon { font-size: 20px; }
+  .nav-tag { font-size: 12px; color: #5C6A70; background: #F1EAE0; border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+
+  /* ---- Hero ---- */
+  .hero {
+    position: relative; overflow: hidden; background: #1B3A4B; color: #FBF8F7;
+    padding: 56px 20px 40px;
+  }
+  .hero-skyline { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: auto; opacity: 0.35; pointer-events: none; }
+  .hero-inner { position: relative; max-width: 640px; margin: 0 auto; text-align: center; }
+  .hero h1 { font-size: 28px; line-height: 1.25; margin: 0 0 12px; }
+  .hero-sub { font-size: 15px; line-height: 1.6; color: #D9E2E7; margin: 0 0 24px; }
+  .cta-btn {
+    display: inline-block; background: #C0783C; color: #FBF8F7; text-decoration: none;
+    font-weight: 700; font-size: 15px; padding: 14px 28px; border-radius: 10px;
+  }
+  .hero-stats { display: flex; justify-content: center; gap: 24px; margin-top: 32px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-num { display: block; font-weight: 700; font-size: 16px; }
+  .stat-label { display: block; font-size: 11px; color: #AEBFC8; margin-top: 2px; max-width: 110px; }
+
+  /* ---- Generic sections ---- */
+  .section { padding: 40px 20px; }
+  .section h2 { font-size: 20px; color: #1B3A4B; text-align: center; margin: 0 0 24px; }
+
+  .benefit-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .benefit-card {
+    background: #fff; border: 1px solid #E6DDCB; border-radius: 14px;
+    padding: 18px; display: flex; gap: 12px; font-size: 14px; line-height: 1.5;
+  }
+  .benefit-card .icon { font-size: 22px; flex: 0 0 auto; }
+  .benefit-card strong { display: block; margin-bottom: 2px; }
+
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 18px; }
+  .steps li { display: flex; gap: 14px; align-items: flex-start; }
+  .step-num {
+    flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #1B3A4B; color: #FBF8F7;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+  }
+  .steps strong { display: block; font-size: 14px; }
+  .steps p { margin: 2px 0 0; font-size: 13px; color: #5C6A70; line-height: 1.5; }
+
+  .faq-item { background: #fff; border: 1px solid #E6DDCB; border-radius: 12px; margin-bottom: 10px; }
+  .faq-item summary { padding: 14px 16px; font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; position: relative; }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after { content: '+'; position: absolute; right: 16px; top: 12px; font-size: 18px; color: #C0783C; }
+  .faq-item[open] summary::after { content: '–'; }
+  .faq-item p { margin: 0; padding: 0 16px 16px; font-size: 13px; color: #5C6A70; line-height: 1.6; }
+
+  .section.apply { background: #F1EAE0; }
+
+  /* ---- Form card (unchanged IDs/fields from the original page) ---- */
   .card {
     background: #fff; border: 1px solid #E6DDCB; border-radius: 14px;
     padding: 18px; margin-bottom: 14px;
   }
-  .benefit { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; line-height: 1.4; }
-  .benefit:last-child { margin-bottom: 0; }
-  .benefit-icon { flex: 0 0 auto; font-size: 18px; }
   label.field-label { display: block; font-size: 12px; font-weight: 600; color: #5C6A70; margin: 14px 0 6px; }
   label.field-label:first-child { margin-top: 0; }
   input[type=text], input[type=email], textarea, select {
@@ -53,80 +115,160 @@
   .terms-text { font-size: 13px; color: #1F2A2E; line-height: 1.5; margin: 0 0 12px; }
   .terms-check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
   .terms-check input { margin-top: 2px; flex: 0 0 auto; }
+
+  footer { padding: 28px 20px 40px; text-align: center; font-size: 12px; color: #8A97A0; }
+  footer a { color: #5C6A70; }
+
+  /* ---- Desktop widening ---- */
+  @media (min-width: 760px) {
+    .hero h1 { font-size: 38px; }
+    .hero-sub { font-size: 17px; }
+    .benefit-grid { grid-template-columns: 1fr 1fr; }
+    .steps { grid-template-columns: repeat(4, 1fr); }
+    .steps li { flex-direction: column; align-items: flex-start; }
+    .section h2 { font-size: 24px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div id="formView">
-    <h1>Become a Waypoint Guide</h1>
-    <p class="sub"><a href="/" style="color:#C0783C">Waypoint</a> is a free, no-download map &amp; travel app tourists use to get around Singapore. Get listed and visitors see your profile right on the spot when they're deciding whether to book a walk.</p>
 
-    <div class="card">
-      <div class="benefit"><span class="benefit-icon">📍</span><span>Shown directly on the neighbourhood/landmark page a tourist is already looking at -- the exact moment they're deciding whether to book.</span></div>
-      <div class="benefit"><span class="benefit-icon">💬</span><span>Enquiries go straight to your WhatsApp.</span></div>
-      <div class="benefit"><span class="benefit-icon">🎯</span><span>A free extra channel to reach visitors, on top of whatever else you're already doing.</span></div>
-    </div>
+<header class="nav">
+  <a class="nav-brand" href="/"><span class="nav-brand-icon">📍</span>Waypoint</a>
+  <span class="nav-tag">For Guides</span>
+</header>
 
-    <div class="card">
-      <label class="field-label" for="nameInput">Your name</label>
-      <input type="text" id="nameInput" placeholder="e.g. Tan Mei Ling">
-
-      <label class="field-label" for="specialtyInput">Specialty</label>
-      <select id="specialtyInput" required>
-        <option value="" selected disabled>Select a specialty…</option>
-      </select>
-
-      <label class="field-label" for="stbLicenseInput">STB License number</label>
-      <input type="text" id="stbLicenseInput" placeholder="e.g. #6932" required>
-
-      <label class="field-label">Neighbourhoods / landmarks you guide</label>
-      <div id="landmarkChecks"><div class="hint">Loading…</div></div>
-
-      <label class="field-label" for="languagesInput">Languages</label>
-      <input type="text" id="languagesInput" placeholder="e.g. English, Mandarin">
-      <div class="hint">Comma separated</div>
-
-      <label class="field-label" for="whatsappInput">WhatsApp number</label>
-      <input type="text" id="whatsappInput" placeholder="e.g. 91234567">
-      <div class="hint">This is how visitors (and Melvin) reach you -- required</div>
-
-      <label class="field-label" for="emailInput">Email (optional)</label>
-      <input type="email" id="emailInput" placeholder="you@example.com">
-
-      <label class="field-label" for="priceInput">Price per adult, SGD (optional)</label>
-      <input type="text" inputmode="decimal" id="priceInput" placeholder="Leave blank to use the standard rate">
-
-      <label class="field-label" for="noteInput">Describe the walk visitors will experience</label>
-      <div class="hint" id="noteHint">Write directly to the traveller using "you". Describe the places you'll explore, the stories you'll share, and a few sights, sounds or moments they'll remember. This will appear as your walk's preview on Waypoint, so focus on the experience rather than your CV. Please write at least 200 characters. For example:</div>
-      <div class="example-quote" id="noteExample">"Step into Chinatown's shophouse-lined lanes, where incense drifts from temples and the aroma of breakfast fills the air. You'll hear stories of the people who made this neighbourhood home, pause to spot details above the five-foot ways, and see familiar streets through fresh eyes."</div>
-      <textarea id="noteInput" placeholder="What will visitors see, hear and discover on a walk with you? Share a few specific places, stories and moments." rows="6" minlength="200" required aria-describedby="noteHint noteExample"></textarea>
-
-      <div class="hp" aria-hidden="true">
-        <label for="companyWebsite">Leave this field blank</label>
-        <input type="text" id="companyWebsite" name="companyWebsite" tabindex="-1" autocomplete="off">
-      </div>
-
-      <div class="terms-box">
-        <div class="field-label" style="margin-top:0">Payment terms</div>
-        <img class="terms-qr" src="/images/guide-payment-qr.jpg" alt="Payment QR code">
-        <p class="terms-text">By applying, you agree to a 10% revenue share on tours booked through Waypoint. A biweekly invoice will be sent to you for what's owed, payable by scanning the QR code above. Payment is due upon receiving the invoice -- please forward a screenshot of payment to +65 8887 7041.</p>
-        <label class="terms-check">
-          <input type="checkbox" id="agreeTermsInput">
-          <span>I agree to these terms</span>
-        </label>
-      </div>
-
-      <button class="primary" id="submitBtn" onclick="submitApplication()">Apply to be listed</button>
-      <div id="error"></div>
+<section class="hero">
+  <svg class="hero-skyline" viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden="true">
+    <path fill="#0F2733" d="M0,160 L0,120 L40,120 L40,100 L70,100 L70,130 L100,130 L100,80 L130,80 L130,60 L150,60 L150,90 L190,90 L190,110 L230,110 L230,70 L260,70 L260,50 L280,50 L280,40 L300,40 L300,60 L330,60 L330,100 L370,100 L370,75 L400,75 L400,95 L440,95 L440,55 L470,55 L470,85 L510,85 L510,105 L560,105 L560,65 L600,65 L600,45 L630,45 L630,30 L650,30 L650,50 L690,50 L690,100 L730,100 L730,80 L770,80 L770,110 L820,110 L820,70 L860,70 L860,95 L900,95 L900,60 L930,60 L930,40 L950,40 L950,65 L1000,65 L1000,105 L1050,105 L1050,85 L1090,85 L1090,115 L1130,115 L1130,95 L1160,95 L1160,120 L1200,120 L1200,160 Z"/>
+  </svg>
+  <div class="hero-inner">
+    <h1>Turn your Singapore knowledge into bookings</h1>
+    <p class="hero-sub"><strong>Waypoint</strong> is a free, no-download map &amp; travel app tourists use to get around Singapore. Get listed and visitors see your profile right on the spot when they're deciding whether to book a walk.</p>
+    <a class="cta-btn" href="#applyForm">Apply to become a guide</a>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num">Free</span><span class="stat-label">to apply, no listing fee</span></div>
+      <div class="stat"><span class="stat-num">10%</span><span class="stat-label">revenue share, only when you earn</span></div>
+      <div class="stat"><span class="stat-num">WhatsApp</span><span class="stat-label">enquiries land directly with you</span></div>
     </div>
   </div>
+</section>
 
-  <div class="card confirm-box" id="confirmCard" style="display:none">
-    <div class="confirm-icon">✓</div>
-    <div style="font-weight:600;margin-top:8px">Application sent</div>
-    <div class="sub" style="margin-top:6px">Thanks! We'll review it and reach out on WhatsApp once your profile is live.</div>
+<section class="section">
+  <div class="wide">
+    <h2>Why guide with Waypoint</h2>
+    <div class="benefit-grid">
+      <div class="benefit-card"><span class="icon">📍</span><div><strong>Right place, right moment</strong>Shown directly on the neighbourhood/landmark page a tourist is already looking at -- the exact moment they're deciding whether to book.</div></div>
+      <div class="benefit-card"><span class="icon">💬</span><div><strong>Straight to your WhatsApp</strong>Enquiries go straight to your WhatsApp -- no app to check, no middleman replying on your behalf.</div></div>
+      <div class="benefit-card"><span class="icon">🎯</span><div><strong>No exclusivity</strong>A free extra channel to reach visitors, on top of whatever else you're already doing.</div></div>
+      <div class="benefit-card"><span class="icon">🧾</span><div><strong>Pay only when you earn</strong>A 10% revenue share on tours actually booked through Waypoint, invoiced biweekly -- nothing upfront.</div></div>
+    </div>
   </div>
-</div>
+</section>
+
+<section class="section">
+  <div class="wide">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><span class="step-num">1</span><div><strong>Apply</strong><p>Tell us your STB license, specialty, and the neighbourhoods you guide.</p></div></li>
+      <li><span class="step-num">2</span><div><strong>We review</strong><p>We check your details and reach out on WhatsApp once your profile is approved.</p></div></li>
+      <li><span class="step-num">3</span><div><strong>Get listed</strong><p>Your profile appears on the exact landmark pages tourists are already browsing.</p></div></li>
+      <li><span class="step-num">4</span><div><strong>Get booked</strong><p>Enquiries land straight in your WhatsApp -- reply and confirm however you like.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <h2>Common questions</h2>
+    <details class="faq-item">
+      <summary>Is there a cost to apply?</summary>
+      <p>No -- applying and getting listed is free. You only pay the 10% revenue share on tours actually booked through Waypoint.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Do I need an STB license?</summary>
+      <p>Yes -- Waypoint only lists licensed guides, so tourists can book with confidence.</p>
+    </details>
+    <details class="faq-item">
+      <summary>How and when do I pay the revenue share?</summary>
+      <p>Visitors pay you directly, however you normally arrange it. Waypoint invoices you separately, biweekly, for the 10% revenue share -- payable by scanning the QR code in the application below.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Can I pick which neighbourhoods I'm listed for?</summary>
+      <p>Yes -- select every neighbourhood or landmark you guide in the application below, and you can always ask Melvin to update it later.</p>
+    </details>
+  </div>
+</section>
+
+<section class="section apply" id="applyForm">
+  <div class="wrap">
+    <h2>Apply to become a guide</h2>
+
+    <div id="formView">
+      <div class="card">
+        <label class="field-label" for="nameInput">Your name</label>
+        <input type="text" id="nameInput" placeholder="e.g. Tan Mei Ling">
+
+        <label class="field-label" for="specialtyInput">Specialty</label>
+        <select id="specialtyInput" required>
+          <option value="" selected disabled>Select a specialty…</option>
+        </select>
+
+        <label class="field-label" for="stbLicenseInput">STB License number</label>
+        <input type="text" id="stbLicenseInput" placeholder="e.g. #6932" required>
+
+        <label class="field-label">Neighbourhoods / landmarks you guide</label>
+        <div id="landmarkChecks"><div class="hint">Loading…</div></div>
+
+        <label class="field-label" for="languagesInput">Languages</label>
+        <input type="text" id="languagesInput" placeholder="e.g. English, Mandarin">
+        <div class="hint">Comma separated</div>
+
+        <label class="field-label" for="whatsappInput">WhatsApp number</label>
+        <input type="text" id="whatsappInput" placeholder="e.g. 91234567">
+        <div class="hint">This is how visitors (and Melvin) reach you -- required</div>
+
+        <label class="field-label" for="emailInput">Email (optional)</label>
+        <input type="email" id="emailInput" placeholder="you@example.com">
+
+        <label class="field-label" for="priceInput">Price per adult, SGD (optional)</label>
+        <input type="text" inputmode="decimal" id="priceInput" placeholder="Leave blank to use the standard rate">
+
+        <label class="field-label" for="noteInput">Describe the walk visitors will experience</label>
+        <div class="hint" id="noteHint">Write directly to the traveller using "you". Describe the places you'll explore, the stories you'll share, and a few sights, sounds or moments they'll remember. This will appear as your walk's preview on Waypoint, so focus on the experience rather than your CV. Please write at least 200 characters. For example:</div>
+        <div class="example-quote" id="noteExample">"Step into Chinatown's shophouse-lined lanes, where incense drifts from temples and the aroma of breakfast fills the air. You'll hear stories of the people who made this neighbourhood home, pause to spot details above the five-foot ways, and see familiar streets through fresh eyes."</div>
+        <textarea id="noteInput" placeholder="What will visitors see, hear and discover on a walk with you? Share a few specific places, stories and moments." rows="6" minlength="200" required aria-describedby="noteHint noteExample"></textarea>
+
+        <div class="hp" aria-hidden="true">
+          <label for="companyWebsite">Leave this field blank</label>
+          <input type="text" id="companyWebsite" name="companyWebsite" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="terms-box">
+          <div class="field-label" style="margin-top:0">Payment terms</div>
+          <img class="terms-qr" src="/images/guide-payment-qr.jpg" alt="Payment QR code">
+          <p class="terms-text">By applying, you agree to a 10% revenue share on tours booked through Waypoint. A biweekly invoice will be sent to you for what's owed, payable by scanning the QR code above. Payment is due upon receiving the invoice -- please forward a screenshot of payment to +65 8887 7041.</p>
+          <label class="terms-check">
+            <input type="checkbox" id="agreeTermsInput">
+            <span>I agree to these terms</span>
+          </label>
+        </div>
+
+        <button class="primary" id="submitBtn" onclick="submitApplication()">Apply to be listed</button>
+        <div id="error"></div>
+      </div>
+    </div>
+
+    <div class="card confirm-box" id="confirmCard" style="display:none">
+      <div class="confirm-icon">✓</div>
+      <div style="font-weight:600;margin-top:8px">Application sent</div>
+      <div class="hint" style="margin-top:6px">Thanks! We'll review it and reach out on WhatsApp once your profile is live.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Waypoint is a free travel companion for Singapore. <a href="/">See the tourist app →</a>
+</footer>
 
 <script>
 function escapeHtml(s) {
@@ -206,6 +348,7 @@ async function submitApplication() {
     }
     document.getElementById('formView').style.display = 'none';
     document.getElementById('confirmCard').style.display = 'block';
+    document.getElementById('confirmCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (err) {
     errorEl.textContent = 'Something went wrong -- please try again.';
     btn.disabled = false;
