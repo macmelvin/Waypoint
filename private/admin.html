@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
 <title>Waypoint — Invites</title>
 <style>
   :root { color-scheme: dark; }
@@ -86,6 +88,7 @@
     <input type="password" id="secretInput" placeholder="Admin secret" autocomplete="off">
     <button onclick="unlock()">Unlock</button>
     <div id="status"></div>
+    <p style="color:#94a3b8;font-size:13px;margin-top:10px">Enter the admin secret to load data. It stays only in this page's memory.</p>
   </div>
 
   <div id="panel">
@@ -218,7 +221,9 @@
 let secret = '';
 
 function unlock() {
-  secret = document.getElementById('secretInput').value.trim();
+  const input = document.getElementById('secretInput');
+  secret = input.value.trim();
+  input.value = '';
   if (!secret) return;
   loadInvites();
 }
@@ -226,6 +231,9 @@ function unlock() {
 async function api(path, opts = {}) {
   const res = await fetch(path, {
     ...opts,
+    credentials: 'same-origin',
+    cache: 'no-store',
+    referrerPolicy: 'no-referrer',
     headers: { ...(opts.headers || {}), 'x-admin-secret': secret },
   });
   if (!res.ok) {

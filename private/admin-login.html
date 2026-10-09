@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Waypoint admin login</title>
+</head><body>
+<main>
+<h1>Admin login</h1>
+<form id="loginForm">
+<label for="adminSecret">Admin secret</label>
+<input id="adminSecret" type="password" required autocomplete="off">
+<button type="submit">Log in</button>
+<p id="loginStatus" role="status"></p>
+</form>
+</main>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const input = document.getElementById('adminSecret');
+  const button = event.currentTarget.querySelector('button');
+  const status = document.getElementById('loginStatus');
+  const value = input.value.trim();
+  if (!value) return;
+  input.value = '';
+  button.disabled = true;
+  status.textContent = '';
+  try {
+    const response = await fetch('/api/admin/login', {
+      method: 'POST', credentials: 'same-origin', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: value }),
+    });
+    if (!response.ok) throw new Error('Login failed. Check the secret or wait a minute.');
+    location.replace('/admin.html');
+  } catch (error) {
+    status.textContent = error.message;
+    button.disabled = false;
+    input.focus();
+  }
+});
+</script>
+</body></html>

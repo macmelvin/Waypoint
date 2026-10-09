@@ -742,10 +742,10 @@ function timingSafeEqual(a, b) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!ADMIN_ENABLED) return res.status(404).json({ error: 'Admin panel not configured' });
+  if (!ADMIN_ENABLED) return res.status(404).json({ error: 'Not found' });
   const provided = req.get('x-admin-secret') || '';
   if (!provided || !timingSafeEqual(provided, ADMIN_SECRET)) {
-    return res.status(401).json({ error: 'Invalid admin secret' });
+    return res.status(404).json({ error: 'Not found' });
   }
   next();
 }
@@ -839,6 +839,125 @@ ${whatsappButton}
   }
   return res.status(403).end();
 }
+
+// ---- Admin page gate (v2: no secret ever travels in a URL) ----------------
+// The admin APIs below already require the x-admin-secret header
+// (requireAdmin). This closes the one remaining gap: the page shell itself
+// used to be a plain static file anyone could load and see exists. Now
+// /admin and /admin.html 404 for everyone without a valid session cookie,
+// the cookie is only ever granted by POSTing the secret (as JSON, never a
+// query string) to /api/admin/login, and the cookie holds a signed,
+// expiring token -- never the raw secret -- so it's useless if it leaks on
+// its own. admin.html moved out of public/ into private/ so there's no
+// static-file fallback path that could serve it unguarded.
+const ADMIN_SESSION_COOKIE = '__Host-wp_admin';
+const ADMIN_SESSION_MS = 30 * 24 * 60 * 60 * 1000;
+const ADMIN_ORIGIN = (process.env.ADMIN_ORIGIN || 'https://waypoint-production-0307.up.railway.app').trim();
+const adminCookieOptions = {
+  httpOnly: true, secure: true, sameSite: 'lax', path: '/',
+};
+
+function adminPrivateHeaders(req, res, next) {
+  res.set({
+    'Cache-Control': 'no-store',
+    'Pragma': 'no-cache',
+    'X-Robots-Tag': 'noindex, nofollow, noarchive',
+    'Referrer-Policy': 'no-referrer',
+  });
+  next();
+}
+// These run before the existing API handlers, including later registrations.
+app.use('/api/admin', adminPrivateHeaders);
+app.use('/admin', adminPrivateHeaders);
+app.use('/admin.html', adminPrivateHeaders);
+
+function adminNotFound(res) {
+  return res.status(404).type('text/plain').send('Not found');
+}
+function signAdminSession(payload) {
+  return crypto.createHmac('sha256', ADMIN_SECRET)
+    .update('waypoint-admin-session-v2\n' + payload).digest('hex');
+}
+function newAdminSession(now = Date.now()) {
+  const payload = 'v2.' + (now + ADMIN_SESSION_MS) + '.' +
+    crypto.randomBytes(16).toString('hex');
+  return payload + '.' + signAdminSession(payload);
+}
+function validAdminSession(req, now = Date.now()) {
+  if (!ADMIN_ENABLED) return false;
+  // A malformed cookie must fail closed, not throw or crash the page.
+  const entries = String(req.headers.cookie || '').split(';');
+  const matches = entries.map(s => s.trim())
+    .filter(s => s.startsWith(ADMIN_SESSION_COOKIE + '='));
+  if (matches.length !== 1) return false;
+  const value = matches[0].slice(ADMIN_SESSION_COOKIE.length + 1);
+  const match = /^(v2\.(\d{13})\.[a-f0-9]{32})\.([a-f0-9]{64})$/.exec(value);
+  if (!match) return false;
+  const expires = Number(match[2]);
+  if (!Number.isSafeInteger(expires) || expires <= now ||
+      expires > now + ADMIN_SESSION_MS) return false;
+  return timingSafeEqual(match[3], signAdminSession(match[1]));
+}
+function browserAdminPost(req) {
+  // Railway terminates HTTPS and supplies X-Forwarded-Proto.
+  // Do not use an untrusted Host header to decide the allowed Origin.
+  return req.get('Origin') === ADMIN_ORIGIN &&
+    (req.secure || req.get('X-Forwarded-Proto') === 'https') &&
+    Object.keys(req.query).length === 0 && req.is('application/json');
+}
+
+// A small process-local failure budget limits password guessing without
+// storing passwords or trusting spoofable client IP headers. A deployment
+// with multiple replicas should also enforce a shared edge rate limit.
+let adminLoginFailures = 0;
+let adminLoginWindowEnds = 0;
+app.post('/api/admin/login', (req, res) => {
+  if (!ADMIN_ENABLED || !browserAdminPost(req)) return adminNotFound(res);
+  const now = Date.now();
+  if (now >= adminLoginWindowEnds) {
+    adminLoginFailures = 0;
+    adminLoginWindowEnds = now + 60_000;
+  }
+  if (adminLoginFailures >= 10) return adminNotFound(res);
+  const provided = req.body && req.body.secret;
+  if (typeof provided !== 'string' || provided.length > 4096 ||
+      !timingSafeEqual(provided.trim(), ADMIN_SECRET)) {
+    adminLoginFailures++;
+    return adminNotFound(res);
+  }
+  res.cookie(ADMIN_SESSION_COOKIE, newAdminSession(), {
+    ...adminCookieOptions, maxAge: ADMIN_SESSION_MS,
+  });
+  return res.status(204).end(); // Never echo the secret, token or cookie.
+});
+app.post('/api/admin/logout', (req, res) => {
+  if (!browserAdminPost(req) || !validAdminSession(req)) {
+    return adminNotFound(res);
+  }
+  res.clearCookie(ADMIN_SESSION_COOKIE, adminCookieOptions);
+  return res.status(204).end();
+});
+
+app.all('/admin/login', (req, res) => {
+  if (!ADMIN_ENABLED || Object.keys(req.query).length !== 0 ||
+      (req.method !== 'GET' && req.method !== 'HEAD')) {
+    return adminNotFound(res);
+  }
+  res.sendFile(path.join(__dirname, 'private', 'admin-login.html'), {
+    cacheControl: false,
+  });
+});
+
+// Serve the private file explicitly. It must no longer exist in public/.
+app.all(/^\/admin(?:\.html)?\/?$/i, (req, res) => {
+  if ((req.method !== 'GET' && req.method !== 'HEAD') ||
+      Object.keys(req.query).length !== 0 || !validAdminSession(req)) {
+    return adminNotFound(res);
+  }
+  res.sendFile(path.join(__dirname, 'private', 'admin.html'), {
+    cacheControl: false,
+  });
+});
 
 app.use(inviteGate);
 app.use(partnerRefTracking);
