@@ -24,14 +24,24 @@
 
 <!-- Partner-referred visitors (any ?ref= landing, remembered in localStorage;
      same key/logic as isPartnerVisit() in app.js) get a tourist-focused UI:
-     More Places, Nearby and Split Bill are hidden via CSS (style.css,
-     "Tourist mode"). Runs in <head> so there is no flash of hidden items. -->
+     More Places, Nearby, Split Bill, Bus Times and several Book Online
+     chips are hidden via CSS (style.css, "Tourist mode"). Runs in <head>
+     so there is no flash of hidden items.
+     ?ref=demo is a special case for showing the app during sales demos --
+     it must show every feature, so it actively clears any previously
+     stored partner ref (not just skips setting a new one) rather than
+     treating "demo" as just another partner slug. That also overrides a
+     real partner ref this same browser/device stored earlier. -->
 <script>
 (function () {
   try {
     var KEY = 'waypoint_partner_visit_v1';
     var ref = new URLSearchParams(window.location.search).get('ref');
-    if (ref) localStorage.setItem(KEY, ref);
+    if (ref && ref.toLowerCase() === 'demo') {
+      localStorage.removeItem(KEY);
+    } else if (ref) {
+      localStorage.setItem(KEY, ref);
+    }
     if (localStorage.getItem(KEY)) document.documentElement.classList.add('partner-visit');
   } catch (err) { /* storage blocked: treat as public visitor */ }
 })();
