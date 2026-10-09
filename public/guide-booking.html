@@ -40,6 +40,14 @@
   #error { color: #b91c1c; font-size: 13px; margin-top: 8px; }
   .confirm-box { text-align: center; padding: 30px 20px; }
   .confirm-icon { font-size: 36px; }
+  .stars { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+  .star-btn {
+    background: none; border: none; font-size: 28px; line-height: 1; cursor: pointer;
+    color: #d8dadd; padding: 2px; font-family: inherit;
+  }
+  .star-btn.filled { color: #f5b942; }
+  #feedbackError { color: #b91c1c; font-size: 13px; margin-top: 8px; }
+  #feedbackThanks { text-align: center; padding: 10px 0; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -78,6 +86,28 @@
       <div class="confirm-icon">✓</div>
       <div style="font-weight:600;margin-top:8px">Request sent</div>
       <div class="sub" style="margin-top:6px">The guide will confirm within 24 hours. This is an enquiry, not an instant booking.</div>
+    </div>
+
+    <!-- Shown as soon as the guide's details load, independent of whether a
+         slot has been booked on this particular page load -- this link
+         still works even if the guide's card isn't in today's rotating
+         batch on the main map (see MAX_GUIDES_PER_LANDMARK in server.js),
+         so a visitor returning after their walk (same day or any later day)
+         can always reach it from this same URL. -->
+    <div class="card" id="feedbackCard" style="display:none">
+      <div style="font-weight:600;margin-bottom:4px">How was it?</div>
+      <p class="sub" style="margin:0 0 14px">Already been on a walk with <strong id="feedbackGuideName"></strong>? Leave feedback below — any time, no need to wait for anything else.</p>
+      <div id="feedbackStars" class="stars">
+        <button type="button" class="star-btn" data-star="1" onclick="selectFeedbackStar(1)">★</button>
+        <button type="button" class="star-btn" data-star="2" onclick="selectFeedbackStar(2)">★</button>
+        <button type="button" class="star-btn" data-star="3" onclick="selectFeedbackStar(3)">★</button>
+        <button type="button" class="star-btn" data-star="4" onclick="selectFeedbackStar(4)">★</button>
+        <button type="button" class="star-btn" data-star="5" onclick="selectFeedbackStar(5)">★</button>
+      </div>
+      <textarea id="feedbackComment" placeholder="Tell us about your guided walk (optional)" rows="3"></textarea>
+      <button class="primary" id="feedbackSubmitBtn" onclick="submitFeedback()">Submit feedback</button>
+      <div id="feedbackError"></div>
+      <div id="feedbackThanks" style="display:none">🙏 Thanks for your feedback!</div>
     </div>
   </div>
 </div>
@@ -118,6 +148,8 @@ async function load() {
     if (!data.guide) { showEmpty("This guide isn't currently bookable."); return; }
     document.getElementById('guideName').textContent = data.guide.name;
     document.getElementById('guideSpecialty').textContent = data.guide.specialty || '';
+    document.getElementById('feedbackGuideName').textContent = data.guide.name;
+    document.getElementById('feedbackCard').style.display = 'block';
     slots = data.slots || [];
     pricePerAdult = Number(data.pricePerAdult) || 0;
     const banner = document.getElementById('priceBanner');
@@ -196,6 +228,46 @@ async function submitBooking() {
     document.getElementById('confirmCard').style.display = 'block';
   } catch (err) {
     errorEl.textContent = 'Something went wrong — please try again.';
+    btn.disabled = false;
+  }
+}
+
+// ---- Feedback (independent of the booking flow above -- see the
+// feedbackCard comment in the HTML for why this lives on this page). Posts
+// to the same POST /api/guides/:id/feedback endpoint the main app's guide
+// cards use (see app.js's renderGuidesSection / openGuideFeedbackModal), so
+// a comment left from here shows up in /admin exactly the same way.
+let feedbackRating = 0;
+
+function selectFeedbackStar(n) {
+  feedbackRating = n;
+  document.querySelectorAll('.star-btn').forEach((btn) => {
+    btn.classList.toggle('filled', Number(btn.dataset.star) <= feedbackRating);
+  });
+}
+
+async function submitFeedback() {
+  const errorEl = document.getElementById('feedbackError');
+  errorEl.textContent = '';
+  if (feedbackRating < 1) { errorEl.textContent = 'Please select a star rating.'; return; }
+  const btn = document.getElementById('feedbackSubmitBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/api/guides/${encodeURIComponent(guideId)}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating: feedbackRating, comment: document.getElementById('feedbackComment').value }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Something went wrong — please try again.');
+    }
+    document.getElementById('feedbackStars').style.display = 'none';
+    document.getElementById('feedbackComment').style.display = 'none';
+    btn.style.display = 'none';
+    document.getElementById('feedbackThanks').style.display = 'block';
+  } catch (err) {
+    errorEl.textContent = err.message;
     btn.disabled = false;
   }
 }
