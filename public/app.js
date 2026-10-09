@@ -3451,11 +3451,17 @@ function showNavMap(routeCoords) {
     }
 
     if (!navMapLiveMarker) {
+      // A chevron-shaped heading arrow, not a plain circular "puck" --
+      // Melvin found the old round dot-with-a-tiny-triangle-inside hard to
+      // read as "which way am I facing" at a glance (10 Oct 2026). The SVG
+      // itself is the arrow shape (blue fill, white outline for contrast
+      // against both light and dark map tiles); .nav-live-puck-arrow is
+      // still the element updateNavPuckHeading() rotates.
       const liveIcon = L.divIcon({
         className: 'nav-live-puck',
-        html: '<div class="nav-live-puck-arrow"></div>',
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
+        html: '<div class="nav-live-puck-arrow"><svg viewBox="0 0 24 24" width="32" height="32"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></div>',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       });
       navMapLiveMarker = L.marker(latlngs[0], { icon: liveIcon, zIndexOffset: 1000 }).addTo(navMap);
     } else {

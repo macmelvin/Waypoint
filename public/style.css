@@ -2786,26 +2786,36 @@ a.driving-extra-link-row:hover .driving-extra-lots { color: var(--accent); }
   filter: grayscale(25%) saturate(1.2) brightness(1.08) contrast(0.92);
 }
 
-/* A live-position "puck" with a heading arrow — reads more like "you are
-   here, facing this way" on a driving map than a plain dot. */
+/* A heading-arrow marker for "you are here, facing this way" on a live
+   navigation map. Used to be a round blue puck with a tiny white triangle
+   inside it -- easy to mistake for a plain dot at a glance. The arrow is
+   now the marker's actual silhouette (a Material-style navigation chevron),
+   so the pointed tip itself shows which way you're facing, no separate
+   circle needed. */
 .nav-live-puck {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid white;
-  box-shadow: 0 0 0 2px var(--accent), 0 2px 8px rgba(0,0,0,0.45);
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .nav-live-puck-arrow {
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 9px solid white;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
   transition: transform 0.25s ease;
+  /* Soft drop shadow (independent of the white outline below) so the arrow
+     still reads clearly over light-coloured map tiles/roads. */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.45));
+}
+.nav-live-puck-arrow svg path {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
 /* Start (A) and destination (B) markers — plain, not counter-rotated
