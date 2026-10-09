@@ -7011,15 +7011,15 @@ setInterval(checkTrainAlerts, TRAIN_ALERTS_POLL_MS);
 // ref (word of mouth, search, etc.) see the full "support the author"
 // footer and the occasional PayNow popup below. Adding a new partner is
 // just a new ?ref= value on their printed QR code — no code change needed.
-// ?ref=demo is the one exception -- it's for showing the app during sales
-// demos, so it must show every feature. It actively clears any previously
-// remembered ref (same special-casing as the <head> script in index.html
-// that drives the CSS "tourist mode" hides) rather than being remembered
-// as just another partner slug.
+// ?ref=demo (or ?ref=unhide) is the one exception -- it's for showing the
+// app during sales demos, so it must show every feature. It actively
+// clears any previously remembered ref (same special-casing as the
+// <head> script in index.html that drives the CSS "tourist mode" hides)
+// rather than being remembered as just another partner slug.
 const PARTNER_VISIT_KEY = 'waypoint_partner_visit_v1';
 (function rememberPartnerRef() {
   const ref = new URLSearchParams(window.location.search).get('ref');
-  if (ref && ref.toLowerCase() === 'demo') {
+  if (ref && ['demo', 'unhide'].includes(ref.toLowerCase())) {
     localStorage.removeItem(PARTNER_VISIT_KEY);
   } else if (ref) {
     localStorage.setItem(PARTNER_VISIT_KEY, ref);
