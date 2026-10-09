@@ -712,8 +712,16 @@ function partnerRefTracking(req, res, next) {
 
   const cookieRef = parseCookies(req)[PARTNER_REF_COOKIE] || null;
   const refParam = typeof req.query.ref === 'string' ? slugify(req.query.ref) : null;
+  // "demo"/"unhide"/"hide" are reserved client-side ref values (see the
+  // <head> script in index.html and rememberPartnerRef() in app.js) for
+  // showing/hiding every feature during sales demos and internal testing --
+  // not real partner slugs. Even if an admin partner entry happens to exist
+  // with one of these names (e.g. from early testing), these never count
+  // toward partner totals/uniques or set the attribution cookie. slugify()
+  // already lowercases, so case variants (DEMO, Unhide, ...) are covered.
+  const internalRefs = new Set(['demo', 'unhide', 'hide']);
 
-  if (refParam) {
+  if (refParam && !internalRefs.has(refParam)) {
     const partner = partners.find((p) => p.slug === refParam && p.active);
     if (partner) {
       trackPartnerVisit(partner, cookieRef === refParam);
