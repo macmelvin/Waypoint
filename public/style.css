@@ -665,13 +665,6 @@ a:active {
 .safety-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
 .safety-row .pill-btn { flex: 1 1 120px; text-align: center; }
 
-/* Icon-only now (text label removed) — falls back to the same plain round
-   .icon-btn shape as the notify/SOS buttons next to it instead of the wide
-   text-pill shape this used when it showed "Where am I" as well. */
-.locate-btn {
-  font-size: 16px;
-}
-
 .lang-btn {
   width: auto;
   border-radius: var(--radius-pill);

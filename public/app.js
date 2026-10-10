@@ -23,7 +23,6 @@ const OSRM_ENDPOINTS = {
 // index.html). Kept dependency-free — no icon font/library — matching the
 // rest of the app.
 const ICONS = {
-  locate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="6.3"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><path d="M12 2.3v3M12 18.7v3M2.3 12h3M18.7 12h3"/></svg>',
   volumeOn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
   volumeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.2L12 18V6L7.2 9.5H4z"/><path d="M16 9l4.5 6M20.5 9L16 15"/></svg>',
 };
@@ -94,8 +93,6 @@ const els = {
   parkedCarDirectionsBtn: document.getElementById('parkedCarDirectionsBtn'),
   parkedCarClearBtn: document.getElementById('parkedCarClearBtn'),
   saveParkingBtn: document.getElementById('saveParkingBtn'),
-  locateBtn: document.getElementById('locateBtn'),
-  locateBtnIcon: document.getElementById('locateBtnIcon'),
   offlineBanner: document.getElementById('offlineBanner'),
   notifyBtn: document.getElementById('notifyBtn'),
   sosBtn: document.getElementById('sosBtn'),
@@ -1722,7 +1719,7 @@ try {
 const I18N = {
   en: {
     tab_search: 'Search', tab_directions: 'Directions', tab_bus: '🚌 Bus Times',
-    notify_title: 'Turn on train/traffic/haze alerts', where_am_i: 'Where am I',
+    notify_title: 'Turn on train/traffic/haze alerts',
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
     category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online', category_concerts: 'Concerts',
@@ -1755,7 +1752,7 @@ const I18N = {
   },
   zh: {
     tab_search: '搜索', tab_directions: '路线', tab_bus: '🚌 巴士时间',
-    notify_title: '开启地铁/交通/雾霾提醒', where_am_i: '我的位置',
+    notify_title: '开启地铁/交通/雾霾提醒',
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
     category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订', category_concerts: '演唱会',
@@ -1787,7 +1784,7 @@ const I18N = {
   },
   ms: {
     tab_search: 'Carian', tab_directions: 'Arah', tab_bus: '🚌 Waktu Bas',
-    notify_title: 'Hidupkan makluman keretapi/trafik/jerebu', where_am_i: 'Di Mana Saya',
+    notify_title: 'Hidupkan makluman keretapi/trafik/jerebu',
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
     category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian', category_concerts: 'Konsert',
@@ -1819,7 +1816,7 @@ const I18N = {
   },
   ta: {
     tab_search: 'தேடல்', tab_directions: 'வழிகள்', tab_bus: '🚌 பேருந்து நேரம்',
-    notify_title: 'ரயில்/போக்குவரத்து/புகைமூட்ட எச்சரிக்கைகளை இயக்கு', where_am_i: 'நான் எங்கே',
+    notify_title: 'ரயில்/போக்குவரத்து/புகைமூட்ட எச்சரிக்கைகளை இயக்கு',
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
     category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்', category_concerts: 'இசை நிகழ்ச்சிகள்',
@@ -1851,7 +1848,7 @@ const I18N = {
   },
   ja: {
     tab_search: '検索', tab_directions: 'ルート', tab_bus: '🚌 バス時刻',
-    notify_title: '電車・交通・ヘイズ情報の通知をオンにする', where_am_i: '現在地',
+    notify_title: '電車・交通・ヘイズ情報の通知をオンにする',
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
     category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約', category_concerts: 'コンサート',
@@ -1883,7 +1880,7 @@ const I18N = {
   },
   ko: {
     tab_search: '검색', tab_directions: '길찾기', tab_bus: '🚌 버스 도착 시간',
-    notify_title: '열차/교통/실안개 알림 켜기', where_am_i: '내 위치',
+    notify_title: '열차/교통/실안개 알림 켜기',
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
     category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약', category_concerts: '콘서트',
@@ -2060,16 +2057,20 @@ els.dirToHere.addEventListener('click', () => {
 });
 
 // ---------- "I am staying here" quick location ----------
-// Saved once from a search result's place card ("I am staying here"), then
-// usable as a one-tap fill of the Directions panel's "From" field — this is
-// a tourist's accommodation (hotel, hostel, Airbnb), not a literal personal
-// "home", which is why it's labelled that way rather than "Home". Renamed
-// from "Home" (and the separate "Work" quick location removed entirely --
-// visitors don't have a work commute to speed up) since a tourist app has
-// no use for either as originally framed.
-// Formerly a generic Home/Work pair sharing one `useQuickLocation(key,
-// label, setter)` helper; now that there's only ever the one of these, the
-// click handler below is just inlined instead of keeping a one-case-only
+// One tap locates you via GPS, reverse-geocodes it for a readable label,
+// and saves it as your accommodation (hotel, hostel, Airbnb) -- usable
+// afterwards as a one-tap fill of the Directions panel's "From" field.
+// This absorbs the old separate "Where am I" top-bar button's job
+// entirely (that button only ever located you and showed a place card to
+// look at, with no save step) -- there's no more separate "find myself"
+// step before you can set where you're staying, it's one tap.
+//
+// Renamed from "Home" (and the separate "Work" quick location removed
+// entirely -- visitors don't have a work commute to speed up) since a
+// tourist app has no use for either as originally framed. Formerly a
+// generic Home/Work pair sharing one `useQuickLocation(key, label,
+// setter)` helper; now that there's only ever the one of these, the click
+// handler below is just inlined instead of keeping a one-case-only
 // "generic" abstraction around.
 
 const HOME_KEY = 'waypoint_home';
@@ -2092,33 +2093,60 @@ function saveQuickLocation(key, coords) {
   }
 }
 
-function currentPlaceCoords() {
-  if (!currentPlace) return null;
-  const lat = typeof currentPlace.lat === 'string' ? parseFloat(currentPlace.lat) : currentPlace.lat;
-  const lon = typeof currentPlace.lon === 'string' ? parseFloat(currentPlace.lon) : currentPlace.lon;
-  if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
-  return { lat, lon, label: shortLabel(currentPlace) };
-}
-
 function updateQuickButtons() {
   const home = loadQuickLocation(HOME_KEY);
   els.quickHomeBtn.classList.toggle('unset', !home);
-  els.quickHomeBtn.title = home ? `Start from ${home.label}` : 'Not set yet — search a place, then "I am staying here"';
+  els.quickHomeBtn.title = home ? `Start from ${home.label}` : 'Not set yet — tap to locate and save where you\'re staying';
 }
 
-els.setHomeBtn.addEventListener('click', () => {
-  const coords = currentPlaceCoords();
-  if (!coords) return;
-  saveQuickLocation(HOME_KEY, coords);
-  updateQuickButtons();
-  showToast('🏠 Saved!');
-});
+// Shared by both "I am staying here" buttons (the place card's and the
+// Directions quick-access chip's) -- locates the device via GPS,
+// reverse-geocodes it for a readable label (the same approach the old
+// "Where am I" button used), and saves it as the accommodation location.
+// `btn` is whichever button triggered this, so its own label can show a
+// loading state without touching the other one.
+function locateAndSaveHome(btn) {
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '📍 …';
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      let label = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data?.display_name) label = shortLabel({ display_name: data.display_name });
+      } catch (err) {
+        console.error(err);
+      }
+      saveQuickLocation(HOME_KEY, { lat: latitude, lon: longitude, label });
+      updateQuickButtons();
+      showToast('🏠 Saved!');
+      btn.disabled = false;
+      btn.textContent = originalText;
+    },
+    (err) => {
+      console.error('set-home geolocation error:', err);
+      showToast(geoErrorMessage(err));
+      btn.disabled = false;
+      btn.textContent = originalText;
+    },
+    GEO_OPTIONS
+  );
+}
+
+els.setHomeBtn.addEventListener('click', () => locateAndSaveHome(els.setHomeBtn));
 
 els.quickHomeBtn.addEventListener('click', () => {
   const loc = loadQuickLocation(HOME_KEY);
   if (!loc) {
-    showToast('Tell us where you\'re staying first — search a place, then tap "I am staying here".');
-    document.querySelector('.tab-btn[data-tab="search"]').click();
+    locateAndSaveHome(els.quickHomeBtn);
     return;
   }
   setFrom(loc);
@@ -5124,43 +5152,9 @@ document.addEventListener('click', (e) => {
 renderFavourites();
 updateQuickButtons();
 
-// ---------- Geolocation ----------
-
-els.locateBtn.addEventListener('click', () => {
-  if (!navigator.geolocation) {
-    showToast('Geolocation is not supported by your browser.');
-    return;
-  }
-  els.locateBtnIcon.textContent = '…';
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const displayName = data?.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-        currentPlace = { lat: latitude, lon: longitude, display_name: displayName };
-        els.placeName.textContent = shortLabel({ display_name: displayName });
-        els.placeAddress.textContent = displayName;
-        els.placeCard.classList.remove('hidden');
-        loadAttractionInfo({ lat: latitude, lon: longitude });
-        document.querySelector('.tab-btn[data-tab="search"]').click();
-      } catch (err) {
-        console.error(err);
-        showToast('Could not determine your address.');
-      } finally {
-        els.locateBtnIcon.innerHTML = ICONS.locate;
-      }
-    },
-    (err) => {
-      console.error('locate-me geolocation error:', err);
-      showToast(geoErrorMessage(err));
-      els.locateBtnIcon.innerHTML = ICONS.locate;
-    },
-    GEO_OPTIONS
-  );
-});
+// The old top-bar "Where am I" button (and its locate-then-show-a-place-card
+// flow) lived here. It's gone -- "I am staying here" (further up this file)
+// now does the locating itself, in the same tap that saves it.
 
 // ---------- Safety Center (SOS + Contacts + Scam Checker + Hotlines) ----------
 // The SOS icon opens a 4-tab sheet instead of a single send screen:
