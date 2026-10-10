@@ -98,6 +98,11 @@
   .example-quote { font-size: 12px; color: #5C6A70; font-style: italic; margin-top: 4px; margin-bottom: 6px; line-height: 1.5; border-left: 2px solid #E6DDCB; padding-left: 10px; }
   #landmarkChecks { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
   #landmarkChecks label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  #landmarkChecks .landmark-label { flex: 1; }
+  #landmarkChecks .landmark-price {
+    width: 110px; flex: 0 0 auto; padding: 6px 8px; font-size: 12px; margin: 0;
+  }
+  #landmarkChecks .landmark-price:disabled { background: #F1EAE0; color: #8A97A0; cursor: not-allowed; }
   button.primary {
     width: 100%; padding: 14px; border-radius: 10px; background: #1B3A4B; color: #FBF8F7;
     font-size: 15px; font-weight: 600; border: none; cursor: pointer; margin-top: 16px;
@@ -217,6 +222,7 @@
         <input type="text" id="stbLicenseInput" placeholder="e.g. #6932" required>
 
         <label class="field-label">Neighbourhoods / landmarks you guide</label>
+        <div class="hint" style="margin-top:0;margin-bottom:6px">Tick each one you guide. Leave a landmark's price blank to use your standard rate (set below), or enter a specific price just for that walk.</div>
         <div id="landmarkChecks"><div class="hint">Loading…</div></div>
 
         <label class="field-label" for="languagesInput">Languages</label>
@@ -282,11 +288,28 @@ async function loadLandmarks() {
     const { landmarks } = await res.json();
     const entries = Object.entries(landmarks || {});
     if (!entries.length) { container.innerHTML = '<div class="hint">Could not load the list -- please try again shortly.</div>'; return; }
+    // The price input next to each checkbox mirrors admin.html's own
+    // per-landmark override field exactly (same disabled-until-checked
+    // behaviour via toggleLandmarkPriceInput below) -- a guide who leads
+    // more than one walk at different prices can set that here directly,
+    // instead of applying with one flat rate and asking Melvin to split it
+    // out by landmark afterward.
     container.innerHTML = entries.map(([key, label]) => `
-      <label><input type="checkbox" class="landmark-check" value="${key}"><span>${escapeHtml(label)}</span></label>`).join('');
+      <label>
+        <input type="checkbox" class="landmark-check" value="${key}" onchange="toggleLandmarkPriceInput(this)">
+        <span class="landmark-label">${escapeHtml(label)}</span>
+        <input type="text" inputmode="decimal" class="landmark-price" data-key="${key}" placeholder="Default price" disabled>
+      </label>`).join('');
   } catch (err) {
     container.innerHTML = '<div class="hint">Could not load the list -- please try again shortly.</div>';
   }
+}
+
+function toggleLandmarkPriceInput(checkbox) {
+  const row = checkbox.closest('label');
+  const priceInput = row.querySelector('.landmark-price');
+  priceInput.disabled = !checkbox.checked;
+  if (!checkbox.checked) priceInput.value = '';
 }
 
 async function loadSpecialties() {
@@ -312,6 +335,15 @@ async function submitApplication() {
   const specialty = document.getElementById('specialtyInput').value.trim();
   const stbLicense = document.getElementById('stbLicenseInput').value.trim();
   const landmarks = Array.from(document.querySelectorAll('.landmark-check:checked')).map((cb) => cb.value);
+  // Per-landmark price overrides -- only for landmarks actually ticked, and
+  // only when a value was entered (an unchecked or blank one just falls
+  // back to pricePerAdult server-side, same as admin.html's own form).
+  const landmarkPrices = {};
+  document.querySelectorAll('.landmark-check:checked').forEach((cb) => {
+    const priceInput = cb.closest('label').querySelector('.landmark-price');
+    const val = priceInput.value.trim();
+    if (val) landmarkPrices[cb.value] = Number(val);
+  });
   const languages = document.getElementById('languagesInput').value.trim();
   const whatsapp = document.getElementById('whatsappInput').value.trim();
   const emailInput = document.getElementById('emailInput');
@@ -349,7 +381,7 @@ async function submitApplication() {
     const res = await fetch('/api/guide-apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, specialty, stbLicense, landmarks, languages, whatsapp, email, pricePerAdult, note, agreedToTerms, companyWebsite }),
+      body: JSON.stringify({ name, specialty, stbLicense, landmarks, landmarkPrices, languages, whatsapp, email, pricePerAdult, note, agreedToTerms, companyWebsite }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {

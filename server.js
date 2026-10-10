@@ -1256,8 +1256,13 @@ app.post('/api/admin/guides', requireAdmin, (req, res) => {
 //     profiles, not something a real applicant should be able to set).
 //   - source:'signup' marks it as self-submitted so admin.html can badge it
 //     distinctly from a guide Melvin typed in directly.
-//   - no landmarkPrices from the public form -- keep the form short; admin
-//     can set per-landmark pricing later via Edit if needed.
+//   - landmarkPrices is accepted here too (guide-apply.html now shows the
+//     same per-landmark price override next to each checkbox that admin.html
+//     has always had), sanitized the same way the admin-authenticated route
+//     above does -- an override for a landmark the applicant didn't actually
+//     tick, or a non-numeric value, is just dropped rather than erroring, so
+//     a guide applying for several different walks at different prices
+//     doesn't need to wait for Melvin to set that up by hand afterward.
 //   - a hidden honeypot field (companyWebsite) catches the simplest bots:
 //     real applicants never see or fill it (it's visually hidden in the
 //     form), so anything posted there means it's spam -- reject it as if
@@ -1320,7 +1325,7 @@ app.post('/api/guide-apply', (req, res) => {
     termsAcceptedAt: new Date().toISOString(),
     sample: false,
     pricePerAdult: Number(req.body?.pricePerAdult) > 0 ? Number(req.body.pricePerAdult) : ADULT_PRICE_SGD,
-    landmarkPrices: {},
+    landmarkPrices: sanitizeLandmarkPrices(req.body?.landmarkPrices, landmarks),
     accessToken: crypto.randomUUID(),
     availability: DEFAULT_GUIDE_AVAILABILITY,
     createdAt: new Date().toISOString(),
