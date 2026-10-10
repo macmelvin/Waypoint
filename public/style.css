@@ -2343,6 +2343,30 @@ a:active {
 }
 .stops-list-panel.hidden { display: none; }
 
+/* Live "which stop am I at" marker, driven by the Wake me up tracker
+   (app.js markCurrentStop) — a pulsing dot (reusing the same live-pulse
+   animation as the bus-arrivals "LIVE" dot, for one consistent "this is
+   moving in real time" language across the app) plus a ".stop-here-tag"
+   next to the name, so it still reads clearly without relying on color. */
+.stops-list-panel li.stop-current {
+  position: relative;
+  padding-left: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.stops-list-panel li.stop-current::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+.stops-list-panel .stop-here-tag { color: var(--accent); }
+
 .step-wake-row {
   display: flex;
   align-items: center;

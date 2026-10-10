@@ -4119,13 +4119,23 @@ function renderTransitSteps(itinerary) {
 
       const stopsList = document.createElement('ol');
       stopsList.className = 'stops-list-panel hidden';
+      // leg._stopEls lets the "Wake me up" tracker below (which already
+      // computes which stop we're nearest to, for the "at <stop>" status
+      // text) also mark that same stop IN this list -- otherwise the only
+      // place "which stop am I at" ever showed was a line of text below the
+      // "Hide stops"/"Cancel alert" buttons, with no link back to the list
+      // itself, which is exactly the list a rider is looking at.
+      leg._stopEls = [];
       leg.stops.forEach((s, i) => {
         const stopLi = document.createElement('li');
         if (i === 0) stopLi.innerHTML = `<strong>${s.name}</strong> <span class="stop-tag">Board here</span>`;
         else if (i === leg.stops.length - 1) stopLi.innerHTML = `<strong>${s.name}</strong> <span class="stop-tag">Alight here</span>`;
         else stopLi.textContent = s.name;
         stopsList.appendChild(stopLi);
+        leg._stopEls.push(stopLi);
       });
+      leg._stopsPanel = stopsList;
+      leg._stopsBtn = stopsBtn;
 
       stopsBtn.addEventListener('click', () => {
         const opening = stopsList.classList.contains('hidden');
@@ -4501,12 +4511,22 @@ async function startWakeAlert(leg, btnEl, statusEl) {
   const stops = Array.isArray(leg.stops) && leg.stops.length >= 2 ? leg.stops : null;
   wakeState = {
     watchId: null, repeatTimer: null, btnEl, statusEl, targetName, triggered: false,
-    stops, stopCursor: 0,
+    stops, stopCursor: 0, leg,
   };
   btnEl.textContent = '🔕 Cancel alert';
   btnEl.classList.add('active');
   statusEl.textContent = 'Locating you…';
   showToast(`We'll wake you up near ${targetName}.`);
+
+  // Auto-reveal this leg's stop-by-stop list (if it has one — see
+  // leg._stopEls above) so the live "You are here" marker the position
+  // callback below drives is actually visible without an extra tap. Only
+  // forces it open, never shut — if the rider later collapses it manually
+  // mid-ride, later position updates just keep the marker updated
+  // underneath rather than re-opening it on them.
+  if (leg._stopsPanel && leg._stopsBtn && leg._stopsPanel.classList.contains('hidden')) {
+    leg._stopsBtn.click();
+  }
 
   wakeState.watchId = navigator.geolocation.watchPosition(
     (pos) => {
@@ -4552,6 +4572,12 @@ async function startWakeAlert(leg, btnEl, statusEl) {
         const currentStopName = wakeState.stops[wakeState.stopCursor] && wakeState.stops[wakeState.stopCursor].name;
         if (currentStopName && wakeState.stopCursor < lastIdx) {
           atStopText = ` · at ${currentStopName}`;
+          markCurrentStop(leg, wakeState.stopCursor);
+        } else {
+          // Reached (or past) the alighting stop — the list's own static
+          // "Alight here" tag already says that, so don't also leave a
+          // "You are here" marker sitting on it.
+          clearCurrentStopMarker(leg);
         }
       }
 
@@ -4568,6 +4594,41 @@ async function startWakeAlert(leg, btnEl, statusEl) {
     },
     { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
   );
+}
+
+// Marks which entry in a leg's stop-by-stop list (leg._stopEls, built above
+// alongside the "Show stops" panel) we're currently nearest to, per the
+// "Wake me up" tracker's own stopCursor — so a rider watching that list
+// actually sees where they are among the stops, not just in a status line
+// below the buttons. Also drops a "You are here" tag next to the name
+// itself (not just a CSS class) so it's legible even without color, and
+// moves with the marker rather than accumulating on every stop it's passed.
+function markCurrentStop(leg, idx) {
+  if (!leg._stopEls) return;
+  leg._stopEls.forEach((el, i) => {
+    const isCurrent = i === idx;
+    el.classList.toggle('stop-current', isCurrent);
+    const existingTag = el.querySelector('.stop-here-tag');
+    if (isCurrent && !existingTag) {
+      const tag = document.createElement('span');
+      tag.className = 'stop-tag stop-here-tag';
+      tag.textContent = 'You are here';
+      el.appendChild(tag);
+    } else if (!isCurrent && existingTag) {
+      existingTag.remove();
+    }
+  });
+  const currentEl = leg._stopEls[idx];
+  if (currentEl) currentEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function clearCurrentStopMarker(leg) {
+  if (!leg || !leg._stopEls) return;
+  leg._stopEls.forEach((el) => {
+    el.classList.remove('stop-current');
+    const tag = el.querySelector('.stop-here-tag');
+    if (tag) tag.remove();
+  });
 }
 
 function triggerWakeAlert(targetName) {
@@ -4587,6 +4648,7 @@ function stopWakeAlert(showMsg) {
   }
   if (wakeState.watchId != null) navigator.geolocation.clearWatch(wakeState.watchId);
   clearInterval(wakeState.repeatTimer);
+  clearCurrentStopMarker(wakeState.leg);
   if (wakeWakeLock) {
     wakeWakeLock.release().catch(() => {});
     wakeWakeLock = null;
