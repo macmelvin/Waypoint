@@ -295,7 +295,7 @@ async function loadLandmarks() {
       <label>
         <input type="checkbox" class="landmark-check" value="${key}" onchange="toggleLandmarkPriceInput(this)">
         <span class="landmark-label">${escapeHtml(label)}</span>
-        <input type="text" inputmode="decimal" class="landmark-price" data-key="${key}" placeholder="Default price" disabled>
+        <input type="text" inputmode="decimal" class="landmark-price" data-key="${key}" placeholder="$ per headcount" disabled>
       </label>`).join('');
   } catch (err) {
     container.innerHTML = '<div class="hint">Could not load the list -- please try again shortly.</div>';
