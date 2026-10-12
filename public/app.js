@@ -42,6 +42,7 @@ const els = {
   dirToHere: document.getElementById('dirToHere'),
   setHomeBtn: document.getElementById('setHomeBtn'),
   quickHomeBtn: document.getElementById('quickHomeBtn'),
+  quickLocateBtn: document.getElementById('quickLocateBtn'),
   fromInput: document.getElementById('fromInput'),
   toInput: document.getElementById('toInput'),
   fromResults: document.getElementById('fromResults'),
@@ -1727,9 +1728,9 @@ const I18N = {
     guided_walk_title: '🚶 Guided Walks', guided_walk_explore: '🧭 Explore',
     tix_tours_title: '🎟️ Tix & Tours', places_explore: '🧭 Explore', concerts_title: '🎤 Concerts',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
-    set_home: '🏠 I am staying here',
+    set_home: '🏠 Hotel | Airbnb',
     hint_search: 'Try searching for a landmark, street, or postal code.',
-    quick_home: '🏠 I am staying here',
+    quick_home: '🏠 Hotel | Airbnb', quick_locate: '📍 Where am I',
     dir_from_placeholder: 'From — postal code, address, or place', dir_to_placeholder: 'To — postal code, address, or place',
     swap: 'Swap', mode_drive: 'Drive', mode_transit: 'Bus / MRT', mode_cycle: 'Cycle', mode_walk: 'Walk',
     get_directions: 'Get Directions', start_navigation: '▶️ Start Navigation',
@@ -1760,9 +1761,9 @@ const I18N = {
     guided_walk_title: '🚶 步行导览', guided_walk_explore: '🧭 探索',
     tix_tours_title: '🎟️ 门票与观光团', places_explore: '🧭 探索', concerts_title: '🎤 演唱会',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
-    set_home: '🏠 我住在这里',
+    set_home: '🏠 酒店 | Airbnb',
     hint_search: '试试搜索地标、街道或邮区编号。',
-    quick_home: '🏠 我住在这里',
+    quick_home: '🏠 酒店 | Airbnb', quick_locate: '📍 我的位置',
     dir_from_placeholder: '起点 — 邮区编号、地址或地点', dir_to_placeholder: '终点 — 邮区编号、地址或地点',
     swap: '互换', mode_drive: '驾车', mode_transit: '巴士 / 地铁', mode_cycle: '骑行', mode_walk: '步行',
     get_directions: '获取路线', start_navigation: '▶️ 开始导航',
@@ -1792,9 +1793,9 @@ const I18N = {
     guided_walk_title: '🚶 Lawatan Jalan Kaki Berpandu', guided_walk_explore: '🧭 Terokai',
     tix_tours_title: '🎟️ Tiket & Lawatan', places_explore: '🧭 Terokai', concerts_title: '🎤 Konsert',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
-    set_home: '🏠 Saya menginap di sini',
+    set_home: '🏠 Hotel | Airbnb',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
-    quick_home: '🏠 Saya menginap di sini',
+    quick_home: '🏠 Hotel | Airbnb', quick_locate: '📍 Lokasi Saya',
     dir_from_placeholder: 'Dari — poskod, alamat, atau tempat', dir_to_placeholder: 'Ke — poskod, alamat, atau tempat',
     swap: 'Tukar', mode_drive: 'Memandu', mode_transit: 'Bas / MRT', mode_cycle: 'Berbasikal', mode_walk: 'Berjalan kaki',
     get_directions: 'Dapatkan Arah', start_navigation: '▶️ Mula Navigasi',
@@ -1824,9 +1825,9 @@ const I18N = {
     guided_walk_title: '🚶 வழிகாட்டப்பட்ட நடைப் பயணங்கள்', guided_walk_explore: '🧭 ஆராயுங்கள்',
     tix_tours_title: '🎟️ டிக்கெட் மற்றும் சுற்றுலாக்கள்', places_explore: '🧭 ஆராயுங்கள்', concerts_title: '🎤 இசை நிகழ்ச்சிகள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
-    set_home: '🏠 நான் இங்கே தங்கியுள்ளேன்',
+    set_home: '🏠 ஹோட்டல் | Airbnb',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
-    quick_home: '🏠 நான் இங்கே தங்கியுள்ளேன்',
+    quick_home: '🏠 ஹோட்டல் | Airbnb', quick_locate: '📍 எனது இடம்',
     dir_from_placeholder: 'இருந்து — அஞ்சல் குறியீடு, முகவரி அல்லது இடம்', dir_to_placeholder: 'வரை — அஞ்சல் குறியீடு, முகவரி அல்லது இடம்',
     swap: 'மாற்று', mode_drive: 'ஓட்டுதல்', mode_transit: 'பேருந்து / எம்ஆர்டி', mode_cycle: 'சைக்கிள்', mode_walk: 'நடை',
     get_directions: 'வழிகளைப் பெறுக', start_navigation: '▶️ வழிகாட்டலைத் தொடங்கு',
@@ -1856,9 +1857,9 @@ const I18N = {
     guided_walk_title: '🚶 ガイドウォーク', guided_walk_explore: '🧭 探索する',
     tix_tours_title: '🎟️ チケット＆ツアー', places_explore: '🧭 探索する', concerts_title: '🎤 コンサート',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
-    set_home: '🏠 ここに滞在しています',
+    set_home: '🏠 ホテル | Airbnb',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
-    quick_home: '🏠 ここに滞在しています',
+    quick_home: '🏠 ホテル | Airbnb', quick_locate: '📍 現在地',
     dir_from_placeholder: '出発地 — 郵便番号、住所、または場所', dir_to_placeholder: '目的地 — 郵便番号、住所、または場所',
     swap: '入れ替え', mode_drive: '車', mode_transit: 'バス / MRT', mode_cycle: '自転車', mode_walk: '徒歩',
     get_directions: 'ルートを取得', start_navigation: '▶️ ナビ開始',
@@ -1888,9 +1889,9 @@ const I18N = {
     guided_walk_title: '🚶 가이드 도보 투어', guided_walk_explore: '🧭 둘러보기',
     tix_tours_title: '🎟️ 티켓 & 투어', places_explore: '🧭 둘러보기', concerts_title: '🎤 콘서트',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
-    set_home: '🏠 여기 머무르고 있어요',
+    set_home: '🏠 호텔 | Airbnb',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
-    quick_home: '🏠 여기 머무르고 있어요',
+    quick_home: '🏠 호텔 | Airbnb', quick_locate: '📍 내 위치',
     dir_from_placeholder: '출발지 — 우편번호, 주소 또는 장소', dir_to_placeholder: '도착지 — 우편번호, 주소 또는 장소',
     swap: '전환', mode_drive: '운전', mode_transit: '버스 / MRT', mode_cycle: '자전거', mode_walk: '도보',
     get_directions: '경로 가져오기', start_navigation: '▶️ 내비게이션 시작',
@@ -2056,22 +2057,27 @@ els.dirToHere.addEventListener('click', () => {
   switchToDirectionsTab();
 });
 
-// ---------- "I am staying here" quick location ----------
-// One tap locates you via GPS, reverse-geocodes it for a readable label,
-// and saves it as your accommodation (hotel, hostel, Airbnb) -- usable
-// afterwards as a one-tap fill of the Directions panel's "From" field.
-// This absorbs the old separate "Where am I" top-bar button's job
-// entirely (that button only ever located you and showed a place card to
-// look at, with no save step) -- there's no more separate "find myself"
-// step before you can set where you're staying, it's one tap.
+// ---------- "Hotel | Airbnb" quick location, and "Where am I" ----------
+// "Hotel | Airbnb": one tap locates you via GPS, reverse-geocodes it for a
+// readable label, and saves it as your accommodation -- usable afterwards
+// as a one-tap fill of the Directions panel's "From" field. Renamed from
+// "I am staying here" (itself renamed from "Home", with the separate
+// "Work" quick location removed entirely -- visitors don't have a work
+// commute to speed up) since a tourist app has no use for either as
+// originally framed.
 //
-// Renamed from "Home" (and the separate "Work" quick location removed
-// entirely -- visitors don't have a work commute to speed up) since a
-// tourist app has no use for either as originally framed. Formerly a
-// generic Home/Work pair sharing one `useQuickLocation(key, label,
-// setter)` helper; now that there's only ever the one of these, the click
-// handler below is just inlined instead of keeping a one-case-only
-// "generic" abstraction around.
+// "Where am I": sits next to it in the Directions quick-access row and is
+// a plain one-off locate -- GPS + reverse-geocode straight into the "From"
+// field, nothing saved. This used to be a top-bar button with its own job
+// folded into "Hotel | Airbnb" (formerly "I am staying here") for a
+// while, on the idea that locating and saving where you're staying could
+// just be the same tap -- but that meant there was no way to use your
+// LIVE position as a directions start point once accommodation was
+// already saved (quickHomeBtn's second click just re-fills from the saved
+// address, not a fresh GPS fix), and no way to get your position at all
+// without it being saved as your accommodation. Bringing this back as its
+// own button, right where it's actually useful (above the From/To
+// fields), fixes both without touching "Hotel | Airbnb"'s save behaviour.
 
 const HOME_KEY = 'waypoint_home';
 
@@ -2099,12 +2105,29 @@ function updateQuickButtons() {
   els.quickHomeBtn.title = home ? `Start from ${home.label}` : 'Not set yet — tap to locate and save where you\'re staying';
 }
 
-// Shared by both "I am staying here" buttons (the place card's and the
+// Reverse-geocodes a GPS fix into a readable label via Nominatim, falling
+// back to raw coordinates if the lookup fails -- shared by both
+// locateAndSaveHome() below and the plain "Where am I" locate further
+// down, so there's exactly one place that knows how to turn a GPS fix
+// into a label.
+async function reverseGeocodeLabel(latitude, longitude) {
+  let label = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data?.display_name) label = shortLabel({ display_name: data.display_name });
+  } catch (err) {
+    console.error(err);
+  }
+  return label;
+}
+
+// Shared by both "Hotel | Airbnb" buttons (the place card's and the
 // Directions quick-access chip's) -- locates the device via GPS,
-// reverse-geocodes it for a readable label (the same approach the old
-// "Where am I" button used), and saves it as the accommodation location.
-// `btn` is whichever button triggered this, so its own label can show a
-// loading state without touching the other one.
+// reverse-geocodes it for a readable label, and saves it as the
+// accommodation location. `btn` is whichever button triggered this, so
+// its own label can show a loading state without touching the other one.
 function locateAndSaveHome(btn) {
   if (!navigator.geolocation) {
     showToast('Geolocation is not supported by your browser.');
@@ -2116,15 +2139,7 @@ function locateAndSaveHome(btn) {
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
       const { latitude, longitude } = pos.coords;
-      let label = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-      try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data?.display_name) label = shortLabel({ display_name: data.display_name });
-      } catch (err) {
-        console.error(err);
-      }
+      const label = await reverseGeocodeLabel(latitude, longitude);
       saveQuickLocation(HOME_KEY, { lat: latitude, lon: longitude, label });
       updateQuickButtons();
       showToast('🏠 Saved!');
@@ -2151,6 +2166,37 @@ els.quickHomeBtn.addEventListener('click', () => {
   }
   setFrom(loc);
   switchToDirectionsTab();
+});
+
+// "Where am I": a plain one-off locate straight into the Directions "From"
+// field -- GPS + reverse-geocode, nothing saved, no accommodation touched.
+// Always uses a fresh GPS fix (unlike quickHomeBtn once a home IS saved,
+// which just re-fills from that saved address without re-locating).
+els.quickLocateBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.');
+    return;
+  }
+  const btn = els.quickLocateBtn;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '📍 …';
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      const label = await reverseGeocodeLabel(latitude, longitude);
+      setFrom({ lat: latitude, lon: longitude, label });
+      btn.disabled = false;
+      btn.textContent = originalText;
+    },
+    (err) => {
+      console.error('where-am-i geolocation error:', err);
+      showToast(geoErrorMessage(err));
+      btn.disabled = false;
+      btn.textContent = originalText;
+    },
+    GEO_OPTIONS
+  );
 });
 
 // ---------- "My Parked Car" — remember where you left it ----------
@@ -5215,8 +5261,10 @@ renderFavourites();
 updateQuickButtons();
 
 // The old top-bar "Where am I" button (and its locate-then-show-a-place-card
-// flow) lived here. It's gone -- "I am staying here" (further up this file)
-// now does the locating itself, in the same tap that saves it.
+// flow) used to live here. It's gone for good as a top-bar icon -- a plain
+// one-off locate now lives instead as its own button in the Directions
+// quick-access row (see "Where am I" further up this file), alongside
+// "Hotel | Airbnb" rather than in the top bar.
 
 // ---------- Safety Center (SOS + Contacts + Scam Checker + Hotlines) ----------
 // The SOS icon opens a 4-tab sheet instead of a single send screen:
