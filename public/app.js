@@ -978,7 +978,7 @@ const LANDMARKS = {
   gardensbythebay: { label: 'Gardens by the Bay', address: '18 Marina Gardens Dr, Singapore 018953', lat: 1.28160, lon: 103.86360 },
   sentosa: { label: 'Sentosa Island', address: 'Sentosa Gateway, Singapore', lat: 1.24940, lon: 103.83030 },
   uss: { label: 'Universal Studios Singapore', address: '8 Sentosa Gateway, Singapore 098269', lat: 1.25400, lon: 103.82380 },
-  seaaquarium: { label: 'S.E.A. Aquarium', address: '8 Sentosa Gateway, Singapore 098269', lat: 1.25780, lon: 103.82030 },
+  seaaquarium: { label: 'Singapore Oceanarium', address: '8 Sentosa Gateway, Singapore 098269', lat: 1.25780, lon: 103.82030 },
   jewelchangi: { label: 'Jewel Changi Airport', address: '78 Airport Blvd, Singapore 819666', lat: 1.36030, lon: 103.98950 },
   // The airport itself (terminals), distinct from Jewel — this points at the
   // Aerodrome Reference Point roughly centred between T1-T4, a reasonable
@@ -1154,14 +1154,14 @@ const DISTRICT_COVERAGE = {
 // countries (Korea, Japan) slip in — this replaces every entry with a
 // manually verified link.
 const TICKET_LINKS = {
-  mbs: 'https://www.kkday.com/en-sg/product/productlist/Marina%20Bay%20Sands%20SkyPark?destination=D-SG-4608&keyword=Marina%20Bay%20Sands%20SkyPark&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=MarinaBaySands',
-  uss: 'https://www.kkday.com/en-sg/product/productlist/Universal%20Studios%20Singapore?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Universal%20Studios%20Singapore&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=UniversalStudios',
-  gardensbythebay: 'https://www.kkday.com/en-sg/product/productlist/Gardens%20by%20the%20Bay?destination=D-SG-4608,D-SG-6801&keyword=Gardens%20by%20the%20Bay&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=GardensByThebay',
-  sgzoo: 'https://www.kkday.com/en-sg/product/productlist/Singapore%20Zoo?destination=D-SG-4608,D-SG-4612,D-SG-6801,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Singapore%20Zoo&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=SingaporeZoo',
-  nightsafari: 'https://www.kkday.com/en-sg/product/productlist/Night%20Safari%20Singapore?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Night%20Safari%20Singapore&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=NightSafari',
-  seaaquarium: 'https://www.kkday.com/en-sg/product/productlist/S.E.A.%20Aquarium?destination=D-SG-4610,D-SG-8491,D-SG-4612,D-SG-6801,D-SG-4609&keyword=S.E.A.%20Aquarium&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=SingaporeOceanarium',
-  riverwonders: 'https://www.kkday.com/en-sg/product/productlist/River%20Wonders%20Singapore?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=River%20Wonders%20Singapore&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=RiverWonders',
-  sgflyer: 'https://www.kkday.com/en-sg/product/productlist/Singapore%20Flyer?destination=D-SG-4608,D-SG-6801,D-SG-4612,D-SG-4610,D-SG-8491,D-SG-4611,D-SG-4609&keyword=Singapore%20Flyer&currency=SGD&sort=prec&page=1&count=10&tab_key=CATEGORY_001,CATEGORY_018&cid=26927&ud1=SingaporeFlyers',
+  mbs: 'https://www.kkday.com/en-sg/product/2843-marina-bay-sands-skypark-observation-deck-ticket-singapore?cid=26927&ud1=MarinaBaySands',
+  uss: 'https://www.kkday.com/en-sg/product/104637-universal-studio-singapore-vip-tour-experience-ticket?cid=26927&ud1=UniversalStudios',
+  gardensbythebay: 'https://www.kkday.com/en-sg/product/3158-gardens-by-the-bay-singapore-ticket?cid=26927&ud1=GardensByThebay',
+  sgzoo: 'https://www.kkday.com/en-sg/product/100148-singapore-zoo-ticket-breakfast-in-the-wild-experience?cid=26927&ud1=SingaporeZoo',
+  nightsafari: 'https://www.kkday.com/en-sg/product/770439?cid=26927&ud1=NightSafari',
+  seaaquarium: 'https://www.kkday.com/en-sg/product/2467-singapore-oceanarium-tickets?cid=26927&ud1=SingaporeOceanarium',
+  riverwonders: 'https://www.kkday.com/en-sg/product/617893?cid=26927&ud1=RiverWonders',
+  sgflyer: 'https://www.kkday.com/en-sg/product/101806-singapore-flyer-beverage-flight-sky-dining?cid=26927&ud1=SingaporeFlyers',
 };
 
 // "Book Online" — mostly KKday's own top-level categories (real affiliate
@@ -1935,7 +1935,7 @@ const CHIP_I18N = {
   gardensbythebay: { en: 'Gardens by the Bay', zh: '滨海湾花园', ms: 'Gardens by the Bay', ta: 'கார்டன்ஸ் பை தி பே', ja: 'ガーデンズ・バイ・ザ・ベイ', ko: '가든스 바이 더 베이' },
   sentosa: { en: 'Sentosa Island', zh: '圣淘沙岛', ms: 'Pulau Sentosa', ta: 'செண்டோசா தீவு', ja: 'セントーサ島', ko: '센토사 섬' },
   uss: { en: 'Universal Studios', zh: '环球影城', ms: 'Universal Studios', ta: 'யுனிவர்சல் ஸ்டுடியோஸ்', ja: 'ユニバーサル・スタジオ', ko: '유니버설 스튜디오' },
-  seaaquarium: { en: 'S.E.A. Aquarium', zh: '星耀水族馆', ms: 'Akuarium S.E.A.', ta: 'எஸ்.இ.ஏ. மீன்காட்சியகம்', ja: 'S.E.A.アクアリウム', ko: 'S.E.A. 아쿠아리움' },
+  seaaquarium: { en: 'Singapore Oceanarium', zh: '新加坡海洋馆', ms: 'Oceanarium Singapura', ta: 'சிங்கப்பூர் ஓஷியனேரியம்', ja: 'シンガポール・オーシャナリウム', ko: '싱가포르 오셔너리움' },
   jewelchangi: { en: 'Jewel Changi', zh: '星耀樟宜', ms: 'Jewel Changi', ta: 'ஜூவல் சாங்கி', ja: 'ジュエル・チャンギ', ko: '주얼 창이' },
   changiairport: { en: 'Changi Airport', zh: '樟宜机场', ms: 'Lapangan Terbang Changi', ta: 'சாங்கி விமான நிலையம்', ja: 'チャンギ空港', ko: '창이공항' },
   merlionpark: { en: 'Merlion Park', zh: '鱼尾狮公园', ms: 'Taman Merlion', ta: 'மெர்லயன் பூங்கா', ja: 'マーライオン公園', ko: '멀라이언 파크' },
