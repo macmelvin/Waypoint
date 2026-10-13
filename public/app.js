@@ -1190,7 +1190,7 @@ const TICKET_LINKS = {
 // a visitor can book (and often reuse an existing Hertz account/status) the
 // same way they would back home.
 //
-// "avengedsevenfold" through "jaychou" (9 keys below) used to be standalone
+// "gunsnroses" through "jaychou" (8 keys below) used to be standalone
 // chips in the Book Online row. Melvin asked (5 Oct 2026) to fold all the
 // one-off concert chips into a single "Concerts" tab instead, grouped by
 // venue alongside that venue's transit guide (see index.html's
@@ -1207,15 +1207,7 @@ const TICKET_LINKS = {
 // guide itself should stay, it's evergreen reference content independent of
 // any particular show).
 //
-// "avengedsevenfold" is a one-off, time-limited promo chip for a single
-// concert date (13 Oct 2026, Singapore Indoor Stadium -- Avenged Sevenfold's
-// Asia Tour 2026, opened by Nene Royal fresh off her America's Got Talent
-// Season 21 win) rather than an evergreen category. It links straight to the
-// event's own BookMyShow.sg page -- no affiliate deal, same reasoning as the
-// direct SISTIC link for Concerts. REMOVE once 13 Oct 2026 has passed; it
-// has no ongoing relevance after the show.
-//
-// "gunsnroses" is the same kind of one-off promo chip as avengedsevenfold --
+// "gunsnroses" is the same kind of one-off promo chip as the others below --
 // a single concert date (25 Nov 2026, Singapore National Stadium -- Guns N'
 // Roses' World Tour 2026) rather than an evergreen category. Links straight
 // to the event's own Ticketmaster SG listing -- no affiliate deal, same
@@ -1292,7 +1284,6 @@ const BOOK_ONLINE_LINKS = {
   accommodation: 'https://www.trip.com/t/RqV5cn2vNW2',
   simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
   carrental: 'https://www.hertz.com.sg/sg/en',
-  avengedsevenfold: 'https://bookmyshow.sg/en/events/avenged-sevenfold-asia-tour-2026/AVSEVENF',
   gunsnroses: 'https://ticketmaster.sg/activity/detail/26sg_gunsnroses',
   bts: 'https://ticketmaster.sg/activity/detail/26sg_bts',
   bigbang: 'https://ticketmaster.sg/activity/detail/26sg_bigbang2026',
@@ -1991,7 +1982,6 @@ const CHIP_I18N = {
   accommodation: { en: 'Accommodation', zh: '住宿', ms: 'Penginapan', ta: 'தங்குமிடம்', ja: '宿泊', ko: '숙박' },
   simcards: { en: 'SIM & eSIM', zh: 'Wi-Fi与SIM卡', ms: 'Wi-Fi & Kad SIM', ta: 'வைஃபை & சிம் கார்டுகள்', ja: 'Wi-Fi＆SIMカード', ko: '와이파이 & 유심' },
   carrental: { en: 'Car Rental', zh: '租车', ms: 'Sewa Kereta', ta: 'கார் வாடகை', ja: 'レンタカー', ko: '렌터카' },
-  avengedsevenfold: { en: 'Avenged Sevenfold ft. Nene Royal', zh: 'Avenged Sevenfold ft. Nene Royal', ms: 'Avenged Sevenfold ft. Nene Royal', ta: 'Avenged Sevenfold ft. Nene Royal', ja: 'アヴェンジド・セヴンフォールド feat. ネネ・ロイヤル', ko: '어벤지드 세븐폴드 feat. 네네 로열' },
   gunsnroses: { en: "Guns N' Roses", zh: "Guns N' Roses", ms: "Guns N' Roses", ta: "Guns N' Roses", ja: 'ガンズ・アンド・ローゼズ', ko: '건즈 앤드 로지즈' },
   bts: { en: 'BTS', zh: 'BTS', ms: 'BTS', ta: 'BTS', ja: 'BTS', ko: 'BTS' },
   bigbang: { en: 'BIGBANG', zh: 'BIGBANG', ms: 'BIGBANG', ta: 'BIGBANG', ja: 'BIGBANG', ko: '빅뱅' },
