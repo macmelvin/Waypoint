@@ -1172,16 +1172,6 @@ const TICKET_LINKS = {
 // and "Souvenirs" from KKday's own category list aren't included — no link
 // was given for those yet.
 //
-// "sistic" and "ticketmelon" are the exception: neither is an affiliate
-// partner, and upcoming-concert listings change constantly, so rather than
-// maintain our own (inevitably stale) list of shows, these link straight to
-// each platform's own live listings -- same reasoning as the LTA MRT map
-// link. They're two separate chips rather than one combined "Concerts" chip
-// since each is its own site with its own listings -- SISTIC has a
-// browsable Concerts genre page, but Ticketmelon doesn't have an equivalent
-// single category URL (its listings are per-event/per-organizer), so that
-// one links to its homepage instead.
-//
 // "carrental" is the same kind of exception: KKday's own car-rental page is a
 // generic worldwide search landing page with no clear Singapore-specific
 // listing, so rather than send people somewhere that might not even surface
@@ -1198,9 +1188,15 @@ const TICKET_LINKS = {
 // category_concerts/concerts_title translation keys, the venue transit-guide
 // write-ups, the images/concerts/*.jpg photos, and the hideExpiredConcerts()
 // auto-hide logic added for it the day before (14 Oct 2026) -- all gone
-// together rather than left as dead code. "sistic" and "ticketmelon" above
-// are untouched (they're generic ticketing-platform links, not tied to any
-// specific show), and so is every other Book Online entry below.
+// together rather than left as dead code.
+//
+// ALSO REMOVED (same day): the "sistic" and "ticketmelon" chips themselves --
+// these were the two generic ticketing-platform links (SISTIC's Concerts
+// genre page, Ticketmelon's homepage) that survived the Concerts-tab removal
+// above since they weren't tied to any specific show; Melvin asked for them
+// gone too. Also removed their entries in the html.partner-visit hide-list
+// in style.css (they can't be hidden if they no longer exist) and from
+// CHIP_I18N.
 //
 // "ktmbtrain" links to KTMB's own official ticketing website rather than an
 // app, deliberately: KTMB's old "KTMB Mobile" app was discontinued (Dec
@@ -1209,10 +1205,8 @@ const TICKET_LINKS = {
 // online.ktmb.com.my covers the same booking flow (ETS/Intercity, Komuter,
 // and the JB Sentral-Woodlands Shuttle most SG visitors actually want) and
 // works in any mobile browser with no install required. No affiliate deal,
-// same direct-link reasoning as Concerts/Car Rental.
+// same direct-link reasoning as Car Rental above.
 const BOOK_ONLINE_LINKS = {
-  sistic: 'https://www.sistic.com.sg/events?genre=64',
-  ticketmelon: 'https://www.ticketmelon.com/',
   attractiontickets: 'https://www.kkday.com/en-sg/category/sg-singapore/attraction-tickets/list?cid=26927&ud1=BrowseAllTickets',
   daytours: 'https://www.kkday.com/en-sg/category/sg-singapore/day-tours/list?cid=26927&ud1=DayTours',
   cruisevacation: 'https://www.kkday.com/en-sg/category/sg-singapore/cruise-vacation/list?cid=26927&ud1=CruiseVacation',
@@ -1878,8 +1872,6 @@ const CHIP_I18N = {
   tiongbahrumarket: { en: 'Tiong Bahru Market', zh: '中峇鲁市场', ms: 'Pasar Tiong Bahru', ta: 'டியோங் பாரு மார்க்கெட்', ja: 'ティオンバル・マーケット', ko: '티옹바루 마켓' },
   eastcoastlagoon: { en: 'East Coast Lagoon Food Village', zh: '东海岸潟湖美食村', ms: 'Kampung Makanan East Coast Lagoon', ta: 'ஈஸ்ட் கோஸ்ட் லகூன் ஃபுட் வில்லேஜ்', ja: 'イーストコースト・ラグーン・フードビレッジ', ko: '이스트코스트 라군 푸드빌리지' },
   amoystreet: { en: 'Amoy Street Food Centre', zh: '厦门街熟食中心', ms: 'Pusat Penjaja Amoy Street', ta: 'அமோய் ஸ்ட்ரீட் ஃபுட் சென்டர்', ja: 'アモイストリート・フードセンター', ko: '아모이 스트리트 푸드센터' },
-  sistic: { en: 'SISTIC', zh: 'SISTIC', ms: 'SISTIC', ta: 'SISTIC', ja: 'SISTIC', ko: 'SISTIC' },
-  ticketmelon: { en: 'Ticketmelon', zh: 'Ticketmelon', ms: 'Ticketmelon', ta: 'Ticketmelon', ja: 'Ticketmelon', ko: 'Ticketmelon' },
   attractiontickets: { en: 'Browse All Tickets', zh: '景点门票', ms: 'Tiket Tempat Menarik', ta: 'சுற்றுலா டிக்கெட்டுகள்', ja: 'アトラクションチケット', ko: '명소 티켓' },
   daytours: { en: 'Half/Full-day Tours', zh: '半日/全日游', ms: 'Lawatan Separuh/Sehari', ta: 'அரை நாள்/முழு நாள் சுற்றுலா', ja: '半日/日帰りツアー', ko: '반나절/종일 투어' },
   cruisevacation: { en: 'Cruise Vacation', zh: '邮轮假期', ms: 'Percutian Pelayaran', ta: 'கப்பல் பயண விடுமுறை', ja: 'クルーズ休暇', ko: '크루즈 여행' },

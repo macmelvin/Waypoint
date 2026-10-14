@@ -3449,26 +3449,26 @@ body.lens-open { overflow: hidden; }
    <html class="partner-visit"> is set in index.html <head>. Hides exactly:
    More Places + Nearby category tabs, the Split Bill main tab, the Bus
    Times main tab (data-tab="favourites" — nearby live arrivals + saved bus
-   stop favourites), six Book Online chips (SISTIC, Ticketmelon, Cruise
-   Vacation, Ferries, Car Rental, KTMB Train Tickets), and the "Drive"/
-   "Cycle" mode buttons in both Directions (.mode-btn) and Plan Route
-   (.route-mode-btn) -- a partner-placed tourist isn't self-driving or
-   cycling around. The "Bus / MRT" and "Walk" options under both, and the
-   live arrivals panel shown inside a transit itinerary leg, are untouched
-   -- as are every other Book Online chip (Browse All Tickets, Half/Full-day
-   Tours, Airport Transfer, Accommodation, SIM & eSIM). See app.js's
-   isPartnerVisit() check right after rememberPartnerRef() for the matching
-   fix to Directions' default selected mode (was "driving", now "transit"
-   for a partner visit) -- otherwise a partner visitor would land on a
-   Directions tab with no mode button showing as selected.
+   stop favourites), four Book Online chips (Cruise Vacation, Ferries, Car
+   Rental, KTMB Train Tickets), and the "Drive"/"Cycle" mode buttons in both
+   Directions (.mode-btn) and Plan Route (.route-mode-btn) -- a
+   partner-placed tourist isn't self-driving or cycling around. The
+   "Bus / MRT" and "Walk" options under both, and the live arrivals panel
+   shown inside a transit itinerary leg, are untouched -- as are every other
+   Book Online chip (Browse All Tickets, Half/Full-day Tours, Airport
+   Transfer, Accommodation, SIM & eSIM). (SISTIC and Ticketmelon used to be
+   in this hide-list too, but both chips were removed from the app entirely
+   on 14 Oct 2026, so there's nothing left here to hide for them.) See
+   app.js's isPartnerVisit() check right after rememberPartnerRef() for the
+   matching fix to Directions' default selected mode (was "driving", now
+   "transit" for a partner visit) -- otherwise a partner visitor would land
+   on a Directions tab with no mode button showing as selected.
    display:none keeps the elements in the DOM so handlers/tracking still
    work; the remaining flex tabs/chips/buttons simply share the freed width. */
 html.partner-visit .tab-btn[data-tab="splitbill"],
 html.partner-visit .tab-btn[data-tab="favourites"],
 html.partner-visit .category-group-tab[data-group="places"],
 html.partner-visit .category-group-tab[data-group="nearby"],
-html.partner-visit .category-chip[data-category="sistic"],
-html.partner-visit .category-chip[data-category="ticketmelon"],
 html.partner-visit .category-chip[data-category="cruisevacation"],
 html.partner-visit .category-chip[data-category="ferries"],
 html.partner-visit .category-chip[data-category="carrental"],
