@@ -1200,12 +1200,21 @@ const TICKET_LINKS = {
 // translated label, so it survives language switches untouched). These
 // entries and their CHIP_I18N labels are otherwise unchanged -- the generic
 // .category-chip click handler and i18n machinery don't care where in the
-// DOM a chip lives. When a show's date passes, REMOVE: its entry here, its
-// CHIP_I18N entry, and its whole ".concert-show-row" div in index.html (its
-// parent ".concert-show-list" can stay empty-ish or be removed too if a
-// venue card ends up with no more upcoming shows -- the venue's transit
-// guide itself should stay, it's evergreen reference content independent of
-// any particular show).
+// DOM a chip lives.
+//
+// UPDATE (14 Oct 2026): each ".concert-show-row" now also carries a
+// "data-end-date" (YYYY-MM-DD, the show's last date) and hideExpiredConcerts()
+// below hides it automatically once that date has passed in Singapore time --
+// no more manual "remove this chip the day after the show" patches needed
+// (that's what happened with Avenged Sevenfold: removed by hand once its
+// 13 Oct 2026 show had passed). A venue card auto-hides too once every show
+// under it is gone, and the whole Concerts tab/section auto-hides if nothing
+// is left anywhere (its transit-guide prose stays with its venue card, so it
+// only disappears along with the card, not separately). The BOOK_ONLINE_LINKS
+// and CHIP_I18N entries below are NOT auto-deleted (a hidden chip just can't
+// be tapped) -- they're still worth tidying up occasionally since dead
+// entries here are harmless but do accumulate; when adding a NEW show, always
+// add a "data-end-date" to its row in index.html or it will never auto-hide.
 //
 // "gunsnroses" is the same kind of one-off promo chip as the others below --
 // a single concert date (25 Nov 2026, Singapore National Stadium -- Guns N'
@@ -1329,6 +1338,57 @@ function tagAffiliateUrl(url) {
   }
 }
 
+// Auto-hides concert/show listings once their last date has passed, so
+// nobody has to remember to manually delete a ".concert-show-row" (and its
+// venue card, and the whole Concerts tab) the way Avenged Sevenfold's chip
+// had to be removed by hand once its show was over. Compares against
+// Singapore's own calendar date (not the visitor's device timezone) since
+// these are all Singapore shows -- a tourist browsing from a few hours
+// ahead/behind shouldn't see a show flicker hidden/visible a day early or
+// late relative to the city it's actually happening in. A show stays visible
+// through its own last listed date and disappears starting the next day.
+function singaporeTodayISO() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date());
+}
+
+function hideExpiredConcerts() {
+  const todayISO = singaporeTodayISO();
+  document.querySelectorAll('.concert-show-row[data-end-date]').forEach((row) => {
+    const endDate = row.getAttribute('data-end-date');
+    if (endDate && endDate < todayISO) row.classList.add('hidden');
+  });
+  // A venue card (and the TBD list) auto-hides once every show under it is
+  // gone -- but only once it actually HAD shows to begin with, so an empty
+  // card never gets mistakenly hidden/un-hidden by this check.
+  document.querySelectorAll('.concert-venue-card, .concert-show-list-tbd').forEach((group) => {
+    const rows = group.querySelectorAll('.concert-show-row');
+    if (rows.length === 0) return;
+    const anyVisible = Array.from(rows).some((row) => !row.classList.contains('hidden'));
+    group.classList.toggle('hidden', !anyVisible);
+  });
+  // If literally nothing is left anywhere, hide the Concerts tab/section
+  // entirely rather than leaving an empty tab a tourist could tap into.
+  const concertsSection = document.getElementById('concertsSection');
+  if (concertsSection) {
+    const anyGroupVisible = Array.from(
+      concertsSection.querySelectorAll('.concert-venue-card, .concert-show-list-tbd')
+    ).some((group) => !group.classList.contains('hidden'));
+    const concertsTab = document.querySelector('.category-group-tab[data-group="concerts"]');
+    if (!anyGroupVisible) {
+      if (concertsTab) concertsTab.classList.add('hidden');
+      // If Concerts happened to be the active tab when it emptied out,
+      // fall back to Nearby so the user isn't left on a blank screen.
+      if (concertsTab && concertsTab.classList.contains('active')) {
+        const fallbackTab = document.querySelector('.category-group-tab[data-group="nearby"]');
+        if (fallbackTab) fallbackTab.click();
+      }
+    } else if (concertsTab) {
+      concertsTab.classList.remove('hidden');
+    }
+  }
+}
+hideExpiredConcerts();
+
 // Category rows switched via tabs (Nearby / More Places / Tickets & Tours /
 // Gourmet Food) instead of stacking all four rows at once — with four
 // categories now, showing every row simultaneously pushed the actual search
@@ -1377,6 +1437,14 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
     // Must-Eats/Guided Walk/Tix & Tours above.
     const concertsSection = document.getElementById('concertsSection');
     if (concertsSection) concertsSection.classList.toggle('hidden', group !== 'concerts');
+    // Re-check for newly-expired shows every time someone opens the
+    // Concerts tab -- the app is a PWA that can stay open across midnight
+    // on a multi-day trip, so this catches a show that passed since the
+    // page was last loaded without needing a full reload. (Switching away
+    // from "concerts" below still re-applies the tab's own "hidden" class
+    // right after, since this only ever hides things further, never shows
+    // the section when it isn't the active tab.)
+    if (group === 'concerts') hideExpiredConcerts();
   });
 });
 

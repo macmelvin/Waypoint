@@ -1119,6 +1119,7 @@ a:active {
   white-space: nowrap;
 }
 .category-group-tab.active { border-color: var(--accent); background: var(--accent); color: #fff; box-shadow: var(--shadow-1); }
+.category-group-tab.hidden { display: none; }
 .category-row {
   display: flex;
   gap: 8px;
@@ -1378,6 +1379,11 @@ a:active {
 }
 .concert-show-row .category-chip-icon { font-size: 15px; height: auto; line-height: 1; }
 .concert-show-date { font-size: 11px; color: var(--muted); }
+/* Auto-hidden by hideExpiredConcerts() in app.js once a show's data-end-date
+   (or, for a venue card / the TBD list, every show under it) has passed. */
+.concert-show-row.hidden,
+.concert-venue-card.hidden,
+.concert-show-list-tbd.hidden { display: none; }
 
 /* Show rows with a tour photo (Melvin-supplied, from the show's own official
    ticketing/promo listing) render as a small card -- photo on top, chip +
