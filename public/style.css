@@ -1119,7 +1119,6 @@ a:active {
   white-space: nowrap;
 }
 .category-group-tab.active { border-color: var(--accent); background: var(--accent); color: #fff; box-shadow: var(--shadow-1); }
-.category-group-tab.hidden { display: none; }
 .category-row {
   display: flex;
   gap: 8px;
@@ -1330,101 +1329,6 @@ a:active {
 .guide-feedback-submit.hidden,
 .guide-feedback-textarea.hidden,
 .guide-feedback-error.hidden { display: none; }
-
-/* ---- Concerts (venue transit guides, grouped shows) ---- */
-.concerts-note { font-size: 12px; color: var(--muted); margin: 0 0 10px; line-height: 1.4; }
-.concert-venue-card {
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-1);
-  margin: 0 0 10px;
-}
-.concert-venue-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-  list-style: none;
-  padding: 12px 14px;
-  font-size: 14px;
-  font-weight: 700;
-}
-.concert-venue-toggle::-webkit-details-marker { display: none; }
-.concert-venue-toggle::marker { content: ''; }
-.concert-venue-toggle::after {
-  content: '▾';
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--muted);
-  transition: transform 0.2s ease;
-}
-.concert-venue-card[open] .concert-venue-toggle::after { transform: rotate(-180deg); }
-.concert-venue-body { padding: 0 14px 14px; font-size: 13px; line-height: 1.45; }
-.concert-venue-body p { margin: 0 0 8px; }
-.concert-src { font-size: 11px; color: var(--muted); }
-.concert-src a { color: inherit; text-decoration: underline; }
-.concert-show-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.concert-show-list-tbd { margin: 0 0 10px; }
-.concert-show-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-/* These chips sit in a one-per-line list next to their date rather than in a
-   horizontally-scrolling row, so lay them out icon-beside-text (not the
-   icon-above-text column the default .category-chip uses for scroll rows). */
-.concert-show-row .category-chip {
-  flex-direction: row;
-  min-width: 0;
-  padding: 6px 10px;
-  gap: 5px;
-}
-.concert-show-row .category-chip-icon { font-size: 15px; height: auto; line-height: 1; }
-.concert-show-date { font-size: 11px; color: var(--muted); }
-/* Auto-hidden by hideExpiredConcerts() in app.js once a show's data-end-date
-   (or, for a venue card / the TBD list, every show under it) has passed. */
-.concert-show-row.hidden,
-.concert-venue-card.hidden,
-.concert-show-list-tbd.hidden { display: none; }
-
-/* Show rows with a tour photo (Melvin-supplied, from the show's own official
-   ticketing/promo listing) render as a small card -- photo on top, chip +
-   date below -- instead of the plain icon-pill layout above (still used for
-   "concert-show-list-tbd" entries with no photo yet, e.g. Jay Chou). */
-.concert-show-card {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-elevated);
-  overflow: hidden;
-  cursor: pointer; /* the whole card opens the ticket link, not just the chip */
-}
-@media (hover: hover) and (pointer: fine) {
-  .concert-show-card:hover { border-color: var(--accent); }
-}
-.concert-show-photo {
-  width: 100%;
-  aspect-ratio: 2.3 / 1;
-  object-fit: cover;
-  display: block;
-  background: var(--surface-secondary);
-}
-.concert-show-card .concert-show-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 8px 10px;
-}
-/* The chip is already inside a bordered photo card, so drop its own
-   border/background/shadow here -- otherwise it reads as a card-in-a-card. */
-.concert-show-card .category-chip {
-  border: none;
-  background: none;
-  padding: 0;
-  box-shadow: none;
-  font-size: 12.5px;
-}
 
 /* ---- 5 Singapore Must-Eats ---- */
 .must-eats-section { margin: 4px 0 14px; }

@@ -1190,88 +1190,17 @@ const TICKET_LINKS = {
 // a visitor can book (and often reuse an existing Hertz account/status) the
 // same way they would back home.
 //
-// "gunsnroses" through "jaychou" (8 keys below) used to be standalone
-// chips in the Book Online row. Melvin asked (5 Oct 2026) to fold all the
-// one-off concert chips into a single "Concerts" tab instead, grouped by
-// venue alongside that venue's transit guide (see index.html's
-// #concertsSection, where each show is a ".concert-show-row" -- a
-// ".category-chip" button carrying the data-category below, plus a plain
-// ".concert-show-date" span next to it that is NOT part of the chip's
-// translated label, so it survives language switches untouched). These
-// entries and their CHIP_I18N labels are otherwise unchanged -- the generic
-// .category-chip click handler and i18n machinery don't care where in the
-// DOM a chip lives.
-//
-// UPDATE (14 Oct 2026): each ".concert-show-row" now also carries a
-// "data-end-date" (YYYY-MM-DD, the show's last date) and hideExpiredConcerts()
-// below hides it automatically once that date has passed in Singapore time --
-// no more manual "remove this chip the day after the show" patches needed
-// (that's what happened with Avenged Sevenfold: removed by hand once its
-// 13 Oct 2026 show had passed). A venue card auto-hides too once every show
-// under it is gone, and the whole Concerts tab/section auto-hides if nothing
-// is left anywhere (its transit-guide prose stays with its venue card, so it
-// only disappears along with the card, not separately). The BOOK_ONLINE_LINKS
-// and CHIP_I18N entries below are NOT auto-deleted (a hidden chip just can't
-// be tapped) -- they're still worth tidying up occasionally since dead
-// entries here are harmless but do accumulate; when adding a NEW show, always
-// add a "data-end-date" to its row in index.html or it will never auto-hide.
-//
-// "gunsnroses" is the same kind of one-off promo chip as the others below --
-// a single concert date (25 Nov 2026, Singapore National Stadium -- Guns N'
-// Roses' World Tour 2026) rather than an evergreen category. Links straight
-// to the event's own Ticketmaster SG listing -- no affiliate deal, same
-// direct-link reasoning as the other one-off show chips. The link strips the
-// Facebook-ad utm_source/utm_medium/utm_campaign/fbclid tracking params that
-// were on the URL Melvin supplied -- those tag a specific FB ad, not
-// Waypoint, so carrying them over would misattribute clicks from the app to
-// that ad campaign. REMOVE once 25 Nov 2026 has passed; it has no ongoing
-// relevance after the show.
-//
-// The next 7 ("bts" through "jaychou") are the same kind of one-off promo
-// chip, all big-demand touring acts Melvin asked to have added at once (Oct
-// 2026). Each links straight to that show's own official ticket listing --
-// no affiliate deal, same reasoning as every other one-off chip above.
-// Ticketing platform and exact dates/venue were verified via local
-// entertainment press before adding (not guessed), since several of these
-// have multiple dates/added shows due to demand:
-//   - "bts": BTS, National Stadium, 17/19/20/22 Dec 2026 -- all 4 dates sold
-//     out already (19 Dec presale queue alone hit 144,000+). Ticketmaster SG.
-//     REMOVE once 22 Dec 2026 has passed.
-//   - "bigbang": BIGBANG "XX: COSMOS" 20th-anniversary tour, National
-//     Stadium -- 17 Oct 2026 sold out in 2hrs (500,000+ in queue), 18 Oct
-//     added as a 2nd night. Ticketmaster SG. REMOVE once 18 Oct 2026 has
-//     passed.
-//   - "mychemicalromance": My Chemical Romance, Singapore Indoor Stadium --
-//     10 Nov 2026 sold out, 11 Nov added as a 2nd night. Sold via SISTIC
-//     (not Ticketmaster) -- confirmed directly on the SISTIC event page.
-//     REMOVE once 11 Nov 2026 has passed.
-//   - "5sos": 5 Seconds of Summer "EVERYONE'S A STAR!" tour, The Star
-//     Theatre -- 16 Nov 2026 sold out, 3 Dec 2026 added as a 2nd date (may
-//     still have tickets as of adding this). Ticketmaster SG. REMOVE once
-//     3 Dec 2026 has passed.
-//   - "nct127": NCT 127 "NEO CITY: THE REDLINE" tour, Singapore Indoor
-//     Stadium, single date 18 Oct 2026. Ticketmaster SG. REMOVE once 18 Oct
-//     2026 has passed.
-//   - "bensonboone": Benson Boone "Wanted Man" tour, The Star Theatre,
-//     single date 2 Nov 2026. Ticketmaster SG. REMOVE once 2 Nov 2026 has
-//     passed.
-//   - "jaychou": Jay Chou "Carnival II" World Tour 2027, 8-10 Jan 2027 (exact
-//     per-night venue split wasn't settled at announcement time). Ticketmaster
-//     SG. REMOVE once 10 Jan 2027 has passed.
-//   - "lany": LANY "soft by LANY" The World Tour, Singapore Indoor Stadium,
-//     single date 4 Nov 2026. Ticketmaster SG. Link strips the FB-ad
-//     utm_medium/utm_source/utm_id/utm_content/utm_term/utm_campaign/fbclid
-//     tracking params Melvin's URL had, same reasoning as gunsnroses. REMOVE
-//     once 4 Nov 2026 has passed.
-//
-// Venue transit guides (National Stadium, Singapore Indoor Stadium, The Star
-// Theatre) sourced from each venue's own official "getting here" page --
-// thekallang.com.sg for the two Sports Hub venues, thestar.sg for Buona
-// Vista -- plus mustsharenews.com for concert-specific crowd tips at
-// National Stadium. Last checked 5 Oct 2026; exact last-train times were
-// deliberately left out since they weren't confirmed on the official pages
-// and can change for big events -- the copy instead points to the SMRT app
-// / LTA MyTransport for same-day accuracy.
+// REMOVED (14 Oct 2026): the one-off concert-show chips (gunsnroses, bts,
+// bigbang, mychemicalromance, 5sos, nct127, bensonboone, jaychou, lany) and
+// the whole "Concerts" tab/venue-card UI in index.html they lived in --
+// Melvin asked for the Concerts feature to come out of the app entirely.
+// That included the per-show BOOK_ONLINE_LINKS/CHIP_I18N entries, the
+// category_concerts/concerts_title translation keys, the venue transit-guide
+// write-ups, the images/concerts/*.jpg photos, and the hideExpiredConcerts()
+// auto-hide logic added for it the day before (14 Oct 2026) -- all gone
+// together rather than left as dead code. "sistic" and "ticketmelon" above
+// are untouched (they're generic ticketing-platform links, not tied to any
+// specific show), and so is every other Book Online entry below.
 //
 // "ktmbtrain" links to KTMB's own official ticketing website rather than an
 // app, deliberately: KTMB's old "KTMB Mobile" app was discontinued (Dec
@@ -1293,15 +1222,6 @@ const BOOK_ONLINE_LINKS = {
   accommodation: 'https://www.trip.com/t/RqV5cn2vNW2',
   simcards: 'https://www.kkday.com/en-sg/category/sg-singapore/wifi-sim-cards/list?cid=26927&ud1=SimCards',
   carrental: 'https://www.hertz.com.sg/sg/en',
-  gunsnroses: 'https://ticketmaster.sg/activity/detail/26sg_gunsnroses',
-  bts: 'https://ticketmaster.sg/activity/detail/26sg_bts',
-  bigbang: 'https://ticketmaster.sg/activity/detail/26sg_bigbang2026',
-  mychemicalromance: 'https://sistic.com.sg/events/chemical0426',
-  '5sos': 'https://ticketmaster.sg/activity/detail/26sg_5sos',
-  nct127: 'https://ticketmaster.sg/activity/detail/26sg_nct127',
-  bensonboone: 'https://ticketmaster.sg/activity/detail/26sg_bensonboone',
-  jaychou: 'https://ticketmaster.sg/activity/detail/27sg_jaychou',
-  lany: 'https://ticketmaster.sg/activity/detail/26sg_lany',
 };
 
 // ---- Travel-agency / distribution-partner referral tagging -------------------
@@ -1338,57 +1258,6 @@ function tagAffiliateUrl(url) {
   }
 }
 
-// Auto-hides concert/show listings once their last date has passed, so
-// nobody has to remember to manually delete a ".concert-show-row" (and its
-// venue card, and the whole Concerts tab) the way Avenged Sevenfold's chip
-// had to be removed by hand once its show was over. Compares against
-// Singapore's own calendar date (not the visitor's device timezone) since
-// these are all Singapore shows -- a tourist browsing from a few hours
-// ahead/behind shouldn't see a show flicker hidden/visible a day early or
-// late relative to the city it's actually happening in. A show stays visible
-// through its own last listed date and disappears starting the next day.
-function singaporeTodayISO() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date());
-}
-
-function hideExpiredConcerts() {
-  const todayISO = singaporeTodayISO();
-  document.querySelectorAll('.concert-show-row[data-end-date]').forEach((row) => {
-    const endDate = row.getAttribute('data-end-date');
-    if (endDate && endDate < todayISO) row.classList.add('hidden');
-  });
-  // A venue card (and the TBD list) auto-hides once every show under it is
-  // gone -- but only once it actually HAD shows to begin with, so an empty
-  // card never gets mistakenly hidden/un-hidden by this check.
-  document.querySelectorAll('.concert-venue-card, .concert-show-list-tbd').forEach((group) => {
-    const rows = group.querySelectorAll('.concert-show-row');
-    if (rows.length === 0) return;
-    const anyVisible = Array.from(rows).some((row) => !row.classList.contains('hidden'));
-    group.classList.toggle('hidden', !anyVisible);
-  });
-  // If literally nothing is left anywhere, hide the Concerts tab/section
-  // entirely rather than leaving an empty tab a tourist could tap into.
-  const concertsSection = document.getElementById('concertsSection');
-  if (concertsSection) {
-    const anyGroupVisible = Array.from(
-      concertsSection.querySelectorAll('.concert-venue-card, .concert-show-list-tbd')
-    ).some((group) => !group.classList.contains('hidden'));
-    const concertsTab = document.querySelector('.category-group-tab[data-group="concerts"]');
-    if (!anyGroupVisible) {
-      if (concertsTab) concertsTab.classList.add('hidden');
-      // If Concerts happened to be the active tab when it emptied out,
-      // fall back to Nearby so the user isn't left on a blank screen.
-      if (concertsTab && concertsTab.classList.contains('active')) {
-        const fallbackTab = document.querySelector('.category-group-tab[data-group="nearby"]');
-        if (fallbackTab) fallbackTab.click();
-      }
-    } else if (concertsTab) {
-      concertsTab.classList.remove('hidden');
-    }
-  }
-}
-hideExpiredConcerts();
-
 // Category rows switched via tabs (Nearby / More Places / Tickets & Tours /
 // Gourmet Food) instead of stacking all four rows at once — with four
 // categories now, showing every row simultaneously pushed the actual search
@@ -1403,7 +1272,7 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
     // Every category group tab is the same kind of invisible-to-Umami
     // in-page switch, not just Guided Walk -- this generic event (group
     // name as event data) lets which group (Must-Eats, Gourmet, Tix &
-    // Tours, Nearby, Places, Concerts, Book Online) gets tapped most be
+    // Tours, Nearby, Places, Book Online) gets tapped most be
     // broken down in Umami, without touching the guided-walk-click metric
     // above that already existed before this.
     if (typeof umami !== 'undefined') umami.track('category-tab-click', { group: tab.dataset.group });
@@ -1431,20 +1300,6 @@ document.querySelectorAll('.category-group-tab').forEach((tab) => {
     // them -- both live under the same "places" tab/group.
     const morePlacesCards = document.getElementById('morePlacesCards');
     if (morePlacesCards) morePlacesCards.classList.toggle('hidden', group !== 'places');
-    // Concerts is also its own tab/section -- all the one-off concert chips
-    // that used to sit in the Book Online row were folded in here, grouped
-    // by venue alongside that venue's transit guide, same reasoning as
-    // Must-Eats/Guided Walk/Tix & Tours above.
-    const concertsSection = document.getElementById('concertsSection');
-    if (concertsSection) concertsSection.classList.toggle('hidden', group !== 'concerts');
-    // Re-check for newly-expired shows every time someone opens the
-    // Concerts tab -- the app is a PWA that can stay open across midnight
-    // on a multi-day trip, so this catches a show that passed since the
-    // page was last loaded without needing a full reload. (Switching away
-    // from "concerts" below still re-applies the tab's own "hidden" class
-    // right after, since this only ever hides things further, never shows
-    // the section when it isn't the active tab.)
-    if (group === 'concerts') hideExpiredConcerts();
   });
 });
 
@@ -1467,22 +1322,6 @@ document.querySelectorAll('.category-chip').forEach((btn) => {
     } else {
       searchNearbyCategory(category);
     }
-  });
-});
-
-// Concerts show cards: the tour photo (and the rest of the card) should be
-// just as tappable as the little chip itself -- without this, only the
-// small icon+name pill at the bottom actually opened the ticket link, which
-// is an easy target to miss on a card whose photo takes up most of the
-// space. Delegates to the chip's own click handler (above) rather than
-// duplicating the BOOK_ONLINE_LINKS/LANDMARKS logic, so this stays correct
-// automatically if that logic ever changes. Skips re-firing when the click
-// already landed on the chip itself (that listener already ran).
-document.querySelectorAll('.concert-show-card').forEach((card) => {
-  card.addEventListener('click', (event) => {
-    if (event.target.closest('.category-chip')) return;
-    const chip = card.querySelector('.category-chip');
-    if (chip) chip.click();
   });
 });
 
@@ -1782,10 +1621,10 @@ const I18N = {
     notify_title: 'Turn on train/traffic/haze alerts',
     offline_banner: "You're offline — showing saved places & last-known data. Search, routing and live arrivals need a connection.",
     search_placeholder: 'Enter postal code, address, or place…', clear: 'Clear',
-    category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online', category_concerts: 'Concerts',
+    category_nearby: 'Nearby', category_attractions: 'More Places', category_guidedwalk: 'Guided Walk', category_tickets: 'Tix & Tours', category_gourmet: 'Gourmet Food', category_musteats: 'Must-Eats', category_bookonline: 'Book Online',
     must_eats_title: '🇸🇬 5 Singapore Must-Eats', find_nearby: '📍 Find nearby',
     guided_walk_title: '🚶 Guided Walks', guided_walk_subtitle: 'Each walk runs about 3 hours', guided_walk_explore: '🧭 Explore',
-    tix_tours_title: '🎟️ Tix & Tours', places_explore: '🧭 Explore', concerts_title: '🎤 Concerts',
+    tix_tours_title: '🎟️ Tix & Tours', places_explore: '🧭 Explore',
     directions_from_here: 'Directions from here', directions_to_here: 'Directions to here',
     set_home: '🏠 Hotel | Airbnb',
     hint_search: 'Try searching for a landmark, street, or postal code.',
@@ -1815,10 +1654,10 @@ const I18N = {
     notify_title: '开启地铁/交通/雾霾提醒',
     offline_banner: '您已离线 — 显示已保存的地点和最新数据。搜索、路线规划和实时到站信息需要网络连接。',
     search_placeholder: '输入邮区编号、地址或地点…', clear: '清除',
-    category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订', category_concerts: '演唱会',
+    category_nearby: '附近', category_attractions: '更多景点', category_tickets: '门票与观光团', category_gourmet: '特色美食', category_musteats: '必吃美食', category_bookonline: '在线预订',
     must_eats_title: '🇸🇬 5大新加坡必吃美食', find_nearby: '📍 附近寻找',
     guided_walk_title: '🚶 步行导览', guided_walk_subtitle: '每场导览约 3 小时', guided_walk_explore: '🧭 探索',
-    tix_tours_title: '🎟️ 门票与观光团', places_explore: '🧭 探索', concerts_title: '🎤 演唱会',
+    tix_tours_title: '🎟️ 门票与观光团', places_explore: '🧭 探索',
     directions_from_here: '从这里出发', directions_to_here: '前往这里',
     set_home: '🏠 酒店 | Airbnb',
     hint_search: '试试搜索地标、街道或邮区编号。',
@@ -1847,10 +1686,10 @@ const I18N = {
     notify_title: 'Hidupkan makluman keretapi/trafik/jerebu',
     offline_banner: 'Anda di luar talian — memaparkan tempat tersimpan & data terkini. Carian, laluan dan ketibaan langsung memerlukan sambungan internet.',
     search_placeholder: 'Masukkan poskod, alamat, atau tempat…', clear: 'Kosongkan',
-    category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian', category_concerts: 'Konsert',
+    category_nearby: 'Berdekatan', category_attractions: 'Lebih Banyak Tempat', category_tickets: 'Tiket & Lawatan', category_gourmet: 'Makanan Gourmet', category_musteats: 'Makanan Wajib', category_bookonline: 'Tempah Dalam Talian',
     must_eats_title: '🇸🇬 5 Makanan Wajib Singapura', find_nearby: '📍 Cari berdekatan',
     guided_walk_title: '🚶 Lawatan Jalan Kaki Berpandu', guided_walk_subtitle: 'Setiap lawatan mengambil masa lebih kurang 3 jam', guided_walk_explore: '🧭 Terokai',
-    tix_tours_title: '🎟️ Tiket & Lawatan', places_explore: '🧭 Terokai', concerts_title: '🎤 Konsert',
+    tix_tours_title: '🎟️ Tiket & Lawatan', places_explore: '🧭 Terokai',
     directions_from_here: 'Arah dari sini', directions_to_here: 'Arah ke sini',
     set_home: '🏠 Hotel | Airbnb',
     hint_search: 'Cuba cari mercu tanda, jalan, atau poskod.',
@@ -1879,10 +1718,10 @@ const I18N = {
     notify_title: 'ரயில்/போக்குவரத்து/புகைமூட்ட எச்சரிக்கைகளை இயக்கு',
     offline_banner: 'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமிக்கப்பட்ட இடங்கள் மற்றும் சமீபத்திய தரவு காட்டப்படுகிறது. தேடல், வழிகள் மற்றும் நேரலை வருகைக்கு இணைப்பு தேவை.',
     search_placeholder: 'அஞ்சல் குறியீடு, முகவரி அல்லது இடத்தை உள்ளிடவும்…', clear: 'அழி',
-    category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்', category_concerts: 'இசை நிகழ்ச்சிகள்',
+    category_nearby: 'அருகில்', category_attractions: 'மேலும் இடங்கள்', category_tickets: 'டிக்கெட் மற்றும் சுற்றுலாக்கள்', category_gourmet: 'ருசிகரமான உணவு', category_musteats: 'அவசிய உணவுகள்', category_bookonline: 'ஆன்லைனில் முன்பதிவு செய்யுங்கள்',
     must_eats_title: '🇸🇬 சிங்கப்பூரின் 5 அவசிய உணவுகள்', find_nearby: '📍 அருகில் தேடு',
     guided_walk_title: '🚶 வழிகாட்டப்பட்ட நடைப் பயணங்கள்', guided_walk_subtitle: 'ஒவ்வொரு நடைப் பயணமும் சுமார் 3 மணிநேரம் நீடிக்கும்', guided_walk_explore: '🧭 ஆராயுங்கள்',
-    tix_tours_title: '🎟️ டிக்கெட் மற்றும் சுற்றுலாக்கள்', places_explore: '🧭 ஆராயுங்கள்', concerts_title: '🎤 இசை நிகழ்ச்சிகள்',
+    tix_tours_title: '🎟️ டிக்கெட் மற்றும் சுற்றுலாக்கள்', places_explore: '🧭 ஆராயுங்கள்',
     directions_from_here: 'இங்கிருந்து வழிகள்', directions_to_here: 'இங்கு வழிகள்',
     set_home: '🏠 ஹோட்டல் | Airbnb',
     hint_search: 'ஒரு அடையாளம், தெரு அல்லது அஞ்சல் குறியீட்டைத் தேடிப் பாருங்கள்.',
@@ -1911,10 +1750,10 @@ const I18N = {
     notify_title: '電車・交通・ヘイズ情報の通知をオンにする',
     offline_banner: 'オフラインです — 保存された場所と最新データを表示しています。検索、ルート案内、リアルタイム到着情報には接続が必要です。',
     search_placeholder: '郵便番号、住所、または場所を入力…', clear: 'クリア',
-    category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約', category_concerts: 'コンサート',
+    category_nearby: '近く', category_attractions: 'その他のスポット', category_tickets: 'チケット＆ツアー', category_gourmet: 'グルメ', category_musteats: '必食グルメ', category_bookonline: 'オンライン予約',
     must_eats_title: '🇸🇬 シンガポール必食5選', find_nearby: '📍 近くを探す',
     guided_walk_title: '🚶 ガイドウォーク', guided_walk_subtitle: '各ツアーは約3時間です', guided_walk_explore: '🧭 探索する',
-    tix_tours_title: '🎟️ チケット＆ツアー', places_explore: '🧭 探索する', concerts_title: '🎤 コンサート',
+    tix_tours_title: '🎟️ チケット＆ツアー', places_explore: '🧭 探索する',
     directions_from_here: 'ここから出発', directions_to_here: 'ここへ向かう',
     set_home: '🏠 ホテル | Airbnb',
     hint_search: 'ランドマーク、通り、または郵便番号で検索してみてください。',
@@ -1943,10 +1782,10 @@ const I18N = {
     notify_title: '열차/교통/실안개 알림 켜기',
     offline_banner: '오프라인 상태입니다 — 저장된 장소와 최신 데이터를 표시하고 있습니다. 검색, 경로 안내, 실시간 도착 정보에는 인터넷 연결이 필요합니다.',
     search_placeholder: '우편번호, 주소 또는 장소를 입력하세요…', clear: '지우기',
-    category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약', category_concerts: '콘서트',
+    category_nearby: '주변', category_attractions: '더 많은 장소', category_tickets: '티켓 & 투어', category_gourmet: '맛집', category_musteats: '필수 음식', category_bookonline: '온라인 예약',
     must_eats_title: '🇸🇬 싱가포르 필수 음식 5', find_nearby: '📍 근처에서 찾기',
     guided_walk_title: '🚶 가이드 도보 투어', guided_walk_subtitle: '각 투어는 약 3시간 소요됩니다', guided_walk_explore: '🧭 둘러보기',
-    tix_tours_title: '🎟️ 티켓 & 투어', places_explore: '🧭 둘러보기', concerts_title: '🎤 콘서트',
+    tix_tours_title: '🎟️ 티켓 & 투어', places_explore: '🧭 둘러보기',
     directions_from_here: '여기서 출발', directions_to_here: '여기로 가기',
     set_home: '🏠 호텔 | Airbnb',
     hint_search: '랜드마크, 거리 또는 우편번호로 검색해 보세요.',
@@ -2050,15 +1889,6 @@ const CHIP_I18N = {
   accommodation: { en: 'Accommodation', zh: '住宿', ms: 'Penginapan', ta: 'தங்குமிடம்', ja: '宿泊', ko: '숙박' },
   simcards: { en: 'SIM & eSIM', zh: 'Wi-Fi与SIM卡', ms: 'Wi-Fi & Kad SIM', ta: 'வைஃபை & சிம் கார்டுகள்', ja: 'Wi-Fi＆SIMカード', ko: '와이파이 & 유심' },
   carrental: { en: 'Car Rental', zh: '租车', ms: 'Sewa Kereta', ta: 'கார் வாடகை', ja: 'レンタカー', ko: '렌터카' },
-  gunsnroses: { en: "Guns N' Roses", zh: "Guns N' Roses", ms: "Guns N' Roses", ta: "Guns N' Roses", ja: 'ガンズ・アンド・ローゼズ', ko: '건즈 앤드 로지즈' },
-  bts: { en: 'BTS', zh: 'BTS', ms: 'BTS', ta: 'BTS', ja: 'BTS', ko: 'BTS' },
-  bigbang: { en: 'BIGBANG', zh: 'BIGBANG', ms: 'BIGBANG', ta: 'BIGBANG', ja: 'BIGBANG', ko: '빅뱅' },
-  mychemicalromance: { en: 'My Chemical Romance', zh: 'My Chemical Romance', ms: 'My Chemical Romance', ta: 'My Chemical Romance', ja: 'マイ・ケミカル・ロマンス', ko: '마이 케미컬 로맨스' },
-  '5sos': { en: '5 Seconds of Summer', zh: '5 Seconds of Summer', ms: '5 Seconds of Summer', ta: '5 Seconds of Summer', ja: '5 Seconds of Summer', ko: '5 Seconds of Summer' },
-  nct127: { en: 'NCT 127', zh: 'NCT 127', ms: 'NCT 127', ta: 'NCT 127', ja: 'NCT 127', ko: 'NCT 127' },
-  bensonboone: { en: 'Benson Boone', zh: 'Benson Boone', ms: 'Benson Boone', ta: 'Benson Boone', ja: 'Benson Boone', ko: 'Benson Boone' },
-  jaychou: { en: 'Jay Chou', zh: '周杰伦', ms: 'Jay Chou', ta: 'Jay Chou', ja: 'Jay Chou', ko: 'Jay Chou' },
-  lany: { en: 'LANY', zh: 'LANY', ms: 'LANY', ta: 'LANY', ja: 'LANY', ko: 'LANY' },
 };
 
 function t(key) {
