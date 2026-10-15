@@ -6798,7 +6798,7 @@ function renderPsiScale(value) {
 // MOH's actual mask guidance is threshold-matched to.
 const PM25_BANDS = [
   { max: 55, range: '0-55', label: 'Normal', color: '2E7D32', advice: 'Air is clear — no impact on visibility.' },
-  { max: 150, range: '56-150', label: 'Elevated', color: 'F9A825', advice: 'Noticeably hazier than a clear day.' },
+  { max: 150, range: '56-150', label: 'Elevated', color: 'F9A825', advice: 'Noticeably hazier than a clear day.', pulse: true },
   { max: 250, range: '151-250', label: 'High', color: 'EF6C00', advice: 'Haze is heavy, with reduced visibility.', pulse: true },
   { max: Infinity, range: '251+', label: 'Very High', color: 'C62828', advice: 'Haze is severe — the worst band NEA tracks for PM2.5.', pulse: true },
 ];
@@ -6809,10 +6809,11 @@ function renderPm25Scale(value) {
     const prevMax = i === 0 ? -Infinity : PM25_BANDS[i - 1].max;
     const isCurrent = value != null && value > prevMax && value <= band.max;
     if (isCurrent) currentBand = band;
-    // Same "High"-or-worse pulse treatment as PSI above (see renderPsiScale) --
-    // PM2.5's own two worst bands (High/Very High) are the ones that call for
-    // cutting outdoor activity, so they get the same urgent glow instead of
-    // the plain white "you are here" ring that Normal/Elevated keep.
+    // Elevated-or-worse pulse treatment (Melvin asked for Elevated to pulse
+    // too, not just High/Very High -- unlike PSI's Moderate, which stays
+    // static) -- PM2.5's three worse-than-Normal bands all get the same
+    // urgent glow instead of the plain white "you are here" ring that only
+    // Normal keeps.
     const pulseClass = isCurrent && band.pulse ? ' pulse' : '';
     return `<div class="uv-scale-band${isCurrent ? ' current' : ''}${pulseClass}" style="background:#${band.color}">`
       + `<span class="uv-scale-range">${band.range}</span>`
